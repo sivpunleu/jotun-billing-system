@@ -129,7 +129,12 @@ onMounted(loadInvoice)
           <p>លេខទូរស័ព្ទ | Phone: 068 888 870</p>
         </div>
         <div class="classic-jotun-block">
-          <img class="classic-jotun-logo" :src="jotunLogo" alt="Jotun" />
+          <img
+            class="classic-jotun-logo d-none d-md-block"
+            :src="jotunLogo"
+            alt="Jotun"
+            style="width: 150px; height: 50px"
+          />
         </div>
       </header>
 

@@ -72,12 +72,12 @@ textarea {
 }
 
 .navbar-marvel-logo {
-  width: 180px;
+  width: 200px !important;
 }
 
 .navbar-jotun-logo {
   width: 120px;
-  height: 48px !important;
+  height: 50px !important;
   border: 1px solid rgba(7, 27, 58, 0.12);
 }
 
@@ -502,7 +502,7 @@ textarea {
 .classic-header {
   display: grid;
   grid-template-columns: 205px minmax(0, 1fr) 190px;
-  align-items: center;
+  align-items: start;
   gap: 12px;
   min-height: 166px;
   text-align: center;
@@ -558,7 +558,8 @@ textarea {
 
 .company-copy {
   width: 100%;
-  padding-top: 2px;
+  align-self: start;
+  padding-top: 0;
 }
 
 .company-copy h1 {
