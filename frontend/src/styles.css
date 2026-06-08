@@ -512,6 +512,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
+  transform: translateY(-9px);
 }
 
 .classic-brand-block {
@@ -549,7 +550,7 @@ textarea {
 }
 
 .classic-jotun-logo {
-  width: 190px;
+  width: 218px;
   height: auto;
 }
 
@@ -899,7 +900,7 @@ textarea {
   }
 
   .classic-jotun-logo {
-    width: 105px;
+    width: 118px;
   }
 
   .company-copy {
