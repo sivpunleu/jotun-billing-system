@@ -1,0 +1,1103 @@
+@import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --navy: #071b3a;
+  --navy-light: #16345f;
+  --red: #dc2635;
+  --red-dark: #b91f2b;
+  --blue: #188ac2;
+  --yellow: #f6c515;
+  --ink: #1a2940;
+  --muted: #68778c;
+  --line: #e4e9f0;
+  --surface: #ffffff;
+  --background: #f3f5f8;
+  --shadow: 0 12px 35px rgba(7, 27, 58, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(24, 138, 194, 0.08), transparent 26rem),
+    var(--background);
+  font-family: 'Manrope', 'Battambang', sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+}
+
+.app-header {
+  position: sticky;
+  z-index: 100;
+  top: 0;
+  border-bottom: 1px solid rgba(7, 27, 58, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.app-header .navbar {
+  min-height: 78px;
+}
+
+.brand-logos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-brand img {
+  display: block;
+  height: 44px;
+  object-fit: contain;
+}
+
+.navbar-marvel-logo {
+  width: 180px;
+}
+
+.navbar-jotun-logo {
+  width: 112px;
+  border: 1px solid rgba(7, 27, 58, 0.12);
+}
+
+.nav-link {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.nav-link.router-link-active {
+  color: var(--red);
+}
+
+.btn {
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.btn-danger {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+  border-color: var(--red-dark);
+  background: var(--red-dark);
+}
+
+.app-footer {
+  padding: 20px 0;
+  color: #93a1b4;
+  background: var(--navy);
+  font-size: 0.82rem;
+}
+
+.page-section {
+  padding-top: 52px;
+  padding-bottom: 64px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 34px;
+}
+
+.page-heading.compact {
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.page-heading h1 {
+  margin: 5px 0 8px;
+  color: var(--navy);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.page-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.eyebrow {
+  color: var(--red);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 112px;
+  padding: 22px 24px;
+  border: 1px solid rgba(7, 27, 58, 0.06);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.summary-card span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.summary-card strong {
+  display: block;
+  color: var(--navy);
+  font-size: 1.65rem;
+  font-weight: 800;
+}
+
+.summary-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  place-items: center;
+  border-radius: 15px;
+  font-size: 1.5rem;
+}
+
+.bg-blue-soft {
+  color: var(--blue);
+  background: rgba(24, 138, 194, 0.12);
+}
+
+.bg-yellow-soft {
+  color: #9c7700;
+  background: rgba(246, 197, 21, 0.18);
+}
+
+.content-card {
+  overflow: hidden;
+  border: 1px solid rgba(7, 27, 58, 0.06);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.search-box {
+  position: relative;
+  width: min(100%, 480px);
+}
+
+.search-box i {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 15px;
+  color: var(--muted);
+  transform: translateY(-50%);
+}
+
+.search-box .form-control {
+  padding-left: 42px;
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  min-height: 46px;
+  border-color: #dce3ec;
+  border-radius: 10px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(24, 138, 194, 0.65);
+  box-shadow: 0 0 0 0.22rem rgba(24, 138, 194, 0.12);
+}
+
+.input-group > .form-control,
+.input-group > .form-select {
+  border-radius: 0 10px 10px 0;
+}
+
+.input-group > .form-control:first-child {
+  border-radius: 10px 0 0 10px;
+}
+
+.input-group-text {
+  color: var(--muted);
+  background: #f7f9fb;
+}
+
+.invoice-table th {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  background: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.invoice-table td {
+  padding: 17px 20px;
+  border-color: var(--line);
+}
+
+.invoice-table tbody tr:hover {
+  background: #fbfcfe;
+}
+
+.invoice-number {
+  color: var(--navy);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.invoice-number:hover {
+  color: var(--red);
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-unpaid {
+  color: #a41623;
+  background: #fde9eb;
+}
+
+.status-partial {
+  color: #876300;
+  background: #fff5d3;
+}
+
+.status-paid {
+  color: #08734e;
+  background: #dcf6ec;
+}
+
+.action-button {
+  width: 34px;
+  height: 34px;
+  margin-left: 3px;
+  padding: 0;
+  border: 1px solid var(--line);
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  min-height: 310px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  padding: 40px;
+  text-align: center;
+}
+
+.empty-state h3 {
+  margin: 3px 0 0;
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.empty-state p {
+  color: var(--muted);
+}
+
+.empty-icon {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border-radius: 20px;
+  color: var(--blue);
+  background: rgba(24, 138, 194, 0.1);
+  font-size: 2rem;
+}
+
+.form-card {
+  padding: 26px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.section-title h2,
+.totals-card h2 {
+  margin: 0 0 3px;
+  color: var(--navy);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.section-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.section-number {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--red);
+  background: rgba(220, 38, 53, 0.09);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.form-label {
+  margin-bottom: 7px;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.item-row {
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fafbfd;
+}
+
+.item-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.item-row-heading strong {
+  color: var(--navy);
+  font-size: 0.88rem;
+}
+
+.line-total {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: var(--navy);
+  background: #edf2f7;
+  font-weight: 800;
+}
+
+.totals-card {
+  position: sticky;
+  top: 104px;
+}
+
+.totals-card > h2 {
+  margin-bottom: 22px;
+  font-size: 1.3rem;
+}
+
+.totals-breakdown {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.totals-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  color: var(--muted);
+}
+
+.totals-breakdown strong {
+  color: var(--ink);
+}
+
+.totals-breakdown .grand-total {
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 18px;
+  border-top: 2px solid var(--navy);
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.grand-total strong {
+  color: var(--red);
+  font-size: 1.35rem;
+}
+
+.preview-page {
+  max-width: 980px;
+}
+
+.preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.invoice-paper {
+  min-height: 1120px;
+  padding: 28px 42px 24px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(7, 27, 58, 0.12);
+}
+
+.classic-invoice {
+  color: #111;
+  font-family: 'Battambang', Arial, sans-serif;
+  font-size: 13px;
+}
+
+.classic-header {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 12px;
+  min-height: 166px;
+  text-align: center;
+}
+
+.classic-brand-block,
+.classic-jotun-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.classic-brand-block {
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.classic-logo {
+  width: 105px;
+  height: 105px;
+  flex: 0 0 105px;
+  object-fit: contain;
+}
+
+.classic-brand-copy {
+  min-width: 0;
+}
+
+.classic-brand-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.classic-subtitle {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.classic-jotun-logo {
+  width: 190px;
+  height: auto;
+}
+
+.company-copy {
+  width: 100%;
+  padding-top: 2px;
+}
+
+.company-copy h1 {
+  margin: 0 0 3px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.company-copy p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.invoice-heading {
+  margin: -7px 0 7px;
+  text-align: center;
+}
+
+.invoice-heading h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.classic-customer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  align-items: end;
+  gap: 34px;
+  padding: 0 2px 6px;
+}
+
+.customer-details,
+.classic-meta {
+  display: grid;
+  gap: 2px;
+}
+
+.classic-meta {
+  justify-self: end;
+  min-width: 290px;
+}
+
+.invoice-info-row {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: 7px;
+  min-height: 21px;
+  line-height: 1.35;
+}
+
+.invoice-info-row strong {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.invoice-info-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.classic-meta .invoice-info-row {
+  grid-template-columns: max-content minmax(105px, max-content);
+  justify-content: end;
+}
+
+.classic-meta .invoice-info-row span {
+  text-align: left;
+}
+
+.classic-table {
+  width: 100%;
+  table-layout: fixed;
+  border: 1.2px solid #333;
+  border-collapse: collapse;
+}
+
+.classic-table th {
+  padding: 5px 7px;
+  border: 1px solid #333;
+  background: #e8e8e8;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.classic-table td {
+  height: 39px;
+  padding: 6px 8px;
+  border: 1px solid #333;
+  vertical-align: top;
+}
+
+.classic-table .number-column {
+  width: 6%;
+}
+
+.classic-table .code-column {
+  width: 13%;
+}
+
+.classic-table .qty-column {
+  width: 8%;
+}
+
+.classic-table .money-column {
+  width: 15%;
+}
+
+.currency-cell {
+  white-space: nowrap;
+}
+
+.currency-cell span,
+.classic-totals td span {
+  float: left;
+}
+
+.currency-cell strong,
+.classic-totals td strong {
+  float: right;
+  font-weight: 500;
+}
+
+.classic-settlement {
+  display: grid;
+  grid-template-columns: 62% 38%;
+  min-height: 226px;
+}
+
+.classic-payment {
+  padding: 10px 10px 0;
+}
+
+.payment-notes {
+  min-height: 54px;
+}
+
+.payment-notes p {
+  margin: 0 0 2px;
+  white-space: pre-line;
+}
+
+.qr-block {
+  width: 160px;
+}
+
+.qr-block p {
+  margin: 3px 0 0;
+}
+
+.qr-block strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.qr-block img {
+  display: block;
+  width: 105px;
+  height: 105px;
+  margin-left: 6px;
+}
+
+.qr-block small {
+  display: block;
+  width: 118px;
+  margin-top: 3px;
+  font-family: Arial, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.classic-totals {
+  width: 100%;
+  align-self: start;
+  border-collapse: collapse;
+}
+
+.classic-totals th,
+.classic-totals td {
+  height: 45px;
+  padding: 4px 8px;
+  border: 1px solid #333;
+  vertical-align: middle;
+}
+
+.classic-totals th {
+  width: 59%;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.classic-totals th span {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+}
+
+.classic-totals td {
+  border-left: 0;
+  font-family: Arial, sans-serif;
+  white-space: nowrap;
+}
+
+.classic-totals td strong {
+  font-weight: 500;
+}
+
+.signature-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 85px;
+  margin: 8px 32px 0;
+}
+
+.signature-box {
+  text-align: center;
+}
+
+.signature-space {
+  display: flex;
+  height: 105px;
+  align-items: center;
+  justify-content: center;
+}
+
+.seller-mark {
+  color: #111;
+  font-family: cursive;
+  font-size: 25px;
+  font-style: italic;
+  transform: rotate(-8deg);
+}
+
+.signature-line {
+  border-top: 1px solid #333;
+}
+
+.signature-box p {
+  margin: 6px 0 0;
+}
+
+.signature-box span {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+.classic-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+  font-family: Arial, 'Battambang', sans-serif;
+  font-size: 13px;
+}
+
+@media screen and (max-width: 991px) {
+  .totals-card {
+    position: static;
+  }
+
+  .invoice-paper {
+    padding: 28px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .brand-logos {
+    gap: 6px;
+  }
+
+  .navbar-brand img {
+    height: 34px;
+  }
+
+  .navbar-marvel-logo {
+    width: 125px;
+  }
+
+  .navbar-jotun-logo {
+    width: 78px;
+  }
+
+  .page-section {
+    padding-top: 30px;
+  }
+
+  .page-heading,
+  .preview-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-heading .btn {
+    align-self: start;
+  }
+
+  .card-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .invoice-paper {
+    min-height: auto;
+    padding: 22px 15px;
+  }
+
+  .classic-invoice {
+    font-size: 10px;
+  }
+
+  .classic-header {
+    grid-template-columns: 118px minmax(0, 1fr) 105px;
+    gap: 6px;
+    min-height: 132px;
+  }
+
+  .classic-logo {
+    width: 66px;
+    height: 66px;
+    flex-basis: 66px;
+  }
+
+  .classic-jotun-logo {
+    width: 105px;
+  }
+
+  .company-copy {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .company-copy h1 {
+    font-size: 13px;
+  }
+
+  .company-copy p {
+    font-size: 7px;
+  }
+
+  .classic-brand-title {
+    font-size: 8px;
+  }
+
+  .classic-subtitle {
+    font-size: 8px;
+  }
+
+  .invoice-heading h2 {
+    font-size: 15px;
+  }
+
+  .classic-customer {
+    align-items: start;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .classic-meta {
+    justify-self: stretch;
+    min-width: 0;
+  }
+
+  .classic-meta .invoice-info-row {
+    grid-template-columns: max-content 1fr;
+    justify-content: start;
+  }
+
+  .classic-table th {
+    padding: 3px;
+    font-size: 9px;
+  }
+
+  .classic-table td {
+    height: 32px;
+    padding: 4px;
+  }
+
+  .classic-table .number-column {
+    width: 8%;
+  }
+
+  .classic-table .qty-column {
+    width: 9%;
+  }
+
+  .classic-table .code-column {
+    width: 14%;
+  }
+
+  .classic-table .money-column {
+    width: 17%;
+  }
+
+  .classic-settlement {
+    grid-template-columns: 55% 45%;
+  }
+
+  .classic-payment {
+    padding-left: 2px;
+  }
+
+  .qr-block img {
+    width: 82px;
+    height: 82px;
+  }
+
+  .classic-totals th,
+  .classic-totals td {
+    height: 39px;
+    padding: 3px 4px;
+    font-size: 9px;
+  }
+
+  .classic-totals th span,
+  .signature-box span {
+    font-size: 8px;
+  }
+
+  .signature-section {
+    gap: 28px;
+    margin-right: 10px;
+    margin-left: 10px;
+  }
+
+  .signature-space {
+    height: 75px;
+  }
+
+  .classic-footer {
+    font-size: 9px;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .page-section,
+  .preview-page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .invoice-paper {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 7mm 10mm 6mm;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .classic-invoice {
+    font-size: 10pt;
+  }
+
+  .classic-header {
+    grid-template-columns: 205px minmax(0, 1fr) 190px;
+    gap: 12px;
+    min-height: 43mm;
+  }
+
+  .classic-logo {
+    width: 28mm;
+    height: 28mm;
+    flex-basis: 28mm;
+  }
+
+  .classic-jotun-logo {
+    width: 48mm;
+  }
+
+  .classic-brand-title {
+    font-size: 9pt;
+  }
+
+  .classic-subtitle {
+    font-size: 8pt;
+  }
+
+  .company-copy h1 {
+    font-size: 15pt;
+  }
+
+  .company-copy p {
+    font-size: 8pt;
+  }
+
+  .invoice-heading h2 {
+    font-size: 14pt;
+  }
+
+  .classic-customer {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+    gap: 9mm;
+  }
+
+  .classic-meta {
+    justify-self: end;
+    min-width: 76mm;
+  }
+
+  .classic-meta .invoice-info-row {
+    grid-template-columns: max-content minmax(28mm, max-content);
+    justify-content: end;
+  }
+
+  .classic-table th {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .classic-table td {
+    height: 10mm;
+  }
+
+  .classic-settlement {
+    min-height: 58mm;
+  }
+
+  .signature-space {
+    height: 27mm;
+  }
+
+  .classic-footer {
+    margin-top: 7mm;
+  }
+}
