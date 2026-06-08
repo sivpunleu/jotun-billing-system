@@ -673,6 +673,14 @@ textarea {
   white-space: nowrap;
 }
 
+.qty-value {
+  white-space: nowrap;
+}
+
+.qty-value span {
+  margin-left: 3px;
+}
+
 .currency-cell span,
 .classic-totals td span {
   float: left;

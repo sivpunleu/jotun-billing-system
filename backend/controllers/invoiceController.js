@@ -38,6 +38,7 @@ export const calculateTotals = (payload) => {
       description: String(item.description || '').trim(),
       colorCode: String(item.colorCode || '').trim(),
       quantity,
+      unit: String(item.unit || '').trim(),
       unitPrice: roundMoney(unitPrice),
       discount: roundMoney(discount),
       total: roundMoney(baseTotal - discount),

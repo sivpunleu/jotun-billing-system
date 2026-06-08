@@ -9,6 +9,7 @@ test('calculateTotals calculates line items, discount, tax, and grand total', ()
         description: 'Majestic True Beauty 5L',
         colorCode: '1024',
         quantity: 2,
+        unit: 'ធុង',
         unitPrice: 40,
         discount: 5,
       },
@@ -23,6 +24,7 @@ test('calculateTotals calculates line items, discount, tax, and grand total', ()
   })
 
   assert.equal(result.items[0].total, 75)
+  assert.equal(result.items[0].unit, 'ធុង')
   assert.equal(result.items[1].total, 25.5)
   assert.equal(result.subtotal, 100.5)
   assert.equal(result.discount, 10)

@@ -17,6 +17,11 @@ const itemSchema = new mongoose.Schema(
       required: true,
       min: [0.01, 'Quantity must be greater than zero'],
     },
+    unit: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     unitPrice: {
       type: Number,
       required: true,

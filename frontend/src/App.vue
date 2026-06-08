@@ -1,6 +1,6 @@
 <script setup>
 import logo from './assets/logo-marvel.png'
-import jotunLogo from './assets/jotun-logo.svg'
+import jotunLogo from './assets/jotun.jpg'
 </script>
 
 <template>

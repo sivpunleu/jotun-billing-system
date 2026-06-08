@@ -121,8 +121,8 @@ onMounted(loadInvoice)
         </div>
         <div class="company-copy">
           <h1>ម៉ាវែល ដេគ័រ &amp; JOTUN</h1>
-          <p>មជ្ឈមណ្ឌលលក់ថ្នាំពណ៌ និងគ្រឿងសំណង់គ្រប់ប្រភេទ</p>
-          <p>មានលក់ថ្នាំពណ៌ម៉ាក JOTUN និង MARVEL គ្រប់ប្រភេទ</p>
+          <p>មជ្ឈមណ្ឌលលាយថ្នាំពណ៍ចូតាន់ដោយកុំព្យូទ័រ
+            ការិយាល័យលាយថ្នាំពណ៌ចូតាន់ បោះដុំ លក់រាយ ចែកចាយបន្ត</p>
           <p>អាស័យដ្ឋាន : ផ្ទះលេខ200 ផ្លូវឧកញ៉ាម៉ុងរិទ្ធី សង្កាត់ភ្នំពេញថ្មី ខណ្ឌសែនសុខ រាជធានីភ្នំពេញ</p>
           <p>Telegram : 068 8888 70</p>
           <p>លេខទូរស័ព្ទ | Phone: 098 689 883</p>
@@ -180,7 +180,10 @@ onMounted(loadInvoice)
             <td class="text-center">{{ index + 1 }}</td>
             <td>{{ item.description }}</td>
             <td class="text-center">{{ item.colorCode || '-' }}</td>
-            <td class="text-center">{{ item.quantity }}</td>
+            <td class="text-center qty-value">
+              {{ item.quantity }}
+              <span v-if="item.unit">{{ item.unit }}</span>
+            </td>
             <td class="currency-cell">
               <span>$</span>
               <strong>{{ money(item.unitPrice) }}</strong>

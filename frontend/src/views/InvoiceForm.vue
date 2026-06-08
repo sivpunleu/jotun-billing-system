@@ -21,9 +21,23 @@ const newItem = () => ({
   description: '',
   colorCode: '',
   quantity: 1,
+  unit: 'ធុង',
   unitPrice: 0,
   discount: 0,
 })
+
+const unitOptions = [
+  'ធុង',
+  'លីត្រ',
+  'បាវ',
+  'ដុំ',
+  'ប្រអប់',
+  'កំប៉ុង',
+  'ឈុត',
+  'ម៉ែត្រ',
+  'គីឡូក្រាម',
+  'ផ្សេងៗ',
+]
 
 const form = reactive({
   invoiceNumber: `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
@@ -102,6 +116,7 @@ const loadInvoice = async () => {
             description: item.description,
             colorCode: item.colorCode,
             quantity: item.quantity,
+            unit: item.unit || '',
             unitPrice: item.unitPrice,
             discount: item.discount,
           }))
@@ -271,7 +286,7 @@ onMounted(loadInvoice)
                   </button>
                 </div>
                 <div class="row g-3">
-                  <div class="col-md-6">
+                  <div class="col-md-5">
                     <label class="form-label">ឈ្មោះផលិតផល *</label>
                     <input
                       v-model.trim="item.description"
@@ -288,7 +303,7 @@ onMounted(loadInvoice)
                       placeholder="1024 Tidløs"
                     />
                   </div>
-                  <div class="col-md-3">
+                  <div class="col-md-2">
                     <label class="form-label">បរិមាណ *</label>
                     <input
                       v-model.number="item.quantity"
@@ -298,6 +313,18 @@ onMounted(loadInvoice)
                       step="0.01"
                       required
                     />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">ឯកតា *</label>
+                    <select v-model="item.unit" class="form-select" required>
+                      <option
+                        v-for="unitOption in unitOptions"
+                        :key="unitOption"
+                        :value="unitOption"
+                      >
+                        {{ unitOption }}
+                      </option>
+                    </select>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">តម្លៃរាយ *</label>
