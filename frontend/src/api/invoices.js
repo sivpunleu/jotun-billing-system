@@ -3,8 +3,7 @@ import axios from 'axios'
 const productionApiUrl = 'https://jotun-billing-system.onrender.com/api'
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
 const baseURL = (
-  configuredApiUrl ||
-  (import.meta.env.PROD ? productionApiUrl : '/api')
+  import.meta.env.PROD ? productionApiUrl : configuredApiUrl || '/api'
 ).replace(/\/+$/, '')
 
 const api = axios.create({
