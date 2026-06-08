@@ -2,10 +2,20 @@ import mongoose from 'mongoose'
 
 const itemSchema = new mongoose.Schema(
   {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      default: null,
+    },
     description: {
       type: String,
       required: [true, 'Item description is required'],
       trim: true,
+    },
+    itemCode: {
+      type: String,
+      trim: true,
+      default: '',
     },
     colorCode: {
       type: String,
@@ -39,6 +49,37 @@ const itemSchema = new mongoose.Schema(
     },
   },
   { _id: true },
+)
+
+const paymentSchema = new mongoose.Schema(
+  {
+    amount: {
+      type: Number,
+      required: true,
+      min: [0.01, 'Payment amount must be greater than zero'],
+    },
+    paidAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    receivedBy: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    recordedBy: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+  },
+  { _id: true, timestamps: true },
 )
 
 const invoiceSchema = new mongoose.Schema(
@@ -75,6 +116,11 @@ const invoiceSchema = new mongoose.Schema(
         trim: true,
         default: '',
       },
+    },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Customer',
+      default: null,
     },
     items: {
       type: [itemSchema],
@@ -130,12 +176,47 @@ const invoiceSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    paidAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'unpaid', 'partially_paid', 'paid', 'cancelled'],
+      default: 'unpaid',
+      index: true,
+    },
     paymentStatus: {
       type: String,
       enum: ['unpaid', 'partial', 'paid'],
       default: 'unpaid',
     },
+    payments: {
+      type: [paymentSchema],
+      default: [],
+    },
     notes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    createdBy: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    updatedBy: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    deletedBy: {
       type: String,
       trim: true,
       default: '',
@@ -149,6 +230,7 @@ const invoiceSchema = new mongoose.Schema(
 )
 
 invoiceSchema.index({ createdAt: -1 })
+invoiceSchema.index({ deletedAt: 1, createdAt: -1 })
 invoiceSchema.index({ 'customer.name': 'text', invoiceNumber: 'text' })
 
 export default mongoose.model('Invoice', invoiceSchema)

@@ -40,6 +40,12 @@ const storedToken = readStorage(TOKEN_KEY)
 export const authToken = ref(tokenIsValid(storedToken) ? storedToken : '')
 export const currentAdmin = ref(authToken.value ? readAdmin() : null)
 export const isAuthenticated = computed(() => Boolean(authToken.value))
+export const canManageBilling = computed(() =>
+  ['owner', 'admin'].includes(currentAdmin.value?.role),
+)
+export const isOwner = computed(
+  () => currentAdmin.value?.role === 'owner',
+)
 
 let expirationTimer
 

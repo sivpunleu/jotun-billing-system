@@ -1,23 +1,36 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import InvoiceTableRow from '../components/InvoiceTableRow.vue'
+import PaginationControls from '../components/PaginationControls.vue'
 import { invoiceApi } from '../api/invoices'
-import { formatMoney } from '../utils/invoice'
+import { canManageBilling } from '../auth/session'
 
 const invoices = ref([])
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
+const status = ref('')
+const showTrash = ref(false)
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  pages: 1,
+})
 
-const loadInvoices = async () => {
+const loadInvoices = async (page = pagination.page) => {
   loading.value = true
   error.value = ''
   try {
-    const response = await invoiceApi.list(search.value)
-    if (!Array.isArray(response.data)) {
-      throw new Error('The invoice API returned an invalid response')
-    }
-    invoices.value = response.data
+    const response = await invoiceApi.list({
+      search: search.value,
+      status: status.value,
+      deleted: showTrash.value,
+      page,
+      limit: pagination.limit,
+    })
+    invoices.value = response.data.items || []
+    Object.assign(pagination, response.data.pagination)
   } catch (requestError) {
     invoices.value = []
     error.value =
@@ -30,29 +43,39 @@ const loadInvoices = async () => {
 let searchTimer
 const handleSearch = () => {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(loadInvoices, 300)
+  searchTimer = setTimeout(() => loadInvoices(1), 300)
 }
 
 const deleteInvoice = async (invoice) => {
   const confirmed = window.confirm(
-    `តើអ្នកពិតជាចង់លុបវិក្កយបត្រ ${invoice.invoiceNumber} មែនទេ?`,
+    `ផ្លាស់ទីវិក្កយបត្រ ${invoice.invoiceNumber} ទៅធុងសំរាម?`,
   )
   if (!confirmed) return
 
   try {
     await invoiceApi.remove(invoice._id)
-    invoices.value = invoices.value.filter((item) => item._id !== invoice._id)
+    await loadInvoices(pagination.page)
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចលុបវិក្កយបត្របានទេ'
   }
 }
 
-const totalRevenue = () =>
-  (Array.isArray(invoices.value) ? invoices.value : []).reduce(
-    (sum, invoice) => sum + Number(invoice.grandTotal || 0),
-    0,
-  )
+const restoreInvoice = async (invoice) => {
+  try {
+    await invoiceApi.restore(invoice._id)
+    await loadInvoices(pagination.page)
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || 'មិនអាចស្ដារវិក្កយបត្របានទេ'
+  }
+}
+
+const toggleTrash = () => {
+  showTrash.value = !showTrash.value
+  status.value = ''
+  loadInvoices(1)
+}
 
 onMounted(loadInvoices)
 </script>
@@ -61,43 +84,27 @@ onMounted(loadInvoices)
   <section class="container page-section">
     <div class="page-heading">
       <div>
-        <span class="eyebrow">BILLING OVERVIEW</span>
-        <h1>បញ្ជីវិក្កយបត្រ</h1>
-        <p>គ្រប់គ្រង និងតាមដានវិក្កយបត្ររបស់អតិថិជន។</p>
+        <span class="eyebrow">{{ showTrash ? 'INVOICE TRASH' : 'BILLING OVERVIEW' }}</span>
+        <h1>{{ showTrash ? 'វិក្កយបត្រដែលបានលុប' : 'បញ្ជីវិក្កយបត្រ' }}</h1>
+        <p>គ្រប់គ្រង ស្វែងរក តាមដានការបង់ប្រាក់ និងស្ដារទិន្នន័យ។</p>
       </div>
-      <RouterLink class="btn btn-danger btn-lg" to="/invoices/new">
-        <i class="bi bi-plus-lg me-2"></i>
-        វិក្កយបត្រថ្មី
-      </RouterLink>
-    </div>
-
-    <div class="row g-3 mb-4">
-      <div class="col-md-6">
-        <div class="summary-card">
-          <div class="summary-icon bg-blue-soft">
-            <i class="bi bi-files"></i>
-          </div>
-          <div>
-            <span>វិក្កយបត្រសរុប</span>
-            <strong>{{ invoices.length }}</strong>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="summary-card">
-          <div class="summary-icon bg-yellow-soft">
-            <i class="bi bi-cash-stack"></i>
-          </div>
-          <div>
-            <span>ទឹកប្រាក់សរុប</span>
-            <strong>{{ formatMoney(totalRevenue()) }}</strong>
-          </div>
-        </div>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-secondary" type="button" @click="toggleTrash">
+          <i :class="showTrash ? 'bi bi-arrow-left' : 'bi bi-trash3'" class="me-1"></i>
+          {{ showTrash ? 'ត្រឡប់ទៅបញ្ជី' : 'ធុងសំរាម' }}
+        </button>
+        <RouterLink
+          v-if="canManageBilling && !showTrash"
+          class="btn btn-danger btn-lg"
+          to="/invoices/new"
+        >
+          <i class="bi bi-plus-lg me-2"></i> វិក្កយបត្រថ្មី
+        </RouterLink>
       </div>
     </div>
 
     <div class="content-card">
-      <div class="card-toolbar">
+      <div class="card-toolbar flex-wrap">
         <div class="search-box">
           <i class="bi bi-search"></i>
           <input
@@ -108,28 +115,34 @@ onMounted(loadInvoices)
             @input="handleSearch"
           />
         </div>
-        <button class="btn btn-outline-secondary" type="button" @click="loadInvoices">
-          <i class="bi bi-arrow-clockwise me-1"></i>
-          ផ្ទុកឡើងវិញ
+        <select
+          v-if="!showTrash"
+          v-model="status"
+          class="form-select filter-select"
+          @change="loadInvoices(1)"
+        >
+          <option value="">ស្ថានភាពទាំងអស់</option>
+          <option value="draft">Draft</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="partially_paid">Partially Paid</option>
+          <option value="paid">Paid</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button class="btn btn-outline-secondary" type="button" @click="loadInvoices(pagination.page)">
+          <i class="bi bi-arrow-clockwise me-1"></i> ផ្ទុកឡើងវិញ
         </button>
       </div>
 
       <div v-if="error" class="alert alert-danger mx-3 mt-3">{{ error }}</div>
-
       <div v-if="loading" class="loading-state">
         <div class="spinner-border text-danger" role="status"></div>
         <span>កំពុងទាញទិន្នន័យ...</span>
       </div>
-
       <div v-else-if="!invoices.length" class="empty-state">
         <div class="empty-icon"><i class="bi bi-receipt-cutoff"></i></div>
-        <h3>មិនទាន់មានវិក្កយបត្រ</h3>
-        <p>ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូងរបស់អ្នក។</p>
-        <RouterLink class="btn btn-danger" to="/invoices/new">
-          បង្កើតវិក្កយបត្រ
-        </RouterLink>
+        <h3>មិនមានវិក្កយបត្រ</h3>
+        <p>{{ showTrash ? 'ធុងសំរាមនៅទទេ។' : 'ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូង។' }}</p>
       </div>
-
       <div v-else class="table-responsive">
         <table class="table invoice-table align-middle mb-0">
           <thead>
@@ -138,7 +151,8 @@ onMounted(loadInvoices)
               <th>អតិថិជន</th>
               <th>ថ្ងៃកំណត់</th>
               <th>ស្ថានភាព</th>
-              <th class="text-end">ទឹកប្រាក់</th>
+              <th class="text-end">សរុប</th>
+              <th class="text-end">នៅសល់</th>
               <th class="text-end">សកម្មភាព</th>
             </tr>
           </thead>
@@ -147,11 +161,15 @@ onMounted(loadInvoices)
               v-for="invoice in invoices"
               :key="invoice._id"
               :invoice="invoice"
+              :deleted="showTrash"
+              :can-manage="canManageBilling"
               @delete="deleteInvoice"
+              @restore="restoreInvoice"
             />
           </tbody>
         </table>
       </div>
+      <PaginationControls :pagination="pagination" @change="loadInvoices" />
     </div>
   </section>
 </template>

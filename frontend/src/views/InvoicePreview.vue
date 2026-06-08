@@ -1,8 +1,13 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { invoiceApi } from '../api/invoices'
-import { formatMoney } from '../utils/invoice'
+import {
+  canManageBilling,
+  currentAdmin,
+  isAuthenticated,
+} from '../auth/session'
+import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
 import logo from '../assets/logo-marvel.png'
 import jotunLogo from '../assets/jotun.jpg'
 import qrPlaceholder from '../assets/aba-qr-square.jpg'
@@ -12,6 +17,14 @@ const router = useRouter()
 const invoice = ref(null)
 const loading = ref(true)
 const error = ref('')
+const recordingPayment = ref(false)
+const paymentForm = reactive({
+  amount: 0,
+  paidAt: toDateInput(),
+  receivedBy:
+    currentAdmin.value?.displayName || currentAdmin.value?.username || '',
+  note: '',
+})
 
 const printInvoice = () => window.print()
 
@@ -36,6 +49,28 @@ const depositAmount = (data) =>
 
 const balanceDue = (data) =>
   Number(data.balanceDue ?? totalBeforeDeposit(data) - depositAmount(data))
+
+const paidAmount = (data) =>
+  Math.max(
+    Number(data.paidAmount || 0),
+    Math.max(0, totalBeforeDeposit(data) - balanceDue(data)),
+  )
+
+const resolvedStatus = computed(() => {
+  if (!invoice.value) return 'unpaid'
+  if (invoice.value.status) return invoice.value.status
+  return invoice.value.paymentStatus === 'partial'
+    ? 'partially_paid'
+    : invoice.value.paymentStatus || 'unpaid'
+})
+
+const statusLabels = {
+  draft: 'Draft',
+  unpaid: 'Unpaid',
+  partially_paid: 'Partially Paid',
+  paid: 'Paid',
+  cancelled: 'Cancelled',
+}
 
 const loadInvoice = async () => {
   try {
@@ -64,19 +99,45 @@ const deleteInvoice = async () => {
   }
 }
 
+const addPayment = async () => {
+  recordingPayment.value = true
+  error.value = ''
+  try {
+    const response = await invoiceApi.addPayment(invoice.value._id, paymentForm)
+    invoice.value = response.data
+    Object.assign(paymentForm, {
+      amount: 0,
+      paidAt: toDateInput(),
+      receivedBy:
+        currentAdmin.value?.displayName || currentAdmin.value?.username || '',
+      note: '',
+    })
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || 'មិនអាចកត់ត្រាការបង់ប្រាក់បានទេ'
+  } finally {
+    recordingPayment.value = false
+  }
+}
+
 onMounted(loadInvoice)
 </script>
 
 <template>
   <section class="container page-section preview-page">
     <div class="preview-actions d-print-none">
-      <RouterLink class="btn btn-outline-secondary" to="/invoices">
+      <RouterLink
+        v-if="isAuthenticated"
+        class="btn btn-outline-secondary"
+        to="/invoices"
+      >
         <i class="bi bi-arrow-left me-1"></i>
         បញ្ជីវិក្កយបត្រ
       </RouterLink>
+      <span v-else></span>
       <div class="d-flex flex-wrap gap-2">
         <RouterLink
-          v-if="invoice"
+          v-if="invoice && canManageBilling"
           class="btn btn-outline-primary"
           :to="{ name: 'invoice-edit', params: { id: invoice._id } }"
         >
@@ -84,7 +145,7 @@ onMounted(loadInvoice)
           កែប្រែ
         </RouterLink>
         <button
-          v-if="invoice"
+          v-if="invoice && canManageBilling"
           class="btn btn-outline-danger"
           type="button"
           @click="deleteInvoice"
@@ -99,7 +160,7 @@ onMounted(loadInvoice)
           @click="printInvoice"
         >
           <i class="bi bi-printer me-1"></i>
-          ព្រីន / PDF
+          Print / Save PDF
         </button>
       </div>
     </div>
@@ -110,7 +171,110 @@ onMounted(loadInvoice)
       <span>កំពុងរៀបចំវិក្កយបត្រ...</span>
     </div>
 
-    <article v-else-if="invoice" class="invoice-paper classic-invoice">
+    <div
+      v-if="invoice && isAuthenticated"
+      class="payment-management d-print-none"
+    >
+      <div class="content-card form-card">
+        <div class="payment-management-heading">
+          <div>
+            <span
+              class="status-pill"
+              :class="`status-${resolvedStatus}`"
+            >
+              {{ statusLabels[resolvedStatus] }}
+            </span>
+            <h2>Payment History</h2>
+            <p>
+              បានបង់ {{ formatMoney(paidAmount(invoice)) }} · នៅសល់
+              {{ formatMoney(invoice.balanceDue) }}
+            </p>
+          </div>
+        </div>
+
+        <form
+          v-if="
+            canManageBilling &&
+            !['draft', 'cancelled', 'paid'].includes(resolvedStatus)
+          "
+          class="row g-3 payment-form"
+          @submit.prevent="addPayment"
+        >
+          <div class="col-md-3">
+            <label class="form-label">ចំនួនប្រាក់ *</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input
+                v-model.number="paymentForm.amount"
+                class="form-control"
+                type="number"
+                min="0.01"
+                :max="invoice.balanceDue"
+                step="0.01"
+                required
+              />
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">ថ្ងៃបង់ *</label>
+            <input
+              v-model="paymentForm.paidAt"
+              class="form-control"
+              type="date"
+              required
+            />
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">អ្នកទទួល *</label>
+            <input
+              v-model.trim="paymentForm.receivedBy"
+              class="form-control"
+              required
+            />
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">កំណត់ចំណាំ</label>
+            <input v-model.trim="paymentForm.note" class="form-control" />
+          </div>
+          <div class="col-12">
+            <button
+              class="btn btn-success"
+              type="submit"
+              :disabled="recordingPayment"
+            >
+              <i class="bi bi-cash-coin me-1"></i>
+              {{ recordingPayment ? 'កំពុងកត់ត្រា...' : 'កត់ត្រាការបង់ប្រាក់' }}
+            </button>
+          </div>
+        </form>
+
+        <div v-if="invoice.payments?.length" class="table-responsive mt-4">
+          <table class="table table-sm payment-table mb-0">
+            <thead>
+              <tr>
+                <th>ថ្ងៃបង់</th>
+                <th>អ្នកទទួល</th>
+                <th>កំណត់ចំណាំ</th>
+                <th class="text-end">ចំនួន</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="payment in invoice.payments" :key="payment._id">
+                <td>{{ formatDate(payment.paidAt) }}</td>
+                <td>{{ payment.receivedBy }}</td>
+                <td>{{ payment.note || '-' }}</td>
+                <td class="text-end fw-bold">{{ formatMoney(payment.amount) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="text-secondary mb-0 mt-3">
+          មិនទាន់មានការបង់ប្រាក់បន្ថែម។
+        </p>
+      </div>
+    </div>
+
+    <article v-if="invoice" class="invoice-paper classic-invoice">
       <header class="classic-header">
         <div class="classic-brand-block">
           <img class="classic-logo" :src="logo" alt="Marvel Decor" />
@@ -184,7 +348,15 @@ onMounted(loadInvoice)
           <tr v-for="(item, index) in invoice.items" :key="item._id || index">
             <td class="text-center">{{ index + 1 }}</td>
             <td>{{ item.description }}</td>
-            <td class="text-center">{{ item.colorCode || '-' }}</td>
+            <td class="text-center">
+              {{ item.itemCode || item.colorCode || '-' }}
+              <small
+                v-if="item.itemCode && item.colorCode"
+                class="d-block"
+              >
+                {{ item.colorCode }}
+              </small>
+            </td>
             <td class="text-center qty-value">
               {{ item.quantity }}
               <span v-if="item.unit">{{ item.unit }}</span>

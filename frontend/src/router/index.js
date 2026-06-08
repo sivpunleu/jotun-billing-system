@@ -1,22 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import AuditLogView from '../views/AuditLogView.vue'
+import CustomerList from '../views/CustomerList.vue'
+import DashboardView from '../views/DashboardView.vue'
 import InvoiceForm from '../views/InvoiceForm.vue'
 import InvoiceList from '../views/InvoiceList.vue'
 import InvoicePreview from '../views/InvoicePreview.vue'
 import LoginView from '../views/LoginView.vue'
-import { hasValidSession } from '../auth/session'
+import ProductList from '../views/ProductList.vue'
+import SettingsView from '../views/SettingsView.vue'
+import {
+  currentAdmin,
+  hasValidSession,
+} from '../auth/session'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
       path: '/',
-      redirect: () => (hasValidSession() ? '/invoices' : '/login'),
+      redirect: () => (hasValidSession() ? '/dashboard' : '/login'),
     },
     {
       path: '/login',
       name: 'login',
       component: LoginView,
       meta: { guestOnly: true },
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/invoices',
@@ -28,18 +42,42 @@ const router = createRouter({
       path: '/invoices/new',
       name: 'invoice-create',
       component: InvoiceForm,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['owner', 'admin'] },
     },
     {
       path: '/invoices/:id/edit',
       name: 'invoice-edit',
       component: InvoiceForm,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['owner', 'admin'] },
     },
     {
       path: '/invoices/:id',
       name: 'invoice-preview',
       component: InvoicePreview,
+    },
+    {
+      path: '/customers',
+      name: 'customers',
+      component: CustomerList,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/products',
+      name: 'products',
+      component: ProductList,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/audit-logs',
+      name: 'audit-logs',
+      component: AuditLogView,
+      meta: { requiresAuth: true, roles: ['owner', 'admin'] },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
+      meta: { requiresAuth: true },
     },
   ],
   scrollBehavior: () => ({ top: 0 }),
@@ -56,7 +94,14 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && authenticated) {
-    return { name: 'invoice-list' }
+    return { name: 'dashboard' }
+  }
+
+  if (
+    to.meta.roles &&
+    !to.meta.roles.includes(currentAdmin.value?.role)
+  ) {
+    return { name: 'dashboard' }
   }
 
   return true

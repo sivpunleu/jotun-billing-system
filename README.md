@@ -59,6 +59,29 @@ JWT_EXPIRES_IN=8h
 Passwords and JWT secrets must only be stored in environment variables. Never
 add them to frontend code or commit them to Git.
 
+The first successful environment-admin login creates an `owner` account in
+the application database. The owner can then create more accounts:
+
+- `owner`: full access, admin management, and JSON backup
+- `admin`: manage invoices, payments, customers, products, and audit logs
+- `viewer`: read-only access
+
+## Billing features
+
+- Atomic sequential invoice numbers in `INV-YYYY-00001` format
+- Draft, unpaid, partially paid, paid, and cancelled statuses
+- Payment history with amount, date, receiver, note, and recording admin
+- Dashboard revenue, outstanding balance, paid invoice, and status metrics
+- Customer and product catalogues that populate the invoice form
+- Audit logging for management and security actions
+- Recoverable trash and restore for invoices, customers, and products
+- Server-side pagination and filters
+- Invoice CSV export and owner-only JSON database backup
+- A shared A4 layout for browser preview and Print / Save PDF
+
+Downloaded backups contain private customer and business data. Store them in a
+secure location.
+
 ## Deploy
 
 ### 1. MongoDB Atlas

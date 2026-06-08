@@ -1,7 +1,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { invoiceApi } from '../api/invoices'
+import {
+  customerApi,
+  invoiceApi,
+  productApi,
+} from '../api/invoices'
 import { formatMoney, toDateInput } from '../utils/invoice'
 
 const route = useRoute()
@@ -9,6 +13,8 @@ const router = useRouter()
 const saving = ref(false)
 const loading = ref(false)
 const error = ref('')
+const customers = ref([])
+const products = ref([])
 const isEditing = computed(() => Boolean(route.params.id))
 
 const addDays = (dateValue, days) => {
@@ -18,7 +24,9 @@ const addDays = (dateValue, days) => {
 }
 
 const newItem = () => ({
+  productId: '',
   description: '',
+  itemCode: '',
   colorCode: '',
   quantity: 1,
   unit: 'ធុង',
@@ -40,9 +48,10 @@ const unitOptions = [
 ]
 
 const form = reactive({
-  invoiceNumber: `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
+  invoiceNumber: '',
   invoiceDate: toDateInput(),
   dueDate: addDays(new Date(), 7),
+  customerId: '',
   customer: {
     name: '',
     phone: '',
@@ -53,7 +62,7 @@ const form = reactive({
   taxRate: 0,
   deliveryFee: 0,
   depositRate: 0,
-  paymentStatus: 'unpaid',
+  status: 'unpaid',
   notes: '',
 })
 
@@ -64,11 +73,8 @@ const lineTotal = (item) =>
       Number(item.discount || 0),
   )
 
-const invoiceItems = computed(() =>
-  Array.isArray(form.items) ? form.items : [],
-)
 const subtotal = computed(() =>
-  invoiceItems.value.reduce((sum, item) => sum + lineTotal(item), 0),
+  form.items.reduce((sum, item) => sum + lineTotal(item), 0),
 )
 const taxableAmount = computed(() =>
   Math.max(0, subtotal.value - Number(form.discount || 0)),
@@ -86,45 +92,83 @@ const balanceDue = computed(() =>
   Math.max(0, grandTotal.value - depositAmount.value),
 )
 
-const addItem = () => {
-  if (!Array.isArray(form.items)) form.items = []
-  form.items.push(newItem())
+const loadLookups = async () => {
+  const [customerResponse, productResponse] = await Promise.all([
+    customerApi.list({ limit: 100 }),
+    productApi.list({ limit: 100 }),
+  ])
+  customers.value = customerResponse.data.items || []
+  products.value = productResponse.data.items || []
 }
 
-const removeItem = (index) => {
-  if (!Array.isArray(form.items)) {
-    form.items = [newItem()]
-    return
+const applyCustomer = () => {
+  const customer = customers.value.find(
+    (item) => String(item._id) === String(form.customerId),
+  )
+  if (!customer) return
+  form.customer = {
+    name: customer.name || '',
+    phone: customer.phone || '',
+    address: customer.address || '',
   }
-  if (form.items.length === 1) return
-  form.items.splice(index, 1)
+}
+
+const applyProduct = (item) => {
+  const product = products.value.find(
+    (record) => String(record._id) === String(item.productId),
+  )
+  if (!product) return
+  Object.assign(item, {
+    description: product.name || '',
+    itemCode: product.itemCode || '',
+    colorCode: product.colorCode || '',
+    unit: product.unit || 'ធុង',
+    unitPrice: Number(product.unitPrice || 0),
+  })
+}
+
+const addItem = () => form.items.push(newItem())
+const removeItem = (index) => {
+  if (form.items.length > 1) form.items.splice(index, 1)
 }
 
 const loadInvoice = async () => {
   if (!isEditing.value) return
+  const { data } = await invoiceApi.get(route.params.id)
+  Object.assign(form, {
+    ...data,
+    invoiceDate: toDateInput(data.invoiceDate),
+    dueDate: toDateInput(data.dueDate),
+    customerId: data.customerId || '',
+    customer: { ...data.customer },
+    status:
+      data.status ||
+      (data.paymentStatus === 'partial'
+        ? 'partially_paid'
+        : data.paymentStatus || 'unpaid'),
+    items: Array.isArray(data.items)
+      ? data.items.map((item) => ({
+          productId: item.productId || '',
+          description: item.description,
+          itemCode: item.itemCode || '',
+          colorCode: item.colorCode || '',
+          quantity: item.quantity,
+          unit: item.unit || 'ធុង',
+          unitPrice: item.unitPrice,
+          discount: item.discount || 0,
+        }))
+      : [newItem()],
+  })
+}
+
+const initialize = async () => {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await invoiceApi.get(route.params.id)
-    Object.assign(form, {
-      ...data,
-      invoiceDate: toDateInput(data.invoiceDate),
-      dueDate: toDateInput(data.dueDate),
-      customer: { ...data.customer },
-      items: Array.isArray(data.items)
-        ? data.items.map((item) => ({
-            description: item.description,
-            colorCode: item.colorCode,
-            quantity: item.quantity,
-            unit: item.unit || '',
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-          }))
-        : [newItem()],
-    })
+    await Promise.all([loadLookups(), loadInvoice()])
   } catch (requestError) {
     error.value =
-      requestError.response?.data?.message || 'មិនអាចទាញយកវិក្កយបត្របានទេ'
+      requestError.response?.data?.message || 'មិនអាចទាញយកទិន្នន័យបានទេ'
   } finally {
     loading.value = false
   }
@@ -133,15 +177,12 @@ const loadInvoice = async () => {
 const submitForm = async () => {
   saving.value = true
   error.value = ''
-
   try {
     const payload = JSON.parse(JSON.stringify(form))
-    payload.items = Array.isArray(payload.items) ? payload.items : []
     const response = isEditing.value
       ? await invoiceApi.update(route.params.id, payload)
       : await invoiceApi.create(payload)
-
-    router.push({
+    await router.push({
       name: 'invoice-preview',
       params: { id: response.data._id },
     })
@@ -154,7 +195,7 @@ const submitForm = async () => {
   }
 }
 
-onMounted(loadInvoice)
+onMounted(initialize)
 </script>
 
 <template>
@@ -163,17 +204,16 @@ onMounted(loadInvoice)
       <div>
         <span class="eyebrow">{{ isEditing ? 'EDIT INVOICE' : 'NEW INVOICE' }}</span>
         <h1>{{ isEditing ? 'កែប្រែវិក្កយបត្រ' : 'បង្កើតវិក្កយបត្រថ្មី' }}</h1>
-        <p>បញ្ចូលព័ត៌មានអតិថិជន និងផលិតផលខាងក្រោម។</p>
+        <p>ជ្រើសអតិថិជន និងទំនិញដែលបានរក្សាទុក ឬបញ្ចូលថ្មីដោយដៃ។</p>
       </div>
       <RouterLink class="btn btn-outline-secondary" to="/invoices">
-        <i class="bi bi-arrow-left me-1"></i>
-        ត្រឡប់ក្រោយ
+        <i class="bi bi-arrow-left me-1"></i> ត្រឡប់ក្រោយ
       </RouterLink>
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger" role="status"></div>
+      <div class="spinner-border text-danger"></div>
       <span>កំពុងទាញទិន្នន័យ...</span>
     </div>
 
@@ -183,38 +223,24 @@ onMounted(loadInvoice)
           <div class="content-card form-card mb-4">
             <div class="section-title">
               <span class="section-number">01</span>
-              <div>
-                <h2>ព័ត៌មានវិក្កយបត្រ</h2>
-                <p>លេខ និងកាលបរិច្ឆេទសម្រាប់វិក្កយបត្រនេះ</p>
-              </div>
+              <div><h2>ព័ត៌មានវិក្កយបត្រ</h2><p>លេខវិក្កយបត្របង្កើតដោយស្វ័យប្រវត្តិ និងមិនស្ទួន។</p></div>
             </div>
-
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">លេខវិក្កយបត្រ *</label>
+                <label class="form-label">លេខវិក្កយបត្រ</label>
                 <input
-                  v-model.trim="form.invoiceNumber"
                   class="form-control"
-                  required
+                  :value="isEditing ? form.invoiceNumber : 'បង្កើតស្វ័យប្រវត្តិពេលរក្សាទុក'"
+                  disabled
                 />
               </div>
               <div class="col-md-3">
                 <label class="form-label">កាលបរិច្ឆេទ *</label>
-                <input
-                  v-model="form.invoiceDate"
-                  class="form-control"
-                  type="date"
-                  required
-                />
+                <input v-model="form.invoiceDate" class="form-control" type="date" required />
               </div>
               <div class="col-md-3">
                 <label class="form-label">ថ្ងៃកំណត់ *</label>
-                <input
-                  v-model="form.dueDate"
-                  class="form-control"
-                  type="date"
-                  required
-                />
+                <input v-model="form.dueDate" class="form-control" type="date" required />
               </div>
             </div>
           </div>
@@ -222,38 +248,29 @@ onMounted(loadInvoice)
           <div class="content-card form-card mb-4">
             <div class="section-title">
               <span class="section-number">02</span>
-              <div>
-                <h2>ព័ត៌មានអតិថិជន</h2>
-                <p>ព័ត៌មានទំនាក់ទំនងរបស់អ្នកទិញ</p>
-              </div>
+              <div><h2>ព័ត៌មានអតិថិជន</h2><p>ជ្រើសពីបញ្ជី ដើម្បីបំពេញទិន្នន័យដោយស្វ័យប្រវត្តិ។</p></div>
             </div>
-
             <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">ជ្រើសអតិថិជនដែលបានរក្សាទុក</label>
+                <select v-model="form.customerId" class="form-select" @change="applyCustomer">
+                  <option value="">-- បញ្ចូលអតិថិជនថ្មីដោយដៃ --</option>
+                  <option v-for="customer in customers" :key="customer._id" :value="customer._id">
+                    {{ customer.name }} {{ customer.phone ? `· ${customer.phone}` : '' }}
+                  </option>
+                </select>
+              </div>
               <div class="col-md-6">
                 <label class="form-label">ឈ្មោះអតិថិជន *</label>
-                <input
-                  v-model.trim="form.customer.name"
-                  class="form-control"
-                  placeholder="ឈ្មោះពេញ"
-                  required
-                />
+                <input v-model.trim="form.customer.name" class="form-control" required />
               </div>
               <div class="col-md-6">
                 <label class="form-label">លេខទូរស័ព្ទ</label>
-                <input
-                  v-model.trim="form.customer.phone"
-                  class="form-control"
-                  placeholder="012 345 678"
-                />
+                <input v-model.trim="form.customer.phone" class="form-control" />
               </div>
               <div class="col-12">
                 <label class="form-label">អាសយដ្ឋាន</label>
-                <textarea
-                  v-model.trim="form.customer.address"
-                  class="form-control"
-                  rows="2"
-                  placeholder="ផ្ទះ លេខផ្លូវ សង្កាត់ ខណ្ឌ..."
-                ></textarea>
+                <textarea v-model.trim="form.customer.address" class="form-control" rows="2"></textarea>
               </div>
             </div>
           </div>
@@ -261,97 +278,55 @@ onMounted(loadInvoice)
           <div class="content-card form-card mb-4">
             <div class="section-title">
               <span class="section-number">03</span>
-              <div>
-                <h2>ផលិតផល</h2>
-                <p>បញ្ចូលថ្នាំពណ៌ បរិមាណ និងតម្លៃ</p>
-              </div>
+              <div><h2>ផលិតផល</h2><p>ជ្រើសពី catalogue ឬបញ្ចូលទំនិញថ្មីដោយដៃ។</p></div>
             </div>
-
             <div class="items-list">
-              <div
-                v-for="(item, index) in form.items"
-                :key="index"
-                class="item-row"
-              >
+              <div v-for="(item, index) in form.items" :key="index" class="item-row">
                 <div class="item-row-heading">
                   <strong>ផលិតផលទី {{ index + 1 }}</strong>
-                  <button
-                    class="btn btn-sm btn-link text-danger"
-                    type="button"
-                    :disabled="form.items.length === 1"
-                    @click="removeItem(index)"
-                  >
-                    <i class="bi bi-trash3 me-1"></i>
-                    លុប
+                  <button class="btn btn-sm btn-link text-danger" type="button" :disabled="form.items.length === 1" @click="removeItem(index)">
+                    <i class="bi bi-trash3 me-1"></i> លុប
                   </button>
                 </div>
                 <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">ជ្រើសពី Product Catalogue</label>
+                    <select v-model="item.productId" class="form-select" @change="applyProduct(item)">
+                      <option value="">-- បញ្ចូលដោយដៃ --</option>
+                      <option v-for="product in products" :key="product._id" :value="product._id">
+                        {{ product.name }} · {{ product.itemCode || 'No code' }} · {{ formatMoney(product.unitPrice) }}/{{ product.unit }}
+                      </option>
+                    </select>
+                  </div>
                   <div class="col-md-5">
                     <label class="form-label">ឈ្មោះផលិតផល *</label>
-                    <input
-                      v-model.trim="item.description"
-                      class="form-control"
-                      placeholder="ឧ. Jotun Majestic True Beauty 5L"
-                      required
-                    />
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label">លេខកូដពណ៌</label>
-                    <input
-                      v-model.trim="item.colorCode"
-                      class="form-control"
-                      placeholder="1024 Tidløs"
-                    />
+                    <input v-model.trim="item.description" class="form-control" required />
                   </div>
                   <div class="col-md-2">
+                    <label class="form-label">Item Code</label>
+                    <input v-model.trim="item.itemCode" class="form-control" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Color Code</label>
+                    <input v-model.trim="item.colorCode" class="form-control" />
+                  </div>
+                  <div class="col-md-1">
                     <label class="form-label">បរិមាណ *</label>
-                    <input
-                      v-model.number="item.quantity"
-                      class="form-control"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      required
-                    />
+                    <input v-model.number="item.quantity" class="form-control" type="number" min="0.01" step="0.01" required />
                   </div>
                   <div class="col-md-2">
                     <label class="form-label">ឯកតា *</label>
                     <select v-model="item.unit" class="form-select" required>
-                      <option
-                        v-for="unitOption in unitOptions"
-                        :key="unitOption"
-                        :value="unitOption"
-                      >
-                        {{ unitOption }}
-                      </option>
+                      <option v-for="option in unitOptions" :key="option" :value="option">{{ option }}</option>
                     </select>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">តម្លៃរាយ *</label>
-                    <div class="input-group">
-                      <span class="input-group-text">$</span>
-                      <input
-                        v-model.number="item.unitPrice"
-                        class="form-control"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                      />
-                    </div>
+                    <div class="input-group"><span class="input-group-text">$</span><input v-model.number="item.unitPrice" class="form-control" type="number" min="0" step="0.01" required /></div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">បញ្ចុះតម្លៃ</label>
-                    <div class="input-group">
-                      <span class="input-group-text">$</span>
-                      <input
-                        v-model.number="item.discount"
-                        class="form-control"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
+                    <div class="input-group"><span class="input-group-text">$</span><input v-model.number="item.discount" class="form-control" type="number" min="0" step="0.01" /></div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">សរុប</label>
@@ -360,135 +335,62 @@ onMounted(loadInvoice)
                 </div>
               </div>
             </div>
-
             <button class="btn btn-outline-primary" type="button" @click="addItem">
-              <i class="bi bi-plus-lg me-1"></i>
-              បន្ថែមផលិតផល
+              <i class="bi bi-plus-lg me-1"></i> បន្ថែមផលិតផល
             </button>
           </div>
 
           <div class="content-card form-card">
             <div class="section-title">
               <span class="section-number">04</span>
-              <div>
-                <h2>កំណត់ចំណាំ</h2>
-                <p>លក្ខខណ្ឌបង់ប្រាក់ ឬព័ត៌មានបន្ថែម</p>
-              </div>
+              <div><h2>កំណត់ចំណាំ</h2><p>លក្ខខណ្ឌបង់ប្រាក់ ឬព័ត៌មានបន្ថែម។</p></div>
             </div>
-            <textarea
-              v-model.trim="form.notes"
-              class="form-control"
-              rows="4"
-              placeholder="សូមអរគុណសម្រាប់ការគាំទ្រ..."
-            ></textarea>
+            <textarea v-model.trim="form.notes" class="form-control" rows="4"></textarea>
           </div>
         </div>
 
         <div class="col-lg-4">
           <div class="content-card form-card totals-card">
-            <h2>សេចក្តីសង្ខេប</h2>
-
+            <h2>សេចក្ដីសង្ខេប</h2>
             <div class="mb-3">
-              <label class="form-label">ស្ថានភាពបង់ប្រាក់</label>
-              <select v-model="form.paymentStatus" class="form-select">
-                <option value="unpaid">មិនទាន់បង់</option>
-                <option value="partial">បង់ខ្លះ</option>
-                <option value="paid">បានបង់រួច</option>
+              <label class="form-label">ស្ថានភាព</label>
+              <select v-model="form.status" class="form-select">
+                <option value="draft">Draft</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="partially_paid">Partially Paid</option>
+                <option value="paid">Paid</option>
+                <option value="cancelled">Cancelled</option>
               </select>
+              <small class="text-secondary">Paid/Partially Paid នឹងកែដោយស្វ័យប្រវត្តិតាម Payment History។</small>
             </div>
-
             <div class="mb-3">
-              <label class="form-label">បញ្ចុះតម្លៃលើវិក្កយបត្រ</label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input
-                  v-model.number="form.discount"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  :max="subtotal"
-                  step="0.01"
-                />
-              </div>
+              <label class="form-label">បញ្ចុះតម្លៃវិក្កយបត្រ</label>
+              <div class="input-group"><span class="input-group-text">$</span><input v-model.number="form.discount" class="form-control" type="number" min="0" :max="subtotal" step="0.01" /></div>
             </div>
-
-            <div class="mb-4">
+            <div class="mb-3">
               <label class="form-label">ពន្ធ</label>
-              <div class="input-group">
-                <input
-                  v-model.number="form.taxRate"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-                <span class="input-group-text">%</span>
-              </div>
+              <div class="input-group"><input v-model.number="form.taxRate" class="form-control" type="number" min="0" max="100" step="0.01" /><span class="input-group-text">%</span></div>
             </div>
-
             <div class="mb-3">
               <label class="form-label">ថ្លៃដឹកជញ្ជូន</label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input
-                  v-model.number="form.deliveryFee"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
+              <div class="input-group"><span class="input-group-text">$</span><input v-model.number="form.deliveryFee" class="form-control" type="number" min="0" step="0.01" /></div>
             </div>
-
             <div class="mb-4">
-              <label class="form-label">ប្រាក់កក់</label>
-              <div class="input-group">
-                <input
-                  v-model.number="form.depositRate"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-                <span class="input-group-text">%</span>
-              </div>
+              <label class="form-label">ប្រាក់កក់ដែលបានបង់</label>
+              <div class="input-group"><input v-model.number="form.depositRate" class="form-control" type="number" min="0" max="100" step="0.01" /><span class="input-group-text">%</span></div>
             </div>
 
             <div class="totals-breakdown">
-              <div>
-                <span>សរុបរង</span>
-                <strong>{{ formatMoney(subtotal) }}</strong>
-              </div>
-              <div>
-                <span>បញ្ចុះតម្លៃ</span>
-                <strong>-{{ formatMoney(form.discount) }}</strong>
-              </div>
-              <div>
-                <span>ពន្ធ</span>
-                <strong>{{ formatMoney(taxAmount) }}</strong>
-              </div>
-              <div>
-                <span>ថ្លៃដឹកជញ្ជូន</span>
-                <strong>{{ formatMoney(form.deliveryFee) }}</strong>
-              </div>
-              <div>
-                <span>ប្រាក់កក់ ({{ form.depositRate || 0 }}%)</span>
-                <strong>-{{ formatMoney(depositAmount) }}</strong>
-              </div>
-              <div class="grand-total">
-                <span>ប្រាក់នៅសល់</span>
-                <strong>{{ formatMoney(balanceDue) }}</strong>
-              </div>
+              <div><span>សរុបរង</span><strong>{{ formatMoney(subtotal) }}</strong></div>
+              <div><span>បញ្ចុះតម្លៃ</span><strong>-{{ formatMoney(form.discount) }}</strong></div>
+              <div><span>ពន្ធ</span><strong>{{ formatMoney(taxAmount) }}</strong></div>
+              <div><span>ដឹកជញ្ជូន</span><strong>{{ formatMoney(form.deliveryFee) }}</strong></div>
+              <div><span>ប្រាក់កក់</span><strong>-{{ formatMoney(depositAmount) }}</strong></div>
+              <div class="grand-total"><span>ប្រាក់នៅសល់</span><strong>{{ formatMoney(balanceDue) }}</strong></div>
             </div>
 
             <button class="btn btn-danger btn-lg w-100 mt-4" type="submit" :disabled="saving">
-              <span
-                v-if="saving"
-                class="spinner-border spinner-border-sm me-2"
-                role="status"
-              ></span>
+              <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
               <i v-else class="bi bi-check2-circle me-2"></i>
               {{ saving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុកវិក្កយបត្រ' }}
             </button>

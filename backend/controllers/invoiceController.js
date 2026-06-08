@@ -1,11 +1,24 @@
 import mongoose from 'mongoose'
+import { writeAuditLog } from '../repositories/auditRepository.js'
 import {
+  appendInvoicePayment,
   findInvoiceById,
+  getInvoiceDashboard,
   insertInvoice,
   listInvoices,
-  removeInvoice,
+  reserveInvoiceNumber,
+  restoreInvoice,
   replaceInvoice,
+  softDeleteInvoice,
 } from '../repositories/invoiceRepository.js'
+
+const VALID_STATUSES = [
+  'draft',
+  'unpaid',
+  'partially_paid',
+  'paid',
+  'cancelled',
+]
 
 const roundMoney = (value) => {
   const numericValue =
@@ -35,7 +48,9 @@ export const calculateTotals = (payload) => {
     }
 
     return {
+      productId: item.productId || null,
       description: String(item.description || '').trim(),
+      itemCode: String(item.itemCode || '').trim(),
       colorCode: String(item.colorCode || '').trim(),
       quantity,
       unit: String(item.unit || '').trim(),
@@ -102,8 +117,25 @@ export const calculateTotals = (payload) => {
   }
 }
 
-const normalizeInvoice = (body) => {
-  const invoiceNumber = String(body.invoiceNumber || '').trim()
+const resolveStatus = ({ requestedStatus, paidAmount, balanceDue }) => {
+  if (requestedStatus === 'draft' || requestedStatus === 'cancelled') {
+    return requestedStatus
+  }
+  if (balanceDue <= 0) return 'paid'
+  if (paidAmount > 0) return 'partially_paid'
+  return 'unpaid'
+}
+
+const legacyPaymentStatus = (status) => {
+  if (status === 'paid') return 'paid'
+  if (status === 'partially_paid') return 'partial'
+  return 'unpaid'
+}
+
+const normalizeInvoice = (
+  body,
+  { invoiceNumber, actor, existingPayments = [] } = {},
+) => {
   const customerName = String(body.customer?.name || '').trim()
   const invoiceDate = new Date(body.invoiceDate)
   const dueDate = new Date(body.dueDate)
@@ -119,27 +151,50 @@ const normalizeInvoice = (body) => {
   }
 
   const totals = calculateTotals(body)
+  const payments = Array.isArray(existingPayments) ? existingPayments : []
+  const historyPaidAmount = roundMoney(
+    payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+  )
+  const paidAmount = roundMoney(totals.depositAmount + historyPaidAmount)
+  const balanceDue = roundMoney(
+    Math.max(0, totals.grandTotal - paidAmount),
+  )
+  const requestedStatus = VALID_STATUSES.includes(body.status)
+    ? body.status
+    : body.paymentStatus === 'partial'
+      ? 'partially_paid'
+      : body.paymentStatus || 'unpaid'
+  const status = resolveStatus({
+    requestedStatus,
+    paidAmount,
+    balanceDue,
+  })
 
   return {
     invoiceNumber,
     invoiceDate: invoiceDate.toISOString(),
     dueDate: dueDate.toISOString(),
+    customerId: body.customerId || null,
     customer: {
       name: customerName,
       phone: String(body.customer?.phone || '').trim(),
       address: String(body.customer?.address || '').trim(),
     },
-    paymentStatus: ['unpaid', 'partial', 'paid'].includes(body.paymentStatus)
-      ? body.paymentStatus
-      : 'unpaid',
+    status,
+    paymentStatus: legacyPaymentStatus(status),
+    payments,
+    paidAmount,
+    balanceDue,
     notes: String(body.notes || '').trim(),
+    updatedBy: actor,
     ...totals,
+    balanceDue,
   }
 }
 
 const sendError = (res, error) => {
   if (error.code === 11000) {
-    return res.status(409).json({ message: 'Invoice number already exists' })
+    return res.status(409).json({ message: 'A unique value already exists' })
   }
   if (error instanceof mongoose.Error.ValidationError) {
     const message = Object.values(error.errors)
@@ -148,16 +203,31 @@ const sendError = (res, error) => {
     return res.status(400).json({ message })
   }
   if (error.name === 'CastError') {
-    return res.status(400).json({ message: 'Invalid invoice ID' })
+    return res.status(400).json({ message: 'Invalid record ID' })
   }
   return res.status(400).json({ message: error.message || 'Request failed' })
 }
 
+const paginationResponse = ({ items, total, page, limit }) => ({
+  items,
+  pagination: {
+    page,
+    limit,
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+  },
+})
+
 export const getInvoices = async (req, res) => {
   try {
-    const query = String(req.query.search || '').trim()
-    const invoices = await listInvoices(query)
-    res.json(invoices)
+    const result = await listInvoices({
+      search: String(req.query.search || '').trim(),
+      page: req.query.page,
+      limit: req.query.limit,
+      status: String(req.query.status || '').trim(),
+      deleted: req.query.deleted === 'true',
+    })
+    res.json(paginationResponse(result))
   } catch (error) {
     sendError(res, error)
   }
@@ -177,7 +247,20 @@ export const getInvoiceById = async (req, res) => {
 
 export const createInvoice = async (req, res) => {
   try {
-    const invoice = await insertInvoice(normalizeInvoice(req.body))
+    const invoiceNumber = await reserveInvoiceNumber(req.body.invoiceDate)
+    const payload = normalizeInvoice(req.body, {
+      invoiceNumber,
+      actor: req.admin.username,
+    })
+    payload.createdBy = req.admin.username
+    const invoice = await insertInvoice(payload)
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'create',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+    })
     res.status(201).json(invoice)
   } catch (error) {
     sendError(res, error)
@@ -186,14 +269,25 @@ export const createInvoice = async (req, res) => {
 
 export const updateInvoice = async (req, res) => {
   try {
-    const invoice = await replaceInvoice(
-      req.params.id,
-      normalizeInvoice(req.body),
-    )
-
-    if (!invoice) {
+    const existing = await findInvoiceById(req.params.id)
+    if (!existing) {
       return res.status(404).json({ message: 'Invoice not found' })
     }
+    const invoice = await replaceInvoice(
+      req.params.id,
+      normalizeInvoice(req.body, {
+        invoiceNumber: existing.invoiceNumber,
+        actor: req.admin.username,
+        existingPayments: existing.payments,
+      }),
+    )
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'update',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+    })
     res.json(invoice)
   } catch (error) {
     sendError(res, error)
@@ -202,11 +296,127 @@ export const updateInvoice = async (req, res) => {
 
 export const deleteInvoice = async (req, res) => {
   try {
-    const invoice = await removeInvoice(req.params.id)
+    const invoice = await softDeleteInvoice(
+      req.params.id,
+      req.admin.username,
+    )
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' })
     }
-    res.json({ message: 'Invoice deleted successfully' })
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'delete',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+    })
+    res.json({ message: 'Invoice moved to trash', invoice })
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const restoreDeletedInvoice = async (req, res) => {
+  try {
+    const invoice = await restoreInvoice(req.params.id, req.admin.username)
+    if (!invoice) {
+      return res.status(404).json({ message: 'Deleted invoice not found' })
+    }
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'restore',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+    })
+    res.json(invoice)
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const addInvoicePayment = async (req, res) => {
+  try {
+    const invoice = await findInvoiceById(req.params.id)
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' })
+    }
+    if (['draft', 'cancelled'].includes(invoice.status)) {
+      return res.status(400).json({
+        message: 'Payments cannot be added to draft or cancelled invoices',
+      })
+    }
+
+    const amount = roundMoney(req.body.amount)
+    const paidAt = new Date(req.body.paidAt || Date.now())
+    const receivedBy = String(
+      req.body.receivedBy || req.admin.username,
+    ).trim()
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Payment amount must be greater than zero')
+    }
+    if (amount > Number(invoice.balanceDue || 0)) {
+      throw new Error('Payment amount cannot exceed the balance due')
+    }
+    if (Number.isNaN(paidAt.getTime())) {
+      throw new Error('Payment date is invalid')
+    }
+    if (!receivedBy) {
+      throw new Error('Received by is required')
+    }
+
+    const existingPaidAmount = roundMoney(
+      Math.max(
+        Number(invoice.paidAmount || 0),
+        Math.max(
+          0,
+          Number(invoice.grandTotal || 0) - Number(invoice.balanceDue || 0),
+        ),
+      ),
+    )
+    const paidAmount = roundMoney(existingPaidAmount + amount)
+    const balanceDue = roundMoney(
+      Math.max(0, Number(invoice.grandTotal || 0) - paidAmount),
+    )
+    const status = resolveStatus({
+      requestedStatus: invoice.status,
+      paidAmount,
+      balanceDue,
+    })
+    const updated = await appendInvoicePayment(
+      req.params.id,
+      {
+        amount,
+        paidAt: paidAt.toISOString(),
+        receivedBy,
+        note: String(req.body.note || '').trim(),
+        recordedBy: req.admin.username,
+      },
+      {
+        paidAmount,
+        balanceDue,
+        status,
+        paymentStatus: legacyPaymentStatus(status),
+        updatedBy: req.admin.username,
+      },
+    )
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'payment',
+      entityType: 'invoice',
+      entityId: updated._id,
+      summary: `${updated.invoiceNumber}: $${amount.toFixed(2)}`,
+      details: { amount, receivedBy, paidAt: paidAt.toISOString() },
+    })
+    res.status(201).json(updated)
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const getDashboard = async (_req, res) => {
+  try {
+    res.json(await getInvoiceDashboard())
   } catch (error) {
     sendError(res, error)
   }

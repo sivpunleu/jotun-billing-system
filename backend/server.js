@@ -2,8 +2,13 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import connectDB, { getStorageMode } from './config/db.js'
+import auditRoutes from './routes/auditRoutes.js'
 import authRoutes from './routes/authRoutes.js'
+import customerRoutes from './routes/customerRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
+import productRoutes from './routes/productRoutes.js'
+import reportRoutes from './routes/reportRoutes.js'
+import { migrateExistingData } from './services/migrationService.js'
 
 dotenv.config()
 
@@ -38,6 +43,10 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
+app.use('/api/customers', customerRoutes)
+app.use('/api/products', productRoutes)
+app.use('/api/audit-logs', auditRoutes)
+app.use('/api/reports', reportRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found' })
@@ -50,6 +59,7 @@ app.use((error, _req, res, _next) => {
 
 const startServer = async () => {
   await connectDB()
+  await migrateExistingData()
   app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`)
   })

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  canManageBilling,
   clearAuthSession,
   currentAdmin,
   isAuthenticated,
@@ -11,7 +12,7 @@ import jotunLogo from './assets/jotun.jpg'
 
 const router = useRouter()
 const brandDestination = computed(() =>
-  isAuthenticated.value ? '/invoices' : '/login',
+  isAuthenticated.value ? '/dashboard' : '/login',
 )
 
 const logout = async () => {
@@ -23,7 +24,7 @@ const logout = async () => {
 <template>
   <div class="app-shell">
     <header class="app-header d-print-none">
-      <nav class="navbar navbar-expand-lg">
+      <nav class="navbar navbar-expand-xl">
         <div class="container">
           <RouterLink class="navbar-brand" :to="brandDestination">
             <span class="brand-logos">
@@ -45,35 +46,63 @@ const logout = async () => {
           </button>
 
           <div id="mainNavigation" class="collapse navbar-collapse">
-            <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-              <RouterLink v-if="isAuthenticated" class="nav-link" to="/invoices">
-                <i class="bi bi-receipt me-1"></i>
-                បញ្ជីវិក្កយបត្រ
-              </RouterLink>
-              <RouterLink
-                v-if="isAuthenticated"
-                class="btn btn-danger px-3"
-                to="/invoices/new"
-              >
-                <i class="bi bi-plus-lg me-1"></i>
-                បង្កើតវិក្កយបត្រ
-              </RouterLink>
-              <span v-if="isAuthenticated" class="admin-identity">
-                <i class="bi bi-person-circle me-1"></i>
-                {{ currentAdmin?.username }}
-              </span>
-              <button
-                v-if="isAuthenticated"
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="logout"
-              >
-                <i class="bi bi-box-arrow-right me-1"></i>
-                Logout
-              </button>
+            <div class="navbar-nav ms-auto align-items-xl-center gap-xl-1">
+              <template v-if="isAuthenticated">
+                <RouterLink class="nav-link" to="/dashboard">
+                  <i class="bi bi-grid me-1"></i> Dashboard
+                </RouterLink>
+                <RouterLink class="nav-link" to="/invoices">
+                  <i class="bi bi-receipt me-1"></i> វិក្កយបត្រ
+                </RouterLink>
+                <RouterLink class="nav-link" to="/customers">
+                  <i class="bi bi-people me-1"></i> អតិថិជន
+                </RouterLink>
+                <RouterLink class="nav-link" to="/products">
+                  <i class="bi bi-box-seam me-1"></i> ទំនិញ
+                </RouterLink>
+                <div class="nav-item dropdown">
+                  <button
+                    class="nav-link dropdown-toggle border-0 bg-transparent"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                  >
+                    <i class="bi bi-gear me-1"></i> គ្រប់គ្រង
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li v-if="canManageBilling">
+                      <RouterLink class="dropdown-item" to="/audit-logs">
+                        <i class="bi bi-clock-history me-2"></i> Audit Log
+                      </RouterLink>
+                    </li>
+                    <li>
+                      <RouterLink class="dropdown-item" to="/settings">
+                        <i class="bi bi-shield-lock me-2"></i> Account & Admins
+                      </RouterLink>
+                    </li>
+                  </ul>
+                </div>
+                <RouterLink
+                  v-if="canManageBilling"
+                  class="btn btn-danger px-3"
+                  to="/invoices/new"
+                >
+                  <i class="bi bi-plus-lg me-1"></i> វិក្កយបត្រថ្មី
+                </RouterLink>
+                <span class="admin-identity">
+                  <i class="bi bi-person-circle me-1"></i>
+                  {{ currentAdmin?.displayName || currentAdmin?.username }}
+                  <small>{{ currentAdmin?.role }}</small>
+                </span>
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="logout"
+                >
+                  <i class="bi bi-box-arrow-right"></i>
+                </button>
+              </template>
               <RouterLink v-else class="btn btn-danger px-4" to="/login">
-                <i class="bi bi-shield-lock me-1"></i>
-                Admin Login
+                <i class="bi bi-shield-lock me-1"></i> Admin Login
               </RouterLink>
             </div>
           </div>
@@ -88,7 +117,7 @@ const logout = async () => {
     <footer class="app-footer d-print-none">
       <div class="container d-flex flex-wrap justify-content-between gap-2">
         <span>Marvel Paint Center Billing</span>
-        <span>Built for clear, reliable invoicing</span>
+        <span>Secure billing, payments and customer management</span>
       </div>
     </footer>
   </div>

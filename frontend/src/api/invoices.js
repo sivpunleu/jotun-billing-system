@@ -38,6 +38,24 @@ api.interceptors.response.use(
   },
 )
 
+const createCatalogApi = (path) => ({
+  list(params = {}) {
+    return api.get(path, { params })
+  },
+  create(payload) {
+    return api.post(path, payload)
+  },
+  update(id, payload) {
+    return api.put(`${path}/${id}`, payload)
+  },
+  remove(id) {
+    return api.delete(`${path}/${id}`)
+  },
+  restore(id) {
+    return api.post(`${path}/${id}/restore`)
+  },
+})
+
 export const authApi = {
   login(credentials) {
     return api.post('/auth/login', credentials)
@@ -45,11 +63,28 @@ export const authApi = {
   me() {
     return api.get('/auth/me')
   },
+  changePassword(payload) {
+    return api.post('/auth/change-password', payload)
+  },
+  listAdmins() {
+    return api.get('/auth/admins')
+  },
+  createAdmin(payload) {
+    return api.post('/auth/admins', payload)
+  },
+  updateAdmin(id, payload) {
+    return api.put(`/auth/admins/${id}`, payload)
+  },
 }
 
 export const invoiceApi = {
-  list(search = '') {
-    return api.get('/invoices', { params: { search } })
+  list(params = {}) {
+    const normalizedParams =
+      typeof params === 'string' ? { search: params } : params
+    return api.get('/invoices', { params: normalizedParams })
+  },
+  dashboard() {
+    return api.get('/invoices/dashboard')
   },
   get(id) {
     return api.get(`/invoices/${id}`)
@@ -62,5 +97,44 @@ export const invoiceApi = {
   },
   remove(id) {
     return api.delete(`/invoices/${id}`)
+  },
+  restore(id) {
+    return api.post(`/invoices/${id}/restore`)
+  },
+  addPayment(id, payload) {
+    return api.post(`/invoices/${id}/payments`, payload)
+  },
+}
+
+export const customerApi = createCatalogApi('/customers')
+export const productApi = createCatalogApi('/products')
+
+export const auditApi = {
+  list(params = {}) {
+    return api.get('/audit-logs', { params })
+  },
+}
+
+const downloadBlob = async (path, fallbackName) => {
+  const response = await api.get(path, { responseType: 'blob' })
+  const disposition = response.headers['content-disposition'] || ''
+  const nameMatch = disposition.match(/filename="?([^"]+)"?/)
+  const filename = nameMatch?.[1] || fallbackName
+  const url = window.URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+export const reportApi = {
+  exportCsv() {
+    return downloadBlob('/reports/invoices.csv', 'invoices.csv')
+  },
+  backup() {
+    return downloadBlob('/reports/backup.json', 'jotun-billing-backup.json')
   },
 }

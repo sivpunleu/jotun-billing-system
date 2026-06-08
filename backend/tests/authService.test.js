@@ -42,3 +42,22 @@ test('admin JWT contains the expected identity and expiration', async () => {
   assert.equal(payload.role, 'admin')
   assert.ok(decodeTokenExpiration(token))
 })
+
+test('admin JWT preserves database identity and role', async () => {
+  const config = await createConfig()
+  const token = createAdminToken(
+    {
+      id: 'admin-id-1',
+      username: 'owner',
+      displayName: 'Billing Owner',
+      role: 'owner',
+    },
+    config,
+  )
+  const payload = verifyAdminToken(token, config)
+
+  assert.equal(payload.sub, 'admin-id-1')
+  assert.equal(payload.adminId, 'admin-id-1')
+  assert.equal(payload.username, 'owner')
+  assert.equal(payload.role, 'owner')
+})

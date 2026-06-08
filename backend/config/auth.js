@@ -16,6 +16,8 @@ export const getAuthConfig = () => {
     passwordHash,
     jwtSecret,
     jwtExpiresIn,
+    hasJwtSecret: hasStrongJwtSecret,
+    hasBootstrapAdmin: Boolean(username && hasValidPasswordHash),
     isConfigured: Boolean(
       username && hasValidPasswordHash && hasStrongJwtSecret,
     ),
