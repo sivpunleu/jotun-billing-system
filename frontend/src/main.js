@@ -8,4 +8,16 @@ import './styles.css'
 import App from './App.vue'
 import router from './router'
 
+window.addEventListener('auth:expired', () => {
+  if (router.currentRoute.value.name !== 'login') {
+    router.replace({
+      name: 'login',
+      query: {
+        expired: '1',
+        redirect: router.currentRoute.value.fullPath,
+      },
+    })
+  }
+})
+
 createApp(App).use(router).use(createBootstrap()).mount('#app')

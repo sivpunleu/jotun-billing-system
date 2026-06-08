@@ -6,11 +6,15 @@ import {
   getInvoices,
   updateInvoice,
 } from '../controllers/invoiceController.js'
+import { requireAdmin } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router.route('/').get(getInvoices).post(createInvoice)
-router.route('/:id').get(getInvoiceById).put(updateInvoice).delete(deleteInvoice)
+router.route('/').get(requireAdmin, getInvoices).post(requireAdmin, createInvoice)
+router
+  .route('/:id')
+  .get(getInvoiceById)
+  .put(requireAdmin, updateInvoice)
+  .delete(requireAdmin, deleteInvoice)
 
 export default router
-

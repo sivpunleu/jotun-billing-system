@@ -90,6 +90,13 @@ textarea {
   color: var(--red);
 }
 
+.admin-identity {
+  padding: 8px 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .btn {
   border-radius: 10px;
   font-weight: 700;
@@ -505,6 +512,74 @@ textarea {
   align-items: start;
   column-gap: 20px;
   min-height: 166px;
+  text-align: center;
+}
+
+.login-page {
+  display: grid;
+  min-height: calc(100vh - 158px);
+  padding: 56px 20px;
+  place-items: center;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(220, 38, 53, 0.08), transparent 22rem),
+    radial-gradient(circle at 90% 15%, rgba(24, 138, 194, 0.1), transparent 24rem);
+}
+
+.login-card {
+  width: min(100%, 460px);
+  padding: 36px;
+  border: 1px solid rgba(7, 27, 58, 0.08);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(7, 27, 58, 0.14);
+}
+
+.login-brand {
+  display: flex;
+  height: 62px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.login-brand img {
+  max-width: 150px;
+  max-height: 58px;
+  object-fit: contain;
+}
+
+.login-divider {
+  width: 1px;
+  height: 42px;
+  background: var(--line);
+}
+
+.login-heading {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.login-heading h1 {
+  margin: 5px 0 8px;
+  color: var(--navy);
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.login-heading p,
+.login-security-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.password-toggle {
+  border-color: #dce3ec;
+}
+
+.login-security-note {
+  margin-top: 20px;
+  font-size: 0.75rem;
   text-align: center;
 }
 

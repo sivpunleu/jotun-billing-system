@@ -29,6 +29,36 @@ npm run dev
 The frontend runs at `http://localhost:5173` and the API runs at
 `http://localhost:5000`.
 
+## Admin authentication
+
+Invoice preview links are public. Viewing the invoice list and creating,
+editing, or deleting invoices requires an admin login.
+
+Generate a bcrypt password hash:
+
+```bash
+cd backend
+npm run hash-password
+```
+
+Generate a JWT signing secret:
+
+```bash
+npm run generate-jwt-secret
+```
+
+Add the generated values to `backend/.env`:
+
+```text
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=$2b$12$...
+JWT_SECRET=long-random-secret
+JWT_EXPIRES_IN=8h
+```
+
+Passwords and JWT secrets must only be stored in environment variables. Never
+add them to frontend code or commit them to Git.
+
 ## Deploy
 
 ### 1. MongoDB Atlas
@@ -49,6 +79,10 @@ Production requires MongoDB. The local JSON fallback is development-only.
 ```text
 MONGO_URI=mongodb+srv://...
 CLIENT_URL=https://your-frontend.vercel.app
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=$2b$12$...
+JWT_SECRET=long-random-secret
+JWT_EXPIRES_IN=8h
 ```
 
 After deployment, test:

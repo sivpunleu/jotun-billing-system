@@ -2,6 +2,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import connectDB, { getStorageMode } from './config/db.js'
+import authRoutes from './routes/authRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
 
 dotenv.config()
@@ -12,6 +13,8 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
+
+app.set('trust proxy', 1)
 
 app.use(
   cors({
@@ -33,6 +36,7 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
+app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
 
 app.use((_req, res) => {
