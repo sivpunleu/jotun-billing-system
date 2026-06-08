@@ -501,9 +501,9 @@ textarea {
 
 .classic-header {
   display: grid;
-  grid-template-columns: 205px minmax(0, 1fr) 190px;
+  grid-template-columns: 205px minmax(0, 1fr) 205px;
   align-items: start;
-  gap: 12px;
+  column-gap: 20px;
   min-height: 166px;
   text-align: center;
 }
@@ -891,8 +891,8 @@ textarea {
   }
 
   .classic-header {
-    grid-template-columns: 118px minmax(0, 1fr) 105px;
-    gap: 6px;
+    grid-template-columns: 118px minmax(0, 1fr) 118px;
+    column-gap: 8px;
     min-height: 132px;
   }
 
@@ -1042,8 +1042,8 @@ textarea {
   }
 
   .classic-header {
-    grid-template-columns: 205px minmax(0, 1fr) 190px;
-    gap: 12px;
+    grid-template-columns: 205px minmax(0, 1fr) 205px;
+    column-gap: 20px;
     min-height: 43mm;
   }
 
