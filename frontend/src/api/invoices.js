@@ -63,6 +63,15 @@ export const authApi = {
   me() {
     return api.get('/auth/me')
   },
+  profile() {
+    return api.get('/auth/profile')
+  },
+  updateProfile(payload) {
+    return api.put('/auth/profile', payload)
+  },
+  profileActivity(params = {}) {
+    return api.get('/auth/profile/activity', { params })
+  },
   changePassword(payload) {
     return api.post('/auth/change-password', payload)
   },

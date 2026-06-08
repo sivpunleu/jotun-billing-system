@@ -5,7 +5,10 @@ import {
   editAdmin,
   getAdmins,
   getCurrentAdmin,
+  getProfile,
+  getProfileActivity,
   loginAdmin,
+  updateProfile,
 } from '../controllers/authController.js'
 import {
   authorizeRoles,
@@ -17,6 +20,11 @@ const router = express.Router()
 
 router.post('/login', loginRateLimit, loginAdmin)
 router.get('/me', requireAdmin, getCurrentAdmin)
+router
+  .route('/profile')
+  .get(requireAdmin, getProfile)
+  .put(requireAdmin, updateProfile)
+router.get('/profile/activity', requireAdmin, getProfileActivity)
 router.post('/change-password', requireAdmin, changePassword)
 router
   .route('/admins')

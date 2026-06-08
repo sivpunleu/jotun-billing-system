@@ -76,6 +76,8 @@ the application database. The owner can then create more accounts:
 - Audit logging for management and security actions
 - Recoverable trash and restore for invoices, customers, and products
 - Server-side pagination and filters
+- Personal profiles with a compressed avatar, display name, password controls,
+  last login details, and personal activity history
 - Invoice CSV export and owner-only JSON database backup
 - A shared A4 layout for browser preview and Print / Save PDF
 

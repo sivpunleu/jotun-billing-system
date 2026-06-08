@@ -8,7 +8,10 @@ import {
   updateAdmin,
   updateAdminPassword,
 } from '../repositories/adminRepository.js'
-import { writeAuditLog } from '../repositories/auditRepository.js'
+import {
+  listAuditLogs,
+  writeAuditLog,
+} from '../repositories/auditRepository.js'
 import {
   createAdminToken,
   decodeTokenExpiration,
@@ -23,11 +26,14 @@ import {
 
 const PASSWORD_MINIMUM_LENGTH = 10
 const VALID_ROLES = ['owner', 'admin', 'viewer']
+const AVATAR_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
+const MAX_AVATAR_LENGTH = 350_000
 
 const publicAdmin = (admin) => ({
   id: String(admin._id || admin.id || ''),
   username: admin.username,
   displayName: admin.displayName || '',
+  avatar: admin.avatar || '',
   role: admin.role,
   active: admin.active,
   lastLoginAt: admin.lastLoginAt || null,
@@ -127,6 +133,81 @@ export const loginAdmin = async (req, res) => {
 
 export const getCurrentAdmin = (req, res) => {
   res.json({ admin: req.admin })
+}
+
+export const getProfile = async (req, res) => {
+  try {
+    const admin = req.admin.id
+      ? await findAdminById(req.admin.id)
+      : await findAdminByUsername(req.admin.username)
+    if (!admin) return res.status(404).json({ message: 'Profile not found' })
+    res.json({ admin: publicAdmin(admin) })
+  } catch (error) {
+    res.status(400).json({ message: error.message || 'Unable to load profile' })
+  }
+}
+
+export const updateProfile = async (req, res) => {
+  try {
+    const admin = req.admin.id
+      ? await findAdminById(req.admin.id)
+      : await findAdminByUsername(req.admin.username)
+    if (!admin) return res.status(404).json({ message: 'Profile not found' })
+
+    const displayName = String(req.body.displayName || '').trim()
+    const avatar = String(req.body.avatar || '').trim()
+    if (displayName.length > 80) {
+      throw new Error('Display name cannot exceed 80 characters')
+    }
+    if (
+      avatar &&
+      (!AVATAR_PATTERN.test(avatar) || avatar.length > MAX_AVATAR_LENGTH)
+    ) {
+      throw new Error('Profile image must be a small PNG, JPEG, or WebP image')
+    }
+
+    const updated = await updateAdmin(admin._id || admin.id, {
+      displayName,
+      avatar,
+    })
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'update_profile',
+      entityType: 'admin',
+      entityId: req.admin.id,
+      summary: req.admin.username,
+      details: { avatarUpdated: avatar !== String(admin.avatar || '') },
+    })
+    res.json({ admin: publicAdmin(updated) })
+  } catch (error) {
+    res.status(400).json({
+      message: error.message || 'Unable to update profile',
+    })
+  }
+}
+
+export const getProfileActivity = async (req, res) => {
+  try {
+    const result = await listAuditLogs({
+      page: req.query.page,
+      limit: req.query.limit,
+      actorId: req.admin.id,
+      actorUsername: req.admin.username,
+    })
+    res.json({
+      items: result.items,
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        pages: Math.max(1, Math.ceil(result.total / result.limit)),
+      },
+    })
+  } catch (error) {
+    res.status(400).json({
+      message: error.message || 'Unable to load profile activity',
+    })
+  }
 }
 
 export const changePassword = async (req, res) => {

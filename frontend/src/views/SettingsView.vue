@@ -5,15 +5,9 @@ import { currentAdmin, isOwner } from '../auth/session'
 
 const error = ref('')
 const success = ref('')
-const changingPassword = ref(false)
 const loadingAdmins = ref(false)
 const creatingAdmin = ref(false)
 const admins = ref([])
-const passwordForm = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: '',
-})
 const adminForm = reactive({
   username: '',
   displayName: '',
@@ -27,31 +21,6 @@ const showMessage = (message) => {
   window.setTimeout(() => {
     success.value = ''
   }, 4000)
-}
-
-const changePassword = async () => {
-  error.value = ''
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    error.value = 'New passwords do not match'
-    return
-  }
-  changingPassword.value = true
-  try {
-    await authApi.changePassword({
-      currentPassword: passwordForm.currentPassword,
-      newPassword: passwordForm.newPassword,
-    })
-    Object.assign(passwordForm, {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    })
-    showMessage('Password changed successfully')
-  } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to change password'
-  } finally {
-    changingPassword.value = false
-  }
 }
 
 const loadAdmins = async () => {
@@ -112,41 +81,15 @@ onMounted(loadAdmins)
   <section class="container page-section">
     <div class="page-heading">
       <div>
-        <span class="eyebrow">ACCOUNT SECURITY</span>
-        <h1>Account & Admins</h1>
-        <p>ប្ដូរ password និងកំណត់សិទ្ធិអ្នកប្រើប្រាស់។</p>
+        <span class="eyebrow">ADMIN MANAGEMENT</span>
+        <h1>Admin Accounts</h1>
+        <p>បង្កើត Admin និងកំណត់សិទ្ធិអ្នកប្រើប្រាស់។</p>
       </div>
       <span class="role-badge">{{ currentAdmin?.role }}</span>
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <div v-if="success" class="alert alert-success">{{ success }}</div>
-
-    <div class="content-card form-card mb-4">
-      <div class="section-title">
-        <span class="section-number"><i class="bi bi-key"></i></span>
-        <div><h2>Change Password</h2><p>ប្រើ password យ៉ាងតិច 10 តួអក្សរ។</p></div>
-      </div>
-      <form class="row g-3" @submit.prevent="changePassword">
-        <div class="col-md-4">
-          <label class="form-label">Current Password</label>
-          <input v-model="passwordForm.currentPassword" class="form-control" type="password" autocomplete="current-password" required />
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">New Password</label>
-          <input v-model="passwordForm.newPassword" class="form-control" type="password" minlength="10" autocomplete="new-password" required />
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Confirm Password</label>
-          <input v-model="passwordForm.confirmPassword" class="form-control" type="password" minlength="10" autocomplete="new-password" required />
-        </div>
-        <div class="col-12">
-          <button class="btn btn-danger" type="submit" :disabled="changingPassword">
-            {{ changingPassword ? 'កំពុងប្ដូរ...' : 'ប្ដូរ Password' }}
-          </button>
-        </div>
-      </form>
-    </div>
 
     <template v-if="isOwner">
       <div class="content-card form-card mb-4">

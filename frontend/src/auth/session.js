@@ -83,6 +83,19 @@ export const setAuthSession = ({ token, admin }) => {
   scheduleExpiration(token)
 }
 
+export const updateCurrentAdmin = (admin) => {
+  currentAdmin.value = {
+    ...(currentAdmin.value || {}),
+    ...admin,
+  }
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem(
+      ADMIN_KEY,
+      JSON.stringify(currentAdmin.value),
+    )
+  }
+}
+
 export const clearAuthSession = () => {
   clearTimeout(expirationTimer)
   authToken.value = ''

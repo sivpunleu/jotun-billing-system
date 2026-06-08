@@ -6,6 +6,7 @@ import {
   clearAuthSession,
   currentAdmin,
   isAuthenticated,
+  isOwner,
 } from './auth/session'
 import logo from './assets/logo-marvel.png'
 import jotunLogo from './assets/jotun.jpg'
@@ -69,14 +70,19 @@ const logout = async () => {
                     <i class="bi bi-gear me-1"></i> គ្រប់គ្រង
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <RouterLink class="dropdown-item" to="/profile">
+                        <i class="bi bi-person-circle me-2"></i> Profile
+                      </RouterLink>
+                    </li>
                     <li v-if="canManageBilling">
                       <RouterLink class="dropdown-item" to="/audit-logs">
                         <i class="bi bi-clock-history me-2"></i> Audit Log
                       </RouterLink>
                     </li>
-                    <li>
+                    <li v-if="isOwner">
                       <RouterLink class="dropdown-item" to="/settings">
-                        <i class="bi bi-shield-lock me-2"></i> Account & Admins
+                        <i class="bi bi-shield-lock me-2"></i> Admin Accounts
                       </RouterLink>
                     </li>
                   </ul>
@@ -88,11 +94,18 @@ const logout = async () => {
                 >
                   <i class="bi bi-plus-lg me-1"></i> វិក្កយបត្រថ្មី
                 </RouterLink>
-                <span class="admin-identity">
-                  <i class="bi bi-person-circle me-1"></i>
-                  {{ currentAdmin?.displayName || currentAdmin?.username }}
-                  <small>{{ currentAdmin?.role }}</small>
-                </span>
+                <RouterLink class="admin-identity" to="/profile">
+                  <img
+                    v-if="currentAdmin?.avatar"
+                    :src="currentAdmin.avatar"
+                    alt="Profile"
+                  />
+                  <i v-else class="bi bi-person-circle"></i>
+                  <span>
+                    {{ currentAdmin?.displayName || currentAdmin?.username }}
+                    <small>{{ currentAdmin?.role }}</small>
+                  </span>
+                </RouterLink>
                 <button
                   class="btn btn-outline-secondary"
                   type="button"

@@ -44,6 +44,8 @@ export const listAuditLogs = async ({
   limit = 20,
   action = '',
   entityType = '',
+  actorId = '',
+  actorUsername = '',
 } = {}) => {
   const normalizedPage = Math.max(1, Number(page) || 1)
   const normalizedLimit = Math.min(100, Math.max(1, Number(limit) || 20))
@@ -52,6 +54,8 @@ export const listAuditLogs = async ({
     const filter = {}
     if (action) filter.action = action
     if (entityType) filter.entityType = entityType
+    if (actorId) filter.actorId = String(actorId)
+    else if (actorUsername) filter.actorUsername = actorUsername
     const [items, total] = await Promise.all([
       AuditLog.find(filter)
         .sort({ createdAt: -1 })
@@ -70,6 +74,13 @@ export const listAuditLogs = async ({
   const logs = (await readLocalCollection('audit-logs'))
     .filter((item) => !action || item.action === action)
     .filter((item) => !entityType || item.entityType === entityType)
+    .filter((item) => !actorId || String(item.actorId) === String(actorId))
+    .filter(
+      (item) =>
+        actorId ||
+        !actorUsername ||
+        item.actorUsername === actorUsername,
+    )
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
   const offset = (normalizedPage - 1) * normalizedLimit
   return {

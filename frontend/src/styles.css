@@ -93,11 +93,35 @@ textarea {
 .admin-identity {
   display: flex;
   align-items: center;
-  flex-direction: column;
+  gap: 7px;
   padding: 8px 4px;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-identity:hover {
+  color: var(--navy);
+}
+
+.admin-identity > img {
+  width: 34px;
+  height: 34px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.admin-identity > i {
+  font-size: 1.65rem;
+}
+
+.admin-identity > span {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
 }
 
 .admin-identity small {
@@ -1048,8 +1072,100 @@ textarea {
   font-size: 0.75rem;
 }
 
+.profile-page {
+  max-width: 1120px;
+}
+
+.profile-summary-card {
+  position: sticky;
+  top: 104px;
+  padding: 34px 26px;
+  text-align: center;
+}
+
+.profile-avatar {
+  display: grid;
+  width: 136px;
+  height: 136px;
+  margin: 0 auto 20px;
+  overflow: hidden;
+  place-items: center;
+  border: 5px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background:
+    linear-gradient(135deg, var(--navy-light), var(--blue));
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 16px 36px rgba(7, 27, 58, 0.2);
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-summary-card h2 {
+  margin: 0 0 3px;
+  color: var(--navy);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.profile-summary-card > p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.profile-meta {
+  display: grid;
+  gap: 0;
+  margin: 28px 0 0;
+  text-align: left;
+}
+
+.profile-meta > div {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.profile-meta dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.profile-meta dd {
+  margin: 0;
+  color: var(--navy);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.profile-image-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-image-actions small {
+  color: var(--muted);
+}
+
 @media screen and (max-width: 991px) {
   .totals-card {
+    position: static;
+  }
+
+  .profile-summary-card {
     position: static;
   }
 

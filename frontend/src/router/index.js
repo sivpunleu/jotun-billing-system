@@ -7,6 +7,7 @@ import InvoiceList from '../views/InvoiceList.vue'
 import InvoicePreview from '../views/InvoicePreview.vue'
 import LoginView from '../views/LoginView.vue'
 import ProductList from '../views/ProductList.vue'
+import ProfileView from '../views/ProfileView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import {
   currentAdmin,
@@ -74,10 +75,16 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['owner', 'admin'] },
     },
     {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: SettingsView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['owner'] },
     },
   ],
   scrollBehavior: () => ({ top: 0 }),

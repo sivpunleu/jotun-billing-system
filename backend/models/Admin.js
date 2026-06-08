@@ -14,6 +14,10 @@ const adminSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    avatar: {
+      type: String,
+      default: '',
+    },
     passwordHash: {
       type: String,
       required: true,
