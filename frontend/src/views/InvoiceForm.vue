@@ -50,8 +50,11 @@ const lineTotal = (item) =>
       Number(item.discount || 0),
   )
 
+const invoiceItems = computed(() =>
+  Array.isArray(form.items) ? form.items : [],
+)
 const subtotal = computed(() =>
-  form.items.reduce((sum, item) => sum + lineTotal(item), 0),
+  invoiceItems.value.reduce((sum, item) => sum + lineTotal(item), 0),
 )
 const taxableAmount = computed(() =>
   Math.max(0, subtotal.value - Number(form.discount || 0)),
@@ -69,9 +72,16 @@ const balanceDue = computed(() =>
   Math.max(0, grandTotal.value - depositAmount.value),
 )
 
-const addItem = () => form.items.push(newItem())
+const addItem = () => {
+  if (!Array.isArray(form.items)) form.items = []
+  form.items.push(newItem())
+}
 
 const removeItem = (index) => {
+  if (!Array.isArray(form.items)) {
+    form.items = [newItem()]
+    return
+  }
   if (form.items.length === 1) return
   form.items.splice(index, 1)
 }
@@ -87,13 +97,15 @@ const loadInvoice = async () => {
       invoiceDate: toDateInput(data.invoiceDate),
       dueDate: toDateInput(data.dueDate),
       customer: { ...data.customer },
-      items: data.items.map((item) => ({
-        description: item.description,
-        colorCode: item.colorCode,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discount,
-      })),
+      items: Array.isArray(data.items)
+        ? data.items.map((item) => ({
+            description: item.description,
+            colorCode: item.colorCode,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+          }))
+        : [newItem()],
     })
   } catch (requestError) {
     error.value =
@@ -109,6 +121,7 @@ const submitForm = async () => {
 
   try {
     const payload = JSON.parse(JSON.stringify(form))
+    payload.items = Array.isArray(payload.items) ? payload.items : []
     const response = isEditing.value
       ? await invoiceApi.update(route.params.id, payload)
       : await invoiceApi.create(payload)

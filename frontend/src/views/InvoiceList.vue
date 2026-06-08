@@ -14,8 +14,12 @@ const loadInvoices = async () => {
   error.value = ''
   try {
     const response = await invoiceApi.list(search.value)
+    if (!Array.isArray(response.data)) {
+      throw new Error('The invoice API returned an invalid response')
+    }
     invoices.value = response.data
   } catch (requestError) {
+    invoices.value = []
     error.value =
       requestError.response?.data?.message || 'មិនអាចទាញយកបញ្ជីវិក្កយបត្របានទេ'
   } finally {
@@ -45,7 +49,10 @@ const deleteInvoice = async (invoice) => {
 }
 
 const totalRevenue = () =>
-  invoices.value.reduce((sum, invoice) => sum + Number(invoice.grandTotal), 0)
+  (Array.isArray(invoices.value) ? invoices.value : []).reduce(
+    (sum, invoice) => sum + Number(invoice.grandTotal || 0),
+    0,
+  )
 
 onMounted(loadInvoices)
 </script>
@@ -148,4 +155,3 @@ onMounted(loadInvoices)
     </div>
   </section>
 </template>
-

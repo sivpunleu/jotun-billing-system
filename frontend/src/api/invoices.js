@@ -1,8 +1,15 @@
 import axios from 'axios'
 
+const productionApiUrl = 'https://jotun-billing-system.onrender.com/api'
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+const baseURL = (
+  configuredApiUrl ||
+  (import.meta.env.PROD ? productionApiUrl : '/api')
+).replace(/\/+$/, '')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 10000,
+  baseURL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,4 +32,3 @@ export const invoiceApi = {
     return api.delete(`/invoices/${id}`)
   },
 }
-
