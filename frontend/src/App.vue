@@ -17,6 +17,30 @@ const sidebarOpen = ref(false)
 const showWorkspace = computed(
   () => isAuthenticated.value && route.name !== 'login',
 )
+const pageMeta = computed(() => {
+  const pages = {
+    dashboard: ['ផ្ទាំងគ្រប់គ្រង', 'Business overview'],
+    'invoice-list': ['វិក្កយបត្រ', 'Invoice management'],
+    'invoice-create': ['បង្កើតវិក្កយបត្រ', 'New invoice'],
+    'invoice-edit': ['កែប្រែវិក្កយបត្រ', 'Edit invoice'],
+    'invoice-preview': ['មើលវិក្កយបត្រ', 'Invoice preview'],
+    customers: ['អតិថិជន', 'Customer management'],
+    products: ['ទំនិញ', 'Product catalogue'],
+    'audit-logs': ['ប្រវត្តិសកម្មភាព', 'Audit log'],
+    profile: ['Profile', 'My account'],
+    settings: ['Admin Accounts', 'User management'],
+  }
+
+  return pages[route.name] || ['Marvel Decor', 'Billing system']
+})
+const currentDate = computed(() =>
+  new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date()),
+)
 const initials = computed(() => {
   const source =
     currentAdmin.value?.displayName || currentAdmin.value?.username || 'A'
@@ -162,6 +186,42 @@ const logout = async () => {
           />
           <span v-else>{{ initials }}</span>
         </RouterLink>
+      </header>
+
+      <header class="desktop-app-header d-print-none">
+        <div class="topbar-heading">
+          <small>{{ pageMeta[1] }}</small>
+          <h1>{{ pageMeta[0] }}</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="topbar-date">
+            <i class="bi bi-calendar3"></i>
+            <span>{{ currentDate }}</span>
+          </div>
+          <RouterLink
+            v-if="canManageBilling && route.name !== 'invoice-create'"
+            class="btn btn-danger topbar-create"
+            to="/invoices/new"
+          >
+            <i class="bi bi-plus-lg"></i>
+            <span>វិក្កយបត្រថ្មី</span>
+          </RouterLink>
+          <RouterLink class="topbar-profile" to="/profile">
+            <img
+              v-if="currentAdmin?.avatar"
+              :src="currentAdmin.avatar"
+              alt="Profile"
+            />
+            <span v-else class="topbar-avatar">{{ initials }}</span>
+            <span>
+              <strong>
+                {{ currentAdmin?.displayName || currentAdmin?.username }}
+              </strong>
+              <small>{{ currentAdmin?.role }}</small>
+            </span>
+            <i class="bi bi-chevron-down"></i>
+          </RouterLink>
+        </div>
       </header>
     </template>
 

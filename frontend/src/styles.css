@@ -53,6 +53,7 @@ textarea {
 .app-shell.has-sidebar .app-content {
   min-height: 100vh;
   margin-left: 270px;
+  padding-top: 78px;
 }
 
 .app-sidebar {
@@ -265,6 +266,138 @@ textarea {
 
 .mobile-app-header {
   display: none;
+}
+
+.desktop-app-header {
+  position: fixed;
+  z-index: 1025;
+  inset: 0 0 auto 270px;
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 11px 30px;
+  border-bottom: 1px solid rgba(7, 27, 58, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 28px rgba(7, 27, 58, 0.05);
+  backdrop-filter: blur(14px);
+}
+
+.topbar-heading {
+  min-width: 0;
+}
+
+.topbar-heading small {
+  display: block;
+  margin-bottom: 1px;
+  color: var(--red);
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.topbar-heading h1 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 15px;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.topbar-date i {
+  color: var(--blue);
+}
+
+.topbar-create {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 15px;
+  font-size: 0.76rem;
+}
+
+.topbar-profile {
+  display: grid;
+  min-width: 165px;
+  grid-template-columns: 38px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff;
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.topbar-profile:hover {
+  color: var(--navy);
+  border-color: #c9d4e2;
+  box-shadow: 0 8px 22px rgba(7, 27, 58, 0.08);
+}
+
+.topbar-profile > img,
+.topbar-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--navy-light), var(--blue));
+  object-fit: cover;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.topbar-profile > span:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.topbar-profile strong {
+  overflow: hidden;
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-profile small {
+  color: var(--red);
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.topbar-profile > .bi {
+  color: #9aa7b8;
+  font-size: 0.65rem;
 }
 
 .public-header {
@@ -1665,6 +1798,10 @@ textarea {
   .app-shell.has-sidebar .app-content {
     margin-left: 0;
     padding-top: 68px;
+  }
+
+  .desktop-app-header {
+    display: none;
   }
 
   .app-sidebar {
