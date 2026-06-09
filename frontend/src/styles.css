@@ -2607,6 +2607,17 @@ textarea {
   top: 102px;
 }
 
+.settings-save-button {
+  position: fixed;
+  z-index: 1040;
+  right: 28px;
+  bottom: 24px;
+  width: min(320px, calc(100vw - 32px));
+  border: 4px solid rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(15, 38, 70, 0.24);
+}
+
 .settings-asset {
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
@@ -2794,6 +2805,11 @@ textarea {
 }
 
 @media screen and (max-width: 767px) {
+  .settings-save-button {
+    right: 16px;
+    bottom: 16px;
+  }
+
   .page-section {
     padding-right: 14px;
     padding-left: 14px;

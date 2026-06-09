@@ -246,7 +246,10 @@ onMounted(load)
           </div>
         </div>
 
-        <button class="btn btn-danger btn-lg w-100 mt-4" :disabled="saving">
+        <button
+          class="btn btn-danger btn-lg settings-save-button"
+          :disabled="saving"
+        >
           <i class="bi bi-check2-circle me-1"></i>
           {{ saving ? 'Saving...' : 'Save System Settings' }}
         </button>
