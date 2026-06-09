@@ -36,7 +36,7 @@ const statusLabels = {
 
 <template>
   <tr>
-    <td>
+    <td class="mobile-card-primary" data-label="វិក្កយបត្រ">
       <RouterLink
         v-if="!deleted"
         class="invoice-number"
@@ -47,21 +47,21 @@ const statusLabels = {
       <strong v-else>{{ invoice.invoiceNumber }}</strong>
       <small class="d-block text-secondary">{{ formatDate(invoice.invoiceDate) }}</small>
     </td>
-    <td>
+    <td data-label="អតិថិជន">
       <strong>{{ invoice.customer?.name }}</strong>
       <small v-if="invoice.customer?.phone" class="d-block text-secondary">
         {{ invoice.customer.phone }}
       </small>
     </td>
-    <td class="text-nowrap">{{ formatDate(invoice.dueDate) }}</td>
-    <td>
+    <td class="text-nowrap" data-label="ថ្ងៃកំណត់">{{ formatDate(invoice.dueDate) }}</td>
+    <td data-label="ស្ថានភាព">
       <span class="status-pill" :class="`status-${resolvedStatus}`">
         {{ statusLabels[resolvedStatus] || resolvedStatus }}
       </span>
     </td>
-    <td class="text-end fw-bold">{{ formatMoney(invoice.grandTotal) }}</td>
-    <td class="text-end">{{ formatMoney(invoice.balanceDue) }}</td>
-    <td class="text-end text-nowrap">
+    <td class="text-end fw-bold" data-label="សរុប">{{ formatMoney(invoice.grandTotal) }}</td>
+    <td class="text-end" data-label="នៅសល់">{{ formatMoney(invoice.balanceDue) }}</td>
+    <td class="text-end text-nowrap mobile-card-actions" data-label="សកម្មភាព">
       <button
         v-if="deleted && canManage"
         class="btn btn-sm btn-outline-success"

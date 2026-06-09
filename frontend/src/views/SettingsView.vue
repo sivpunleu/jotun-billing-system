@@ -2,9 +2,13 @@
 import { onMounted, reactive, ref } from 'vue'
 import { authApi } from '../api/invoices'
 import { currentAdmin, isOwner } from '../auth/session'
+import TableSkeleton from '../components/TableSkeleton.vue'
+import {
+  requestConfirmation,
+  showToast,
+} from '../ui/feedback'
 
 const error = ref('')
-const success = ref('')
 const loadingAdmins = ref(false)
 const creatingAdmin = ref(false)
 const admins = ref([])
@@ -16,11 +20,8 @@ const adminForm = reactive({
 })
 
 const showMessage = (message) => {
-  success.value = message
   error.value = ''
-  window.setTimeout(() => {
-    success.value = ''
-  }, 4000)
+  showToast(message)
 }
 
 const loadAdmins = async () => {
@@ -50,6 +51,7 @@ const createAdmin = async () => {
     await loadAdmins()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to create admin'
+    showToast(error.value, 'error')
   } finally {
     creatingAdmin.value = false
   }
@@ -63,15 +65,38 @@ const updateAdmin = async (admin, payload) => {
     await loadAdmins()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to update admin'
+    showToast(error.value, 'error')
   }
 }
 
 const resetAdminPassword = async (admin) => {
-  const password = window.prompt(
-    `New password for ${admin.username} (minimum 10 characters):`,
-  )
+  const password = await requestConfirmation({
+    title: 'Reset Admin Password',
+    message: `កំណត់ password ថ្មីសម្រាប់ ${admin.username}`,
+    confirmLabel: 'Update Password',
+    cancelLabel: 'Cancel',
+    tone: 'primary',
+    inputType: 'password',
+    inputLabel: 'New Password',
+    inputPlaceholder: 'Minimum 10 characters',
+    inputMinLength: 10,
+  })
   if (!password) return
   await updateAdmin(admin, { password })
+}
+
+const toggleAdmin = async (admin) => {
+  if (admin.active) {
+    const confirmed = await requestConfirmation({
+      title: 'Disable Admin?',
+      message: `${admin.displayName || admin.username} នឹងមិនអាច Login បានទៀតទេ រហូតដល់អ្នក Enable វិញ។`,
+      confirmLabel: 'Disable',
+      cancelLabel: 'Cancel',
+    })
+    if (!confirmed) return
+  }
+
+  await updateAdmin(admin, { active: !admin.active })
 }
 
 onMounted(loadAdmins)
@@ -89,8 +114,6 @@ onMounted(loadAdmins)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="success" class="alert alert-success">{{ success }}</div>
-
     <template v-if="isOwner">
       <div class="content-card form-card mb-4">
         <div class="section-title">
@@ -128,14 +151,14 @@ onMounted(loadAdmins)
 
       <div class="content-card">
         <div class="card-toolbar"><h2 class="panel-title mb-0">Admin Accounts</h2></div>
-        <div v-if="loadingAdmins" class="loading-state"><div class="spinner-border text-danger"></div></div>
+        <TableSkeleton v-if="loadingAdmins" />
         <div v-else class="table-responsive">
-          <table class="table invoice-table mb-0">
+          <table class="table invoice-table responsive-table mb-0">
             <thead><tr><th>Admin</th><th>Role</th><th>Status</th><th>Last Login</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
               <tr v-for="admin in admins" :key="admin._id || admin.id">
-                <td><strong>{{ admin.displayName || admin.username }}</strong><small class="d-block text-secondary">{{ admin.username }}</small></td>
-                <td>
+                <td class="mobile-card-primary" data-label="Admin"><strong>{{ admin.displayName || admin.username }}</strong><small class="d-block text-secondary">{{ admin.username }}</small></td>
+                <td data-label="Role">
                   <select
                     class="form-select form-select-sm role-select"
                     :value="admin.role"
@@ -147,16 +170,16 @@ onMounted(loadAdmins)
                     <option value="viewer">Viewer</option>
                   </select>
                 </td>
-                <td><span class="status-pill" :class="admin.active ? 'status-paid' : 'status-cancelled'">{{ admin.active ? 'Active' : 'Disabled' }}</span></td>
-                <td>{{ admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString() : '-' }}</td>
-                <td class="text-end text-nowrap">
+                <td data-label="Status"><span class="status-pill" :class="admin.active ? 'status-paid' : 'status-cancelled'">{{ admin.active ? 'Active' : 'Disabled' }}</span></td>
+                <td data-label="Last Login">{{ admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString() : '-' }}</td>
+                <td class="text-end text-nowrap mobile-card-actions" data-label="Actions">
                   <button class="btn btn-sm btn-outline-secondary me-1" type="button" @click="resetAdminPassword(admin)">Reset Password</button>
                   <button
                     v-if="String(admin._id || admin.id) !== String(currentAdmin?.id)"
                     class="btn btn-sm"
                     :class="admin.active ? 'btn-outline-danger' : 'btn-outline-success'"
                     type="button"
-                    @click="updateAdmin(admin, { active: !admin.active })"
+                    @click="toggleAdmin(admin)"
                   >
                     {{ admin.active ? 'Disable' : 'Enable' }}
                   </button>

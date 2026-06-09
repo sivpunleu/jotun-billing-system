@@ -2,8 +2,13 @@
 import { onMounted, reactive, ref } from 'vue'
 import InvoiceTableRow from '../components/InvoiceTableRow.vue'
 import PaginationControls from '../components/PaginationControls.vue'
+import TableSkeleton from '../components/TableSkeleton.vue'
 import { invoiceApi } from '../api/invoices'
 import { canManageBilling } from '../auth/session'
+import {
+  requestConfirmation,
+  showToast,
+} from '../ui/feedback'
 
 const invoices = ref([])
 const loading = ref(true)
@@ -47,27 +52,34 @@ const handleSearch = () => {
 }
 
 const deleteInvoice = async (invoice) => {
-  const confirmed = window.confirm(
-    `ផ្លាស់ទីវិក្កយបត្រ ${invoice.invoiceNumber} ទៅធុងសំរាម?`,
-  )
+  const confirmed = await requestConfirmation({
+    title: 'លុបវិក្កយបត្រ?',
+    message: `វិក្កយបត្រ ${invoice.invoiceNumber} នឹងត្រូវផ្លាស់ទីទៅធុងសំរាម។`,
+    confirmLabel: 'ផ្លាស់ទីទៅធុងសំរាម',
+    cancelLabel: 'បោះបង់',
+  })
   if (!confirmed) return
 
   try {
     await invoiceApi.remove(invoice._id)
+    showToast('វិក្កយបត្រត្រូវបានផ្លាស់ទីទៅធុងសំរាម')
     await loadInvoices(pagination.page)
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចលុបវិក្កយបត្របានទេ'
+    showToast(error.value, 'error')
   }
 }
 
 const restoreInvoice = async (invoice) => {
   try {
     await invoiceApi.restore(invoice._id)
+    showToast('ស្ដារវិក្កយបត្របានជោគជ័យ')
     await loadInvoices(pagination.page)
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចស្ដារវិក្កយបត្របានទេ'
+    showToast(error.value, 'error')
   }
 }
 
@@ -134,17 +146,14 @@ onMounted(loadInvoices)
       </div>
 
       <div v-if="error" class="alert alert-danger mx-3 mt-3">{{ error }}</div>
-      <div v-if="loading" class="loading-state">
-        <div class="spinner-border text-danger" role="status"></div>
-        <span>កំពុងទាញទិន្នន័យ...</span>
-      </div>
+      <TableSkeleton v-if="loading" />
       <div v-else-if="!invoices.length" class="empty-state">
         <div class="empty-icon"><i class="bi bi-receipt-cutoff"></i></div>
         <h3>មិនមានវិក្កយបត្រ</h3>
         <p>{{ showTrash ? 'ធុងសំរាមនៅទទេ។' : 'ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូង។' }}</p>
       </div>
       <div v-else class="table-responsive">
-        <table class="table invoice-table align-middle mb-0">
+        <table class="table invoice-table responsive-table align-middle mb-0">
           <thead>
             <tr>
               <th>លេខវិក្កយបត្រ</th>

@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   canManageBilling,
   clearAuthSession,
@@ -11,9 +11,28 @@ import {
 import logo from './assets/logo-marvel.png'
 import jotunLogo from './assets/jotun.jpg'
 
+const route = useRoute()
 const router = useRouter()
-const brandDestination = computed(() =>
-  isAuthenticated.value ? '/dashboard' : '/login',
+const sidebarOpen = ref(false)
+const showWorkspace = computed(
+  () => isAuthenticated.value && route.name !== 'login',
+)
+const initials = computed(() => {
+  const source =
+    currentAdmin.value?.displayName || currentAdmin.value?.username || 'A'
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarOpen.value = false
+  },
 )
 
 const logout = async () => {
@@ -23,115 +42,152 @@ const logout = async () => {
 </script>
 
 <template>
-  <div class="app-shell">
-    <header class="app-header d-print-none">
-      <nav class="navbar navbar-expand-xl">
-        <div class="container">
-          <RouterLink class="navbar-brand" :to="brandDestination">
-            <span class="brand-logos">
-              <img class="navbar-marvel-logo" :src="logo" alt="Marvel Paint Center" />
-              <img class="navbar-jotun-logo" :src="jotunLogo" alt="Jotun" />
+  <div class="app-shell" :class="{ 'has-sidebar': showWorkspace }">
+    <template v-if="showWorkspace">
+      <aside
+        class="app-sidebar d-print-none"
+        :class="{ open: sidebarOpen }"
+      >
+        <div class="sidebar-brand">
+          <RouterLink to="/dashboard">
+            <img :src="logo" alt="Marvel Decor" />
+            <span>
+              <strong>MARVEL DECOR</strong>
+              <small>JOTUN BILLING</small>
             </span>
           </RouterLink>
-
           <button
-            class="navbar-toggler"
+            class="sidebar-close"
             type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#mainNavigation"
-            aria-controls="mainNavigation"
-            aria-expanded="false"
-            aria-label="បើកម៉ឺនុយ"
+            aria-label="Close menu"
+            @click="sidebarOpen = false"
           >
-            <span class="navbar-toggler-icon"></span>
+            <i class="bi bi-x-lg"></i>
           </button>
-
-          <div id="mainNavigation" class="collapse navbar-collapse">
-            <div class="navbar-nav ms-auto align-items-xl-center gap-xl-1">
-              <template v-if="isAuthenticated">
-                <RouterLink class="nav-link" to="/dashboard">
-                  <i class="bi bi-grid me-1"></i> Dashboard
-                </RouterLink>
-                <RouterLink class="nav-link" to="/invoices">
-                  <i class="bi bi-receipt me-1"></i> វិក្កយបត្រ
-                </RouterLink>
-                <RouterLink class="nav-link" to="/customers">
-                  <i class="bi bi-people me-1"></i> អតិថិជន
-                </RouterLink>
-                <RouterLink class="nav-link" to="/products">
-                  <i class="bi bi-box-seam me-1"></i> ទំនិញ
-                </RouterLink>
-                <div class="nav-item dropdown">
-                  <button
-                    class="nav-link dropdown-toggle border-0 bg-transparent"
-                    type="button"
-                    data-bs-toggle="dropdown"
-                  >
-                    <i class="bi bi-gear me-1"></i> គ្រប់គ្រង
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                      <RouterLink class="dropdown-item" to="/profile">
-                        <i class="bi bi-person-circle me-2"></i> Profile
-                      </RouterLink>
-                    </li>
-                    <li v-if="canManageBilling">
-                      <RouterLink class="dropdown-item" to="/audit-logs">
-                        <i class="bi bi-clock-history me-2"></i> Audit Log
-                      </RouterLink>
-                    </li>
-                    <li v-if="isOwner">
-                      <RouterLink class="dropdown-item" to="/settings">
-                        <i class="bi bi-shield-lock me-2"></i> Admin Accounts
-                      </RouterLink>
-                    </li>
-                  </ul>
-                </div>
-                <RouterLink
-                  v-if="canManageBilling"
-                  class="btn btn-danger px-3"
-                  to="/invoices/new"
-                >
-                  <i class="bi bi-plus-lg me-1"></i> វិក្កយបត្រថ្មី
-                </RouterLink>
-                <RouterLink class="admin-identity" to="/profile">
-                  <img
-                    v-if="currentAdmin?.avatar"
-                    :src="currentAdmin.avatar"
-                    alt="Profile"
-                  />
-                  <i v-else class="bi bi-person-circle"></i>
-                  <span>
-                    {{ currentAdmin?.displayName || currentAdmin?.username }}
-                    <small>{{ currentAdmin?.role }}</small>
-                  </span>
-                </RouterLink>
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="logout"
-                >
-                  <i class="bi bi-box-arrow-right"></i>
-                </button>
-              </template>
-              <RouterLink v-else class="btn btn-danger px-4" to="/login">
-                <i class="bi bi-shield-lock me-1"></i> Admin Login
-              </RouterLink>
-            </div>
-          </div>
         </div>
-      </nav>
+
+        <nav class="sidebar-nav">
+          <span class="sidebar-label">OVERVIEW</span>
+          <RouterLink to="/dashboard">
+            <i class="bi bi-grid-1x2"></i>
+            <span>ផ្ទាំងគ្រប់គ្រង</span>
+          </RouterLink>
+          <RouterLink to="/invoices">
+            <i class="bi bi-receipt"></i>
+            <span>វិក្កយបត្រ</span>
+          </RouterLink>
+
+          <span class="sidebar-label">BUSINESS</span>
+          <RouterLink to="/customers">
+            <i class="bi bi-people"></i>
+            <span>អតិថិជន</span>
+          </RouterLink>
+          <RouterLink to="/products">
+            <i class="bi bi-box-seam"></i>
+            <span>ទំនិញ</span>
+          </RouterLink>
+
+          <span
+            v-if="canManageBilling"
+            class="sidebar-label"
+          >
+            MANAGEMENT
+          </span>
+          <RouterLink v-if="canManageBilling" to="/audit-logs">
+            <i class="bi bi-clock-history"></i>
+            <span>ប្រវត្តិសកម្មភាព</span>
+          </RouterLink>
+          <RouterLink v-if="isOwner" to="/settings">
+            <i class="bi bi-shield-lock"></i>
+            <span>Admin Accounts</span>
+          </RouterLink>
+        </nav>
+
+        <RouterLink
+          v-if="canManageBilling"
+          class="sidebar-create"
+          to="/invoices/new"
+        >
+          <i class="bi bi-plus-lg"></i>
+          បង្កើតវិក្កយបត្រ
+        </RouterLink>
+
+        <div class="sidebar-user">
+          <RouterLink class="sidebar-profile" to="/profile">
+            <img
+              v-if="currentAdmin?.avatar"
+              :src="currentAdmin.avatar"
+              alt="Profile"
+            />
+            <span v-else class="sidebar-avatar">{{ initials }}</span>
+            <span class="sidebar-user-copy">
+              <strong>
+                {{ currentAdmin?.displayName || currentAdmin?.username }}
+              </strong>
+              <small>{{ currentAdmin?.role }}</small>
+            </span>
+          </RouterLink>
+          <button type="button" title="Logout" @click="logout">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </aside>
+
+      <button
+        v-if="sidebarOpen"
+        class="sidebar-overlay d-print-none"
+        type="button"
+        aria-label="Close menu"
+        @click="sidebarOpen = false"
+      ></button>
+
+      <header class="mobile-app-header d-print-none">
+        <button
+          class="mobile-menu-button"
+          type="button"
+          aria-label="Open menu"
+          @click="sidebarOpen = true"
+        >
+          <i class="bi bi-list"></i>
+        </button>
+        <RouterLink to="/dashboard">
+          <img :src="logo" alt="Marvel Decor" />
+          <strong>MARVEL DECOR</strong>
+        </RouterLink>
+        <RouterLink class="mobile-profile" to="/profile">
+          <img
+            v-if="currentAdmin?.avatar"
+            :src="currentAdmin.avatar"
+            alt="Profile"
+          />
+          <span v-else>{{ initials }}</span>
+        </RouterLink>
+      </header>
+    </template>
+
+    <header
+      v-else-if="route.name !== 'invoice-preview'"
+      class="public-header d-print-none"
+    >
+      <RouterLink to="/login">
+        <img :src="logo" alt="Marvel Decor" />
+        <img class="public-jotun-logo" :src="jotunLogo" alt="Jotun" />
+      </RouterLink>
     </header>
 
     <main class="app-content">
       <RouterView />
     </main>
 
-    <footer class="app-footer d-print-none">
+    <footer
+      v-if="!showWorkspace && route.name !== 'invoice-preview'"
+      class="app-footer d-print-none"
+    >
       <div class="container d-flex flex-wrap justify-content-between gap-2">
-        <span>Marvel Paint Center Billing</span>
-        <span>Secure billing, payments and customer management</span>
+        <span>Marvel Decor Billing System</span>
+        <span>Secure billing and customer management</span>
       </div>
     </footer>
+
   </div>
 </template>

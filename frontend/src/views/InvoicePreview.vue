@@ -8,6 +8,10 @@ import {
   isAuthenticated,
 } from '../auth/session'
 import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
+import {
+  requestConfirmation,
+  showToast,
+} from '../ui/feedback'
 import logo from '../assets/logo-marvel.png'
 import jotunLogo from '../assets/jotun.jpg'
 import qrPlaceholder from '../assets/aba-qr-square.jpg'
@@ -85,17 +89,22 @@ const loadInvoice = async () => {
 }
 
 const deleteInvoice = async () => {
-  const confirmed = window.confirm(
-    `តើអ្នកពិតជាចង់លុបវិក្កយបត្រ ${invoice.value.invoiceNumber} មែនទេ?`,
-  )
+  const confirmed = await requestConfirmation({
+    title: 'លុបវិក្កយបត្រ?',
+    message: `វិក្កយបត្រ ${invoice.value.invoiceNumber} នឹងត្រូវផ្លាស់ទីទៅធុងសំរាម។`,
+    confirmLabel: 'លុប',
+    cancelLabel: 'បោះបង់',
+  })
   if (!confirmed) return
 
   try {
     await invoiceApi.remove(invoice.value._id)
+    showToast('វិក្កយបត្រត្រូវបានផ្លាស់ទីទៅធុងសំរាម')
     router.push('/invoices')
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចលុបវិក្កយបត្របានទេ'
+    showToast(error.value, 'error')
   }
 }
 
@@ -105,6 +114,7 @@ const addPayment = async () => {
   try {
     const response = await invoiceApi.addPayment(invoice.value._id, paymentForm)
     invoice.value = response.data
+    showToast('កត់ត្រាការបង់ប្រាក់បានជោគជ័យ')
     Object.assign(paymentForm, {
       amount: 0,
       paidAt: toDateInput(),
@@ -115,6 +125,7 @@ const addPayment = async () => {
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចកត់ត្រាការបង់ប្រាក់បានទេ'
+    showToast(error.value, 'error')
   } finally {
     recordingPayment.value = false
   }
@@ -249,7 +260,7 @@ onMounted(loadInvoice)
         </form>
 
         <div v-if="invoice.payments?.length" class="table-responsive mt-4">
-          <table class="table table-sm payment-table mb-0">
+          <table class="table table-sm payment-table responsive-table mb-0">
             <thead>
               <tr>
                 <th>ថ្ងៃបង់</th>
@@ -260,10 +271,10 @@ onMounted(loadInvoice)
             </thead>
             <tbody>
               <tr v-for="payment in invoice.payments" :key="payment._id">
-                <td>{{ formatDate(payment.paidAt) }}</td>
-                <td>{{ payment.receivedBy }}</td>
-                <td>{{ payment.note || '-' }}</td>
-                <td class="text-end fw-bold">{{ formatMoney(payment.amount) }}</td>
+                <td class="mobile-card-primary" data-label="ថ្ងៃបង់">{{ formatDate(payment.paidAt) }}</td>
+                <td data-label="អ្នកទទួល">{{ payment.receivedBy }}</td>
+                <td data-label="កំណត់ចំណាំ">{{ payment.note || '-' }}</td>
+                <td class="text-end fw-bold" data-label="ចំនួន">{{ formatMoney(payment.amount) }}</td>
               </tr>
             </tbody>
           </table>

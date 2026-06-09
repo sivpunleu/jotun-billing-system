@@ -2,7 +2,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { canManageBilling } from '../auth/session'
 import PaginationControls from './PaginationControls.vue'
+import TableSkeleton from './TableSkeleton.vue'
 import { formatMoney } from '../utils/invoice'
+import {
+  requestConfirmation,
+  showToast,
+} from '../ui/feedback'
 
 const props = defineProps({
   kind: {
@@ -98,33 +103,50 @@ const saveRecord = async () => {
   error.value = ''
   try {
     const payload = JSON.parse(JSON.stringify(form))
-    if (editingId.value) await props.api.update(editingId.value, payload)
+    const wasEditing = Boolean(editingId.value)
+    if (wasEditing) await props.api.update(editingId.value, payload)
     else await props.api.create(payload)
+    showToast(
+      wasEditing
+        ? 'កែប្រែទិន្នន័យបានជោគជ័យ'
+        : 'បន្ថែមទិន្នន័យបានជោគជ័យ',
+    )
     resetForm()
     await loadRecords(1)
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to save record'
+    showToast(error.value, 'error')
   } finally {
     saving.value = false
   }
 }
 
 const removeRecord = async (record) => {
-  if (!window.confirm(`Move "${record.name}" to trash?`)) return
+  const confirmed = await requestConfirmation({
+    title: 'ផ្លាស់ទីទៅធុងសំរាម?',
+    message: `"${record.name}" អាចស្ដារឡើងវិញនៅពេលក្រោយ។`,
+    confirmLabel: 'លុប',
+    cancelLabel: 'បោះបង់',
+  })
+  if (!confirmed) return
   try {
     await props.api.remove(record._id)
+    showToast('ផ្លាស់ទីទៅធុងសំរាមបានជោគជ័យ')
     await loadRecords(pagination.page)
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to delete record'
+    showToast(error.value, 'error')
   }
 }
 
 const restoreRecord = async (record) => {
   try {
     await props.api.restore(record._id)
+    showToast('ស្ដារទិន្នន័យបានជោគជ័យ')
     await loadRecords(pagination.page)
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to restore record'
+    showToast(error.value, 'error')
   }
 }
 
@@ -219,10 +241,10 @@ onMounted(loadRecords)
           <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
-      <div v-if="loading" class="loading-state"><div class="spinner-border text-danger"></div></div>
+      <TableSkeleton v-if="loading" />
       <div v-else-if="!records.length" class="empty-state"><h3>មិនមានទិន្នន័យ</h3></div>
       <div v-else class="table-responsive">
-        <table class="table invoice-table mb-0">
+        <table class="table invoice-table responsive-table mb-0">
           <thead>
             <tr>
               <th>ឈ្មោះ</th>
@@ -236,13 +258,13 @@ onMounted(loadRecords)
           </thead>
           <tbody>
             <tr v-for="record in records" :key="record._id">
-              <td><strong>{{ record.name }}</strong><small v-if="record.notes" class="d-block text-secondary">{{ record.notes }}</small></td>
-              <td v-if="isProduct">{{ record.itemCode || '-' }}<small class="d-block text-secondary">{{ record.colorCode }}</small></td>
-              <td v-if="isProduct">{{ record.unit }}</td>
-              <td v-if="isProduct" class="text-end fw-bold">{{ formatMoney(record.unitPrice) }}</td>
-              <td v-if="!isProduct">{{ record.phone || '-' }}</td>
-              <td v-if="!isProduct">{{ record.address || '-' }}</td>
-              <td class="text-end text-nowrap">
+              <td class="mobile-card-primary" data-label="ឈ្មោះ"><strong>{{ record.name }}</strong><small v-if="record.notes" class="d-block text-secondary">{{ record.notes }}</small></td>
+              <td v-if="isProduct" data-label="Code / Color">{{ record.itemCode || '-' }}<small class="d-block text-secondary">{{ record.colorCode }}</small></td>
+              <td v-if="isProduct" data-label="ឯកតា">{{ record.unit }}</td>
+              <td v-if="isProduct" class="text-end fw-bold" data-label="តម្លៃ">{{ formatMoney(record.unitPrice) }}</td>
+              <td v-if="!isProduct" data-label="ទូរស័ព្ទ">{{ record.phone || '-' }}</td>
+              <td v-if="!isProduct" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
+              <td class="text-end text-nowrap mobile-card-actions" data-label="សកម្មភាព">
                 <button v-if="showTrash && canManageBilling" class="btn btn-sm btn-outline-success" type="button" @click="restoreRecord(record)">
                   <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
                 </button>

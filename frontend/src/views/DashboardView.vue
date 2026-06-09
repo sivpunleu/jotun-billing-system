@@ -1,13 +1,61 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { invoiceApi, reportApi } from '../api/invoices'
 import { isOwner } from '../auth/session'
 import { formatDate, formatMoney } from '../utils/invoice'
+import { showToast } from '../ui/feedback'
 
 const metrics = ref(null)
 const loading = ref(true)
 const exporting = ref('')
 const error = ref('')
+
+const statusChart = computed(() => {
+  const totals = metrics.value?.totalsByStatus || {}
+  return [
+    { key: 'draft', label: 'Draft', color: '#8b98aa', value: totals.draft || 0 },
+    { key: 'unpaid', label: 'Unpaid', color: '#dc2635', value: totals.unpaid || 0 },
+    {
+      key: 'partially_paid',
+      label: 'Partially Paid',
+      color: '#f1b91b',
+      value: totals.partially_paid || 0,
+    },
+    { key: 'paid', label: 'Paid', color: '#15956b', value: totals.paid || 0 },
+    {
+      key: 'cancelled',
+      label: 'Cancelled',
+      color: '#485568',
+      value: totals.cancelled || 0,
+    },
+  ]
+})
+
+const statusTotal = computed(() =>
+  statusChart.value.reduce((total, item) => total + item.value, 0),
+)
+
+const donutGradient = computed(() => {
+  if (!statusTotal.value) return '#e8edf3'
+  let current = 0
+  const segments = statusChart.value.map((item) => {
+    const start = current
+    current += (item.value / statusTotal.value) * 100
+    return `${item.color} ${start}% ${current}%`
+  })
+  return `conic-gradient(${segments.join(', ')})`
+})
+
+const cashTotal = computed(
+  () =>
+    Number(metrics.value?.revenue || 0) +
+    Number(metrics.value?.outstanding || 0),
+)
+
+const moneyPercent = (value) =>
+  cashTotal.value
+    ? Math.max(2, (Number(value || 0) / cashTotal.value) * 100)
+    : 0
 
 const loadDashboard = async () => {
   loading.value = true
@@ -28,9 +76,15 @@ const download = async (type) => {
   try {
     if (type === 'csv') await reportApi.exportCsv()
     else await reportApi.backup()
+    showToast(
+      type === 'csv'
+        ? 'ទាញយក CSV បានជោគជ័យ'
+        : 'ទាញយក Database Backup បានជោគជ័យ',
+    )
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'Unable to download report'
+    showToast(error.value, 'error')
   } finally {
     exporting.value = ''
   }
@@ -71,9 +125,8 @@ onMounted(loadDashboard)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger"></div>
-      <span>កំពុងទាញទិន្នន័យ...</span>
+    <div v-if="loading" class="dashboard-skeleton">
+      <div v-for="index in 4" :key="index" class="skeleton-block"></div>
     </div>
 
     <template v-else-if="metrics">
@@ -106,14 +159,56 @@ onMounted(loadDashboard)
 
       <div class="row g-4">
         <div class="col-lg-5">
-          <div class="content-card form-card h-100">
+          <div class="content-card dashboard-chart-card">
             <h2 class="panel-title">ស្ថានភាពវិក្កយបត្រ</h2>
-            <div class="status-overview">
-              <div><span>Draft</span><strong>{{ metrics.totalsByStatus.draft || 0 }}</strong></div>
-              <div><span>Unpaid</span><strong>{{ metrics.totalsByStatus.unpaid || 0 }}</strong></div>
-              <div><span>Partially Paid</span><strong>{{ metrics.totalsByStatus.partially_paid || 0 }}</strong></div>
-              <div><span>Paid</span><strong>{{ metrics.totalsByStatus.paid || 0 }}</strong></div>
-              <div><span>Cancelled</span><strong>{{ metrics.totalsByStatus.cancelled || 0 }}</strong></div>
+            <div class="status-chart-layout">
+              <div
+                class="status-donut"
+                :style="{ background: donutGradient }"
+              >
+                <div class="status-donut-center">
+                  <strong>{{ statusTotal }}</strong>
+                  <span>INVOICES</span>
+                </div>
+              </div>
+              <div class="chart-legend">
+                <div
+                  v-for="item in statusChart"
+                  :key="item.key"
+                  class="chart-legend-item"
+                >
+                  <i :style="{ background: item.color }"></i>
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="money-bars">
+              <div>
+                <div class="money-bar-heading">
+                  <span>ចំណូលបានទទួល</span>
+                  <strong>{{ formatMoney(metrics.revenue) }}</strong>
+                </div>
+                <div class="money-bar-track">
+                  <div
+                    class="money-bar-fill"
+                    :style="{ width: `${moneyPercent(metrics.revenue)}%` }"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="money-bar-heading">
+                  <span>បំណុលនៅសល់</span>
+                  <strong>{{ formatMoney(metrics.outstanding) }}</strong>
+                </div>
+                <div class="money-bar-track">
+                  <div
+                    class="money-bar-fill outstanding"
+                    :style="{ width: `${moneyPercent(metrics.outstanding)}%` }"
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -124,14 +219,14 @@ onMounted(loadDashboard)
               <RouterLink to="/invoices">មើលទាំងអស់</RouterLink>
             </div>
             <div class="table-responsive">
-              <table class="table invoice-table mb-0">
+              <table class="table invoice-table responsive-table mb-0">
                 <thead><tr><th>លេខ</th><th>អតិថិជន</th><th>ថ្ងៃ</th><th class="text-end">នៅសល់</th></tr></thead>
                 <tbody>
                   <tr v-for="invoice in metrics.recentInvoices" :key="invoice._id">
-                    <td><RouterLink class="invoice-number" :to="`/invoices/${invoice._id}`">{{ invoice.invoiceNumber }}</RouterLink></td>
-                    <td>{{ invoice.customer?.name }}</td>
-                    <td>{{ formatDate(invoice.invoiceDate) }}</td>
-                    <td class="text-end fw-bold">{{ formatMoney(invoice.balanceDue) }}</td>
+                    <td class="mobile-card-primary" data-label="លេខ"><RouterLink class="invoice-number" :to="`/invoices/${invoice._id}`">{{ invoice.invoiceNumber }}</RouterLink></td>
+                    <td data-label="អតិថិជន">{{ invoice.customer?.name }}</td>
+                    <td data-label="ថ្ងៃ">{{ formatDate(invoice.invoiceDate) }}</td>
+                    <td class="text-end fw-bold" data-label="នៅសល់">{{ formatMoney(invoice.balanceDue) }}</td>
                   </tr>
                   <tr v-if="!metrics.recentInvoices.length"><td colspan="4" class="text-center text-secondary py-4">មិនទាន់មានវិក្កយបត្រ</td></tr>
                 </tbody>

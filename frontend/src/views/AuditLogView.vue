@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { auditApi } from '../api/invoices'
 import PaginationControls from '../components/PaginationControls.vue'
+import TableSkeleton from '../components/TableSkeleton.vue'
 import { formatDate } from '../utils/invoice'
 
 const logs = ref([])
@@ -78,18 +79,18 @@ onMounted(loadLogs)
           <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
-      <div v-if="loading" class="loading-state"><div class="spinner-border text-danger"></div></div>
+      <TableSkeleton v-if="loading" />
       <div v-else-if="!logs.length" class="empty-state"><h3>មិនមានកំណត់ត្រា</h3></div>
       <div v-else class="table-responsive">
-        <table class="table invoice-table mb-0">
+        <table class="table invoice-table responsive-table mb-0">
           <thead><tr><th>ពេលវេលា</th><th>អ្នកប្រើ</th><th>សកម្មភាព</th><th>ប្រភេទ</th><th>ព័ត៌មាន</th></tr></thead>
           <tbody>
             <tr v-for="log in logs" :key="log._id">
-              <td class="text-nowrap">{{ formatTimestamp(log.createdAt) }}</td>
-              <td><strong>{{ log.actorUsername }}</strong></td>
-              <td><span class="audit-action">{{ log.action }}</span></td>
-              <td>{{ log.entityType }}</td>
-              <td>{{ log.summary || log.entityId || '-' }}</td>
+              <td class="text-nowrap mobile-card-primary" data-label="ពេលវេលា">{{ formatTimestamp(log.createdAt) }}</td>
+              <td data-label="អ្នកប្រើ"><strong>{{ log.actorUsername }}</strong></td>
+              <td data-label="សកម្មភាព"><span class="audit-action">{{ log.action }}</span></td>
+              <td data-label="ប្រភេទ">{{ log.entityType }}</td>
+              <td data-label="ព័ត៌មាន">{{ log.summary || log.entityId || '-' }}</td>
             </tr>
           </tbody>
         </table>

@@ -7,6 +7,7 @@ import {
   productApi,
 } from '../api/invoices'
 import { formatMoney, toDateInput } from '../utils/invoice'
+import { showToast } from '../ui/feedback'
 
 const route = useRoute()
 const router = useRouter()
@@ -182,6 +183,11 @@ const submitForm = async () => {
     const response = isEditing.value
       ? await invoiceApi.update(route.params.id, payload)
       : await invoiceApi.create(payload)
+    showToast(
+      isEditing.value
+        ? 'កែប្រែវិក្កយបត្របានជោគជ័យ'
+        : 'បង្កើតវិក្កយបត្របានជោគជ័យ',
+    )
     await router.push({
       name: 'invoice-preview',
       params: { id: response.data._id },
@@ -189,6 +195,7 @@ const submitForm = async () => {
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចរក្សាទុកវិក្កយបត្របានទេ'
+    showToast(error.value, 'error')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } finally {
     saving.value = false

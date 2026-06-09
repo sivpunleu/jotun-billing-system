@@ -6,13 +6,14 @@ import {
   updateCurrentAdmin,
 } from '../auth/session'
 import PaginationControls from '../components/PaginationControls.vue'
+import TableSkeleton from '../components/TableSkeleton.vue'
+import { showToast } from '../ui/feedback'
 
 const loading = ref(true)
 const saving = ref(false)
 const changingPassword = ref(false)
 const loadingActivity = ref(false)
 const error = ref('')
-const success = ref('')
 const activity = ref([])
 const profile = reactive({
   id: '',
@@ -55,11 +56,8 @@ const formatTimestamp = (value) => {
 }
 
 const showSuccess = (message) => {
-  success.value = message
   error.value = ''
-  window.setTimeout(() => {
-    success.value = ''
-  }, 4000)
+  showToast(message)
 }
 
 const loadProfile = async () => {
@@ -168,6 +166,7 @@ const saveProfile = async () => {
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'Unable to update profile'
+    showToast(error.value, 'error')
   } finally {
     saving.value = false
   }
@@ -195,6 +194,7 @@ const changePassword = async () => {
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'Unable to change password'
+    showToast(error.value, 'error')
   } finally {
     changingPassword.value = false
   }
@@ -215,7 +215,6 @@ onMounted(initialize)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="success" class="alert alert-success">{{ success }}</div>
     <div v-if="loading" class="loading-state content-card">
       <div class="spinner-border text-danger"></div>
       <span>កំពុងទាញ Profile...</span>
@@ -393,14 +392,12 @@ onMounted(initialize)
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>
-        <div v-if="loadingActivity" class="loading-state">
-          <div class="spinner-border text-danger"></div>
-        </div>
+        <TableSkeleton v-if="loadingActivity" />
         <div v-else-if="!activity.length" class="empty-state">
           <h3>មិនទាន់មានសកម្មភាព</h3>
         </div>
         <div v-else class="table-responsive">
-          <table class="table invoice-table mb-0">
+          <table class="table invoice-table responsive-table mb-0">
             <thead>
               <tr>
                 <th>ពេលវេលា</th>
@@ -411,10 +408,10 @@ onMounted(initialize)
             </thead>
             <tbody>
               <tr v-for="item in activity" :key="item._id">
-                <td class="text-nowrap">{{ formatTimestamp(item.createdAt) }}</td>
-                <td><span class="audit-action">{{ item.action }}</span></td>
-                <td>{{ item.entityType }}</td>
-                <td>{{ item.summary || '-' }}</td>
+                <td class="text-nowrap mobile-card-primary" data-label="ពេលវេលា">{{ formatTimestamp(item.createdAt) }}</td>
+                <td data-label="សកម្មភាព"><span class="audit-action">{{ item.action }}</span></td>
+                <td data-label="ប្រភេទ">{{ item.entityType }}</td>
+                <td data-label="ព័ត៌មាន">{{ item.summary || '-' }}</td>
               </tr>
             </tbody>
           </table>
