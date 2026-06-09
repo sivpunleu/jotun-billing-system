@@ -95,7 +95,7 @@ onMounted(loadDashboard)
 
 <template>
   <section class="container page-section">
-    <div class="page-heading">
+    <div class="page-heading dashboard-page-heading">
       <div>
         <span class="eyebrow">BUSINESS OVERVIEW</span>
         <h1>ផ្ទាំងគ្រប់គ្រង</h1>
