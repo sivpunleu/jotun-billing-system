@@ -27,6 +27,7 @@ body {
     radial-gradient(circle at 95% 0%, rgba(24, 138, 194, 0.08), transparent 26rem),
     var(--background);
   font-family: 'Manrope', 'Battambang', sans-serif;
+  line-height: 1.5;
 }
 
 button,
@@ -68,6 +69,7 @@ textarea {
     radial-gradient(circle at 20% 0%, rgba(24, 138, 194, 0.24), transparent 18rem),
     linear-gradient(180deg, #0b2347 0%, var(--navy) 62%, #041329 100%);
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 12px 0 40px rgba(7, 27, 58, 0.12);
 }
 
@@ -122,9 +124,28 @@ textarea {
 
 .sidebar-nav {
   display: grid;
+  min-height: 0;
+  flex: 1;
   gap: 4px;
   margin-top: 20px;
+  padding-right: 4px;
+  padding-bottom: 12px;
   overflow-y: auto;
+  scrollbar-color: rgba(143, 179, 210, 0.5) transparent;
+  scrollbar-width: thin;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(143, 179, 210, 0.42);
 }
 
 .sidebar-label {
@@ -145,6 +166,7 @@ textarea {
   color: #c9d5e6;
   font-size: 0.86rem;
   font-weight: 700;
+  line-height: 1.45;
   text-decoration: none;
   transition: 160ms ease;
 }
@@ -178,7 +200,8 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  margin-top: auto;
+  flex: 0 0 auto;
+  margin-top: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 11px;
   color: #fff;
@@ -197,6 +220,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -937,6 +961,13 @@ textarea {
     max-width: none;
     padding: 36px 30px 64px;
   }
+
+  .content-card > .table-responsive {
+    max-height: min(68vh, 720px);
+    overflow: auto;
+    scrollbar-color: #c1ccda transparent;
+    scrollbar-width: thin;
+  }
 }
 
 .page-heading {
@@ -982,6 +1013,16 @@ textarea {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.summary-card:hover {
+  border-color: rgba(24, 138, 194, 0.18);
+  box-shadow: 0 16px 38px rgba(7, 27, 58, 0.11);
+  transform: translateY(-2px);
 }
 
 .summary-card span {
@@ -996,6 +1037,13 @@ textarea {
   color: var(--navy);
   font-size: 1.65rem;
   font-weight: 800;
+}
+
+.summary-card .summary-meta {
+  margin: 3px 0 0;
+  color: #8a97a8;
+  font-size: 0.67rem;
+  font-weight: 600;
 }
 
 .summary-icon {
@@ -1103,13 +1151,27 @@ textarea {
   white-space: nowrap;
 }
 
+.invoice-table thead th {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+  box-shadow: inset 0 -1px var(--line);
+}
+
 .invoice-table td {
   padding: 17px 20px;
   border-color: var(--line);
 }
 
+.invoice-table tbody tr {
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
 .invoice-table tbody tr:hover {
-  background: #fbfcfe;
+  background: #f8fbfe;
+  box-shadow: inset 3px 0 var(--blue);
 }
 
 .invoice-number {
@@ -1123,51 +1185,87 @@ textarea {
 }
 
 .status-pill {
+  --status-color: #68778c;
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--status-color) 18%, transparent);
   border-radius: 999px;
   font-size: 0.73rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
+.status-pill::before {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--status-color);
+  content: '';
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-color) 12%, transparent);
+}
+
 .status-unpaid {
+  --status-color: #c51f2d;
   color: #a41623;
   background: #fde9eb;
 }
 
-.status-partial {
+.status-partial,
+.status-partially_paid {
+  --status-color: #d59b00;
   color: #876300;
   background: #fff5d3;
 }
 
 .status-paid {
+  --status-color: #15956b;
   color: #08734e;
   background: #dcf6ec;
 }
 
 .status-draft {
+  --status-color: #7a8798;
   color: #49566a;
   background: #e9edf2;
 }
 
-.status-partially_paid {
-  color: #876300;
-  background: #fff5d3;
-}
-
 .status-cancelled {
+  --status-color: #5f6774;
   color: #5f6774;
   background: #e5e7eb;
-  text-decoration: line-through;
 }
 
 .action-button {
+  display: inline-grid;
   width: 34px;
   height: 34px;
   margin-left: 3px;
   padding: 0;
   border: 1px solid var(--line);
+  place-items: center;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+.action-button:hover,
+.action-button:focus-visible {
+  border-color: #c8d6e6;
+  color: var(--blue);
+  background: #eef7fc;
+  transform: translateY(-1px);
+}
+
+.action-button.text-danger:hover,
+.action-button.text-danger:focus-visible {
+  border-color: #f2c4c9;
+  color: var(--red) !important;
+  background: #fff0f2;
 }
 
 .loading-state,
@@ -1189,6 +1287,8 @@ textarea {
 }
 
 .empty-state p {
+  max-width: 460px;
+  margin: 0;
   color: var(--muted);
 }
 
@@ -1356,6 +1456,12 @@ textarea {
   column-gap: 20px;
   min-height: 166px;
   text-align: center;
+}
+
+.loading-state .spinner-border {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-width: 0.22rem;
 }
 
 .login-page {
@@ -2625,6 +2731,10 @@ textarea {
   box-shadow: 0 14px 34px rgba(15, 38, 70, 0.24);
 }
 
+.system-settings-page {
+  padding-bottom: 118px !important;
+}
+
 .settings-asset {
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
@@ -2933,6 +3043,7 @@ textarea {
 
   .responsive-table tbody tr:hover {
     background: #fff;
+    box-shadow: 0 6px 18px rgba(7, 27, 58, 0.05);
   }
 
   .responsive-table td {
@@ -3029,8 +3140,26 @@ textarea {
     flex-direction: column;
   }
 
+  .page-heading > .d-flex {
+    width: 100%;
+  }
+
+  .page-heading > .d-flex > .btn,
+  .page-heading > .d-flex > a.btn {
+    flex: 1 1 150px;
+  }
+
   .page-heading .btn {
     align-self: start;
+  }
+
+  .summary-card {
+    min-height: 102px;
+    padding: 18px;
+  }
+
+  .summary-card:hover {
+    transform: none;
   }
 
   .card-toolbar {

@@ -134,25 +134,41 @@ onMounted(loadDashboard)
         <div class="col-md-6 col-xl-3">
           <div class="summary-card">
             <div class="summary-icon bg-blue-soft"><i class="bi bi-cash-stack"></i></div>
-            <div><span>ចំណូលបានទទួល</span><strong>{{ formatMoney(metrics.revenue) }}</strong></div>
+            <div>
+              <span>ចំណូលបានទទួល</span>
+              <strong>{{ formatMoney(metrics.revenue) }}</strong>
+              <small class="summary-meta">Payments received</small>
+            </div>
           </div>
         </div>
         <div class="col-md-6 col-xl-3">
           <div class="summary-card">
             <div class="summary-icon bg-red-soft"><i class="bi bi-hourglass-split"></i></div>
-            <div><span>បំណុលនៅសល់</span><strong>{{ formatMoney(metrics.outstanding) }}</strong></div>
+            <div>
+              <span>បំណុលនៅសល់</span>
+              <strong>{{ formatMoney(metrics.outstanding) }}</strong>
+              <small class="summary-meta">Needs collection</small>
+            </div>
           </div>
         </div>
         <div class="col-md-6 col-xl-3">
           <div class="summary-card">
             <div class="summary-icon bg-green-soft"><i class="bi bi-check2-circle"></i></div>
-            <div><span>វិក្កយបត្របង់រួច</span><strong>{{ metrics.paidInvoices }}</strong></div>
+            <div>
+              <span>វិក្កយបត្របង់រួច</span>
+              <strong>{{ metrics.paidInvoices }}</strong>
+              <small class="summary-meta">Invoices completed</small>
+            </div>
           </div>
         </div>
         <div class="col-md-6 col-xl-3">
           <div class="summary-card">
             <div class="summary-icon bg-yellow-soft"><i class="bi bi-receipt"></i></div>
-            <div><span>វិក្កយបត្រសរុប</span><strong>{{ metrics.totalInvoices }}</strong></div>
+            <div>
+              <span>វិក្កយបត្រសរុប</span>
+              <strong>{{ metrics.totalInvoices }}</strong>
+              <small class="summary-meta">All invoice records</small>
+            </div>
           </div>
         </div>
       </div>

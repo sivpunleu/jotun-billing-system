@@ -302,7 +302,11 @@ onMounted(() => {
         </button>
       </div>
       <TableSkeleton v-if="loading" />
-      <div v-else-if="!records.length" class="empty-state"><h3>មិនមានទិន្នន័យ</h3></div>
+      <div v-else-if="!records.length" class="empty-state">
+        <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+        <h3>មិនមានទិន្នន័យ</h3>
+        <p>បង្កើតកំណត់ត្រាថ្មី ឬកែពាក្យស្វែងរករបស់អ្នក។</p>
+      </div>
       <div v-else class="table-responsive">
         <table class="table invoice-table responsive-table mb-0">
           <thead>
@@ -361,8 +365,8 @@ onMounted(() => {
                     >
                       <i class="bi bi-box-arrow-in-down me-1"></i> Stock
                     </button>
-                    <button class="btn btn-sm btn-light action-button" type="button" @click="editRecord(record)"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-light action-button text-danger" type="button" @click="removeRecord(record)"><i class="bi bi-trash3"></i></button>
+                    <button class="btn btn-sm btn-light action-button" type="button" title="កែប្រែ" aria-label="កែប្រែ" @click="editRecord(record)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-light action-button text-danger" type="button" title="លុប" aria-label="លុប" @click="removeRecord(record)"><i class="bi bi-trash3"></i></button>
                   </template>
                 </template>
               </td>

@@ -75,6 +75,7 @@ const statusLabels = {
           class="btn btn-sm btn-light action-button"
           :to="{ name: 'invoice-preview', params: { id: invoice._id } }"
           title="មើល"
+          aria-label="មើលវិក្កយបត្រ"
         >
           <i class="bi bi-eye"></i>
         </RouterLink>
@@ -83,6 +84,7 @@ const statusLabels = {
           class="btn btn-sm btn-light action-button"
           :to="{ name: 'invoice-edit', params: { id: invoice._id } }"
           title="កែប្រែ"
+          aria-label="កែប្រែវិក្កយបត្រ"
         >
           <i class="bi bi-pencil"></i>
         </RouterLink>
@@ -91,6 +93,7 @@ const statusLabels = {
           class="btn btn-sm btn-light action-button text-danger"
           type="button"
           title="លុប"
+          aria-label="លុបវិក្កយបត្រ"
           @click="$emit('delete', invoice)"
         >
           <i class="bi bi-trash3"></i>

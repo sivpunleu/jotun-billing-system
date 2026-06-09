@@ -84,7 +84,11 @@ onMounted(loadLogs)
         </button>
       </div>
       <TableSkeleton v-if="loading" />
-      <div v-else-if="!logs.length" class="empty-state"><h3>មិនមានកំណត់ត្រា</h3></div>
+      <div v-else-if="!logs.length" class="empty-state">
+        <div class="empty-icon"><i class="bi bi-clock-history"></i></div>
+        <h3>មិនមានកំណត់ត្រា</h3>
+        <p>មិនទាន់មានសកម្មភាពត្រូវបង្ហាញតាមលក្ខខណ្ឌនេះទេ។</p>
+      </div>
       <div v-else class="table-responsive">
         <table class="table invoice-table responsive-table mb-0">
           <thead><tr><th>ពេលវេលា</th><th>អ្នកប្រើ</th><th>សកម្មភាព</th><th>ប្រភេទ</th><th>ព័ត៌មាន</th></tr></thead>

@@ -394,7 +394,9 @@ onMounted(initialize)
         </div>
         <TableSkeleton v-if="loadingActivity" />
         <div v-else-if="!activity.length" class="empty-state">
+          <div class="empty-icon"><i class="bi bi-activity"></i></div>
           <h3>មិនទាន់មានសកម្មភាព</h3>
+          <p>សកម្មភាពថ្មីរបស់គណនីនឹងបង្ហាញនៅទីនេះ។</p>
         </div>
         <div v-else class="table-responsive">
           <table class="table invoice-table responsive-table mb-0">

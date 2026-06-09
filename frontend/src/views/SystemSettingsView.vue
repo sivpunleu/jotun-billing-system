@@ -125,7 +125,7 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="container page-section">
+  <section class="container page-section system-settings-page">
     <div class="page-heading">
       <div>
         <span class="eyebrow">COMPANY CONFIGURATION</span>
