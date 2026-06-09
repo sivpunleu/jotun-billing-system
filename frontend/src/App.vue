@@ -20,6 +20,10 @@ import jotunLogo from './assets/jotun.jpg'
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(
+  typeof window !== 'undefined' &&
+    window.localStorage.getItem('jotun_sidebar_collapsed') === 'true',
+)
 const showWorkspace = computed(
   () => isAuthenticated.value && route.name !== 'login',
 )
@@ -70,6 +74,12 @@ watch(
   },
 )
 
+watch(sidebarCollapsed, (value) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('jotun_sidebar_collapsed', String(value))
+  }
+})
+
 const logout = async () => {
   const confirmed = await requestConfirmation({
     title: 'ចាកចេញពីប្រព័ន្ធ?',
@@ -90,14 +100,20 @@ const logout = async () => {
 </script>
 
 <template>
-  <div class="app-shell" :class="{ 'has-sidebar': showWorkspace }">
+  <div
+    class="app-shell"
+    :class="{
+      'has-sidebar': showWorkspace,
+      'sidebar-collapsed': showWorkspace && sidebarCollapsed,
+    }"
+  >
     <template v-if="showWorkspace">
       <aside
         class="app-sidebar d-print-none"
         :class="{ open: sidebarOpen }"
       >
         <div class="sidebar-brand">
-          <RouterLink to="/dashboard">
+          <RouterLink to="/dashboard" title="ផ្ទាំងគ្រប់គ្រង">
             <img :src="logo" alt="Marvel Decor" />
             <span>
               <strong>MARVEL DECOR</strong>
@@ -112,6 +128,21 @@ const logout = async () => {
           >
             <i class="bi bi-x-lg"></i>
           </button>
+          <button
+            class="sidebar-collapse-toggle"
+            type="button"
+            :title="sidebarCollapsed ? 'ពង្រីក Sidebar' : 'បង្រួម Sidebar'"
+            :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          >
+            <i
+              :class="
+                sidebarCollapsed
+                  ? 'bi bi-chevron-double-right'
+                  : 'bi bi-chevron-double-left'
+              "
+            ></i>
+          </button>
         </div>
 
         <nav class="sidebar-nav">
@@ -120,25 +151,25 @@ const logout = async () => {
             <i class="bi bi-grid-1x2"></i>
             <span>ផ្ទាំងគ្រប់គ្រង</span>
           </RouterLink>
-          <RouterLink to="/invoices">
+          <RouterLink to="/invoices" title="វិក្កយបត្រ">
             <i class="bi bi-receipt"></i>
             <span>វិក្កយបត្រ</span>
           </RouterLink>
 
           <span class="sidebar-label">BUSINESS</span>
-          <RouterLink to="/customers">
+          <RouterLink to="/customers" title="អតិថិជន">
             <i class="bi bi-people"></i>
             <span>អតិថិជន</span>
           </RouterLink>
-          <RouterLink to="/products">
+          <RouterLink to="/products" title="ទំនិញ">
             <i class="bi bi-box-seam"></i>
             <span>ទំនិញ</span>
           </RouterLink>
-          <RouterLink to="/salespeople">
+          <RouterLink to="/salespeople" title="ក្រុមការងារ Sale">
             <i class="bi bi-person-badge"></i>
             <span>ក្រុមការងារ Sale</span>
           </RouterLink>
-          <RouterLink to="/reports">
+          <RouterLink to="/reports" title="Reports">
             <i class="bi bi-bar-chart-line"></i>
             <span>Reports</span>
           </RouterLink>
@@ -149,15 +180,23 @@ const logout = async () => {
           >
             MANAGEMENT
           </span>
-          <RouterLink v-if="canManageBilling" to="/audit-logs">
+          <RouterLink
+            v-if="canManageBilling"
+            to="/audit-logs"
+            title="ប្រវត្តិសកម្មភាព"
+          >
             <i class="bi bi-clock-history"></i>
             <span>ប្រវត្តិសកម្មភាព</span>
           </RouterLink>
-          <RouterLink v-if="isOwner" to="/settings">
+          <RouterLink v-if="isOwner" to="/settings" title="Admin Accounts">
             <i class="bi bi-shield-lock"></i>
             <span>Admin Accounts</span>
           </RouterLink>
-          <RouterLink v-if="isOwner" to="/system-settings">
+          <RouterLink
+            v-if="isOwner"
+            to="/system-settings"
+            title="System Settings"
+          >
             <i class="bi bi-sliders"></i>
             <span>System Settings</span>
           </RouterLink>
@@ -169,7 +208,7 @@ const logout = async () => {
           to="/invoices/new"
         >
           <i class="bi bi-plus-lg"></i>
-          បង្កើតវិក្កយបត្រ
+          <span>បង្កើតវិក្កយបត្រ</span>
         </RouterLink>
 
         <div class="sidebar-user">

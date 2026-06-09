@@ -7,6 +7,7 @@ import {
   currentAdmin,
   isAuthenticated,
 } from '../auth/session'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
 import {
   requestConfirmation,
@@ -207,10 +208,7 @@ onMounted(() => {
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger" role="status"></div>
-      <span>កំពុងរៀបចំវិក្កយបត្រ...</span>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="2" />
 
     <div
       v-if="invoice && isAuthenticated"

@@ -1,6 +1,11 @@
 <script setup>
 import { computed } from 'vue'
-import { formatDate, formatMoney } from '../utils/invoice'
+import {
+  formatDate,
+  formatMoney,
+  invoiceStatusLabels,
+  resolveInvoiceStatus,
+} from '../utils/invoice'
 
 const props = defineProps({
   invoice: {
@@ -19,19 +24,7 @@ const props = defineProps({
 
 defineEmits(['delete', 'restore'])
 
-const resolvedStatus = computed(() => {
-  if (props.invoice.status) return props.invoice.status
-  if (props.invoice.paymentStatus === 'partial') return 'partially_paid'
-  return props.invoice.paymentStatus || 'unpaid'
-})
-
-const statusLabels = {
-  draft: 'Draft',
-  unpaid: 'Unpaid',
-  partially_paid: 'Partially Paid',
-  paid: 'Paid',
-  cancelled: 'Cancelled',
-}
+const resolvedStatus = computed(() => resolveInvoiceStatus(props.invoice))
 </script>
 
 <template>
@@ -79,7 +72,7 @@ const statusLabels = {
     <td class="text-nowrap" data-label="ថ្ងៃកំណត់">{{ formatDate(invoice.dueDate) }}</td>
     <td data-label="ស្ថានភាព">
       <span class="status-pill" :class="`status-${resolvedStatus}`">
-        {{ statusLabels[resolvedStatus] || resolvedStatus }}
+        {{ invoiceStatusLabels[resolvedStatus] || resolvedStatus }}
       </span>
     </td>
     <td class="text-end fw-bold" data-label="សរុប">{{ formatMoney(invoice.grandTotal) }}</td>

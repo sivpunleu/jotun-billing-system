@@ -7,6 +7,7 @@ import {
   productApi,
   salespersonApi,
 } from '../api/invoices'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import { formatMoney, toDateInput } from '../utils/invoice'
 import {
   requestConfirmation,
@@ -289,10 +290,7 @@ onMounted(initialize)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger"></div>
-      <span>កំពុងទាញទិន្នន័យ...</span>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="3" />
 
     <form v-else novalidate @submit.prevent="submitForm">
       <div class="row g-4">

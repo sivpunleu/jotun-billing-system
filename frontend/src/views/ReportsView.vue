@@ -1,8 +1,15 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { reportApi, salespersonApi } from '../api/invoices'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
-import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
+import {
+  formatDate,
+  formatMoney,
+  invoiceStatusLabels,
+  resolveInvoiceStatus,
+  toDateInput,
+} from '../utils/invoice'
 import { showToast, validateForm } from '../ui/feedback'
 
 const report = ref(null)
@@ -114,11 +121,11 @@ onMounted(initialize)
       @submit.prevent="submitReport"
     >
       <div>
-        <label class="form-label">From</label>
+        <label class="form-label">From *</label>
         <input v-model="filters.from" class="form-control" type="date" required />
       </div>
       <div>
-        <label class="form-label">To</label>
+        <label class="form-label">To *</label>
         <input v-model="filters.to" class="form-control" type="date" required />
       </div>
       <div>
@@ -164,9 +171,7 @@ onMounted(initialize)
     </form>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="dashboard-skeleton">
-      <div v-for="index in 4" :key="index" class="skeleton-block"></div>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="4" />
 
     <template v-else-if="report">
       <div class="row g-3 mb-4">
@@ -404,7 +409,17 @@ onMounted(initialize)
                   }}
                 </td>
                 <td data-label="Date">{{ formatDate(invoice.invoiceDate) }}</td>
-                <td data-label="Status">{{ invoice.status }}</td>
+                <td data-label="Status">
+                  <span
+                    class="status-pill"
+                    :class="`status-${resolveInvoiceStatus(invoice)}`"
+                  >
+                    {{
+                      invoiceStatusLabels[resolveInvoiceStatus(invoice)] ||
+                      resolveInvoiceStatus(invoice)
+                    }}
+                  </span>
+                </td>
                 <td class="text-end fw-bold" data-label="Total">
                   {{ formatMoney(invoice.grandTotal) }}
                 </td>

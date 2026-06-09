@@ -88,7 +88,7 @@ const submitLogin = async (event) => {
 
       <form novalidate @submit.prevent="submitLogin">
         <div class="mb-3">
-          <label class="form-label" for="adminUsername">ឈ្មោះអ្នកប្រើប្រាស់</label>
+          <label class="form-label" for="adminUsername">ឈ្មោះអ្នកប្រើប្រាស់ *</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-person"></i></span>
             <input
@@ -103,7 +103,7 @@ const submitLogin = async (event) => {
         </div>
 
         <div class="mb-4">
-          <label class="form-label" for="adminPassword">ពាក្យសម្ងាត់</label>
+          <label class="form-label" for="adminPassword">ពាក្យសម្ងាត់ *</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-lock"></i></span>
             <input

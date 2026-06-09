@@ -80,6 +80,16 @@ export const validateForm = async (
   formElement,
   { customMessage = '' } = {},
 ) => {
+  formElement
+    ?.querySelectorAll('.field-validation-message')
+    .forEach((message) => message.remove())
+  formElement
+    ?.querySelectorAll('.is-invalid')
+    .forEach((control) => {
+      control.classList.remove('is-invalid')
+      control.removeAttribute('aria-invalid')
+    })
+
   const controls = formElement
     ? Array.from(formElement.elements || []).filter(
         (control) =>
@@ -94,6 +104,28 @@ export const validateForm = async (
     : customMessage
 
   if (!message) return true
+
+  controls
+    .filter((control) => !control.checkValidity())
+    .forEach((control) => {
+      control.classList.add('is-invalid')
+      control.setAttribute('aria-invalid', 'true')
+      const validation = document.createElement('small')
+      validation.className = 'field-validation-message'
+      validation.textContent = validationMessage(control)
+      const anchor = control.closest('.input-group') || control
+      anchor.insertAdjacentElement('afterend', validation)
+
+      control.addEventListener(
+        'input',
+        () => {
+          control.classList.remove('is-invalid')
+          control.removeAttribute('aria-invalid')
+          validation.remove()
+        },
+        { once: true },
+      )
+    })
 
   await Swal.fire({
     icon: 'warning',

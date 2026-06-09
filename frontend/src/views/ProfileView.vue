@@ -5,6 +5,7 @@ import {
   currentAdmin,
   updateCurrentAdmin,
 } from '../auth/session'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import {
@@ -240,10 +241,7 @@ onMounted(initialize)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger"></div>
-      <span>កំពុងទាញ Profile...</span>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="2" />
 
     <template v-else>
       <div class="row g-4">
@@ -307,7 +305,7 @@ onMounted(initialize)
                   />
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Display Name</label>
+                  <label class="form-label">Display Name *</label>
                   <input
                     v-model.trim="profile.displayName"
                     class="form-control"
@@ -360,7 +358,7 @@ onMounted(initialize)
             </div>
             <form class="row g-3" novalidate @submit.prevent="changePassword">
               <div class="col-md-4">
-                <label class="form-label">Current Password</label>
+                <label class="form-label">Current Password *</label>
                 <input
                   v-model="passwordForm.currentPassword"
                   class="form-control"
@@ -370,7 +368,7 @@ onMounted(initialize)
                 />
               </div>
               <div class="col-md-4">
-                <label class="form-label">New Password</label>
+                <label class="form-label">New Password *</label>
                 <input
                   v-model="passwordForm.newPassword"
                   class="form-control"
@@ -381,7 +379,7 @@ onMounted(initialize)
                 />
               </div>
               <div class="col-md-4">
-                <label class="form-label">Confirm Password</label>
+                <label class="form-label">Confirm Password *</label>
                 <input
                   v-model="passwordForm.confirmPassword"
                   class="form-control"

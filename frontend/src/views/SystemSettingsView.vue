@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { settingsApi } from '../api/invoices'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import {
   requestConfirmation,
   showToast,
@@ -152,9 +153,7 @@ onMounted(load)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger"></div>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="3" />
 
     <form v-else class="row g-4" novalidate @submit.prevent="save">
       <div class="col-xl-8">
@@ -168,7 +167,7 @@ onMounted(load)
           </div>
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Company Name</label>
+              <label class="form-label">Company Name *</label>
               <input
                 v-model.trim="form.companyName"
                 class="form-control"

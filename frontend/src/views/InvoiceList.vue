@@ -199,6 +199,13 @@ onMounted(initialize)
         <div class="empty-icon"><i class="bi bi-receipt-cutoff"></i></div>
         <h3>មិនមានវិក្កយបត្រ</h3>
         <p>{{ showTrash ? 'ធុងសំរាមនៅទទេ។' : 'ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូង។' }}</p>
+        <RouterLink
+          v-if="canManageBilling && !showTrash"
+          class="btn btn-danger"
+          to="/invoices/new"
+        >
+          <i class="bi bi-plus-lg me-1"></i> បង្កើតវិក្កយបត្រ
+        </RouterLink>
       </div>
       <div v-else class="table-responsive">
         <table class="table invoice-table responsive-table align-middle mb-0">

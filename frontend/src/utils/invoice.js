@@ -22,3 +22,16 @@ export const toDateInput = (value) => {
     .slice(0, 10)
 }
 
+export const resolveInvoiceStatus = (invoice = {}) => {
+  if (invoice.status) return invoice.status
+  if (invoice.paymentStatus === 'partial') return 'partially_paid'
+  return invoice.paymentStatus || 'unpaid'
+}
+
+export const invoiceStatusLabels = {
+  draft: 'Draft',
+  unpaid: 'Unpaid',
+  partially_paid: 'Partially Paid',
+  paid: 'Paid',
+  cancelled: 'Cancelled',
+}

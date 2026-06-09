@@ -145,7 +145,7 @@ onMounted(loadAdmins)
             <input v-model="adminForm.password" class="form-control" type="password" minlength="10" required />
           </div>
           <div class="col-md-3">
-            <label class="form-label">Role</label>
+            <label class="form-label">Role *</label>
             <select v-model="adminForm.role" class="form-select" required>
               <option value="admin">Admin</option>
               <option value="viewer">Viewer</option>

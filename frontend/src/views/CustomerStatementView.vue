@@ -3,7 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { customerApi } from '../api/invoices'
 import TableSkeleton from '../components/TableSkeleton.vue'
-import { formatDate, formatMoney } from '../utils/invoice'
+import {
+  formatDate,
+  formatMoney,
+  invoiceStatusLabels,
+  resolveInvoiceStatus,
+} from '../utils/invoice'
 import { validateForm } from '../ui/feedback'
 
 const route = useRoute()
@@ -162,7 +167,17 @@ onMounted(load)
                     : 'នៅហាង'
                 }}
               </td>
-              <td data-label="Status">{{ invoice.status }}</td>
+              <td data-label="Status">
+                <span
+                  class="status-pill"
+                  :class="`status-${resolveInvoiceStatus(invoice)}`"
+                >
+                  {{
+                    invoiceStatusLabels[resolveInvoiceStatus(invoice)] ||
+                    resolveInvoiceStatus(invoice)
+                  }}
+                </span>
+              </td>
               <td class="text-end" data-label="Total">
                 {{ formatMoney(invoice.grandTotal) }}
               </td>

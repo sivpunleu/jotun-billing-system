@@ -52,6 +52,7 @@ const error = ref('')
 const search = ref('')
 const showTrash = ref(false)
 const editingId = ref('')
+const formCard = ref(null)
 const pagination = reactive({ page: 1, limit: 10, total: 0, pages: 1 })
 const form = reactive({
   name: '',
@@ -80,6 +81,14 @@ const resetForm = () => {
     stockQuantity: 0,
     lowStockThreshold: 5,
   })
+}
+
+const focusCreateForm = () => {
+  resetForm()
+  formCard.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  window.setTimeout(() => {
+    formCard.value?.querySelector('input:not([disabled])')?.focus()
+  }, 350)
 }
 
 const loadRecords = async (page = pagination.page) => {
@@ -231,7 +240,11 @@ onMounted(() => {
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
-    <div v-if="canManageBilling && !showTrash" class="content-card form-card mb-4">
+    <div
+      v-if="canManageBilling && !showTrash"
+      ref="formCard"
+      class="content-card form-card mb-4"
+    >
       <div class="section-title">
         <span class="section-number">{{ editingId ? 'EDIT' : 'NEW' }}</span>
         <div>
@@ -338,6 +351,14 @@ onMounted(() => {
         <div class="empty-icon"><i class="bi bi-inbox"></i></div>
         <h3>មិនមានទិន្នន័យ</h3>
         <p>បង្កើតកំណត់ត្រាថ្មី ឬកែពាក្យស្វែងរករបស់អ្នក។</p>
+        <button
+          v-if="canManageBilling && !showTrash"
+          class="btn btn-danger"
+          type="button"
+          @click="focusCreateForm"
+        >
+          <i class="bi bi-plus-lg me-1"></i> បង្កើតថ្មី
+        </button>
       </div>
       <div v-else class="table-responsive">
         <table class="table invoice-table responsive-table mb-0">

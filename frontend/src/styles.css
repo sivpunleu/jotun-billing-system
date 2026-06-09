@@ -55,6 +55,7 @@ textarea {
   min-height: 100vh;
   margin-left: 270px;
   padding-top: 78px;
+  transition: margin-left 180ms ease;
 }
 
 .app-sidebar {
@@ -71,9 +72,13 @@ textarea {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 12px 0 40px rgba(7, 27, 58, 0.12);
+  transition:
+    width 180ms ease,
+    padding 180ms ease;
 }
 
 .sidebar-brand {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -120,6 +125,27 @@ textarea {
   color: #fff;
   background: transparent;
   font-size: 1.2rem;
+}
+
+.sidebar-collapse-toggle {
+  position: absolute;
+  right: -8px;
+  bottom: -14px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  place-items: center;
+  color: #dbe8f5;
+  background: #15345f;
+  font-size: 0.68rem;
+  box-shadow: 0 5px 14px rgba(3, 14, 31, 0.3);
+}
+
+.sidebar-collapse-toggle:hover {
+  color: #fff;
+  background: var(--red);
 }
 
 .sidebar-nav {
@@ -306,6 +332,63 @@ textarea {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 8px 28px rgba(7, 27, 58, 0.05);
   backdrop-filter: blur(14px);
+  transition: left 180ms ease;
+}
+
+@media screen and (min-width: 992px) {
+  .app-shell.sidebar-collapsed .app-content {
+    margin-left: 84px;
+  }
+
+  .app-shell.sidebar-collapsed .app-sidebar {
+    width: 84px;
+    padding-inline: 12px;
+  }
+
+  .app-shell.sidebar-collapsed .desktop-app-header {
+    left: 84px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-brand > a {
+    gap: 0;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-brand > a > span,
+  .app-shell.sidebar-collapsed .sidebar-label,
+  .app-shell.sidebar-collapsed .sidebar-nav > a > span,
+  .app-shell.sidebar-collapsed .sidebar-create > span,
+  .app-shell.sidebar-collapsed .sidebar-user-copy {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav {
+    padding-right: 0;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav > a,
+  .app-shell.sidebar-collapsed .sidebar-create {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 8px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-nav > a i {
+    width: auto;
+    font-size: 1.12rem;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-profile {
+    justify-content: center;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-user {
+    flex-direction: column;
+  }
 }
 
 .topbar-heading {
@@ -998,6 +1081,22 @@ textarea {
   margin-bottom: 24px;
 }
 
+.page-heading > .d-flex {
+  align-items: center;
+}
+
+.page-heading .btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+}
+
+.page-heading .btn.btn-lg {
+  min-height: 42px;
+  padding: 9px 16px;
+  font-size: 0.84rem;
+}
+
 .page-heading.compact {
   align-items: center;
   margin-bottom: 22px;
@@ -1032,6 +1131,13 @@ textarea {
   font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.18em;
+}
+
+.page-heading h1,
+.section-title h2,
+.panel-title,
+.empty-state h3 {
+  font-family: 'Battambang', 'Manrope', sans-serif;
 }
 
 .summary-card {
@@ -1171,11 +1277,11 @@ textarea {
 }
 
 .invoice-table th {
-  padding: 14px 20px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   background: #f8fafc;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.045em;
   text-transform: uppercase;
@@ -1190,8 +1296,9 @@ textarea {
 }
 
 .invoice-table td {
-  padding: 17px 20px;
+  padding: 12px 16px;
   border-color: var(--line);
+  font-size: 0.82rem;
 }
 
 .invoice-table tbody tr {
@@ -1220,10 +1327,10 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border: 1px solid color-mix(in srgb, var(--status-color) 18%, transparent);
   border-radius: 999px;
-  font-size: 0.73rem;
+  font-size: 0.69rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -1388,6 +1495,10 @@ textarea {
   color: var(--muted);
 }
 
+.empty-state .btn {
+  margin-top: 5px;
+}
+
 .empty-icon {
   display: grid;
   width: 72px;
@@ -1441,6 +1552,41 @@ textarea {
   margin-bottom: 7px;
   color: var(--ink);
   font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.form-label:has(+ input:not([required]):not([disabled])),
+.form-label:has(+ select:not([required]):not([disabled])),
+.form-label:has(+ textarea:not([required]):not([disabled])),
+.form-label:has(+ .input-group input:not([required]):not([disabled])) {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.form-label:has(+ input:not([required]):not([disabled]))::after,
+.form-label:has(+ select:not([required]):not([disabled]))::after,
+.form-label:has(+ textarea:not([required]):not([disabled]))::after,
+.form-label:has(+ .input-group input:not([required]):not([disabled]))::after {
+  color: #8b98aa;
+  content: 'Optional';
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc2635;
+  background-image: none;
+  box-shadow: 0 0 0 0.2rem rgba(220, 38, 53, 0.09);
+}
+
+.field-validation-message {
+  display: block;
+  margin-top: 6px;
+  color: #b91f2b;
+  font-size: 0.68rem;
   font-weight: 700;
 }
 
@@ -2338,6 +2484,89 @@ textarea {
   justify-self: end;
 }
 
+.content-skeleton {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.content-skeleton-heading {
+  display: grid;
+  width: min(360px, 75%);
+  gap: 10px;
+}
+
+.content-skeleton-heading span,
+.content-skeleton-card span {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8edf3;
+}
+
+.content-skeleton-heading span::after,
+.content-skeleton-card span::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.72),
+    transparent
+  );
+  content: '';
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.25s infinite;
+}
+
+.content-skeleton-heading span:first-child {
+  width: 55%;
+  height: 18px;
+}
+
+.content-skeleton-heading span:last-child {
+  width: 100%;
+  height: 11px;
+}
+
+.content-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.content-skeleton-card {
+  display: grid;
+  min-height: 180px;
+  align-content: start;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.content-skeleton-card span {
+  height: 12px;
+}
+
+.content-skeleton-card span:first-child {
+  width: 42%;
+  height: 16px;
+}
+
+.content-skeleton-card span:nth-child(2) {
+  width: 90%;
+}
+
+.content-skeleton-card span:nth-child(3) {
+  width: 76%;
+}
+
+.content-skeleton-card span:last-child {
+  width: 58%;
+}
+
 @keyframes skeleton-shimmer {
   to {
     transform: translateX(100%);
@@ -2991,6 +3220,10 @@ textarea {
     display: block;
   }
 
+  .sidebar-collapse-toggle {
+    display: none;
+  }
+
   .sidebar-overlay {
     position: fixed;
     z-index: 1035;
@@ -3168,6 +3401,19 @@ textarea {
     padding-left: 14px;
   }
 
+  .content-skeleton {
+    padding: 16px;
+  }
+
+  .content-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-skeleton-card {
+    min-height: 145px;
+    padding: 18px;
+  }
+
   .dashboard-skeleton {
     grid-template-columns: 1fr;
   }
@@ -3326,10 +3572,10 @@ textarea {
 
   .responsive-table .mobile-card-actions {
     display: flex;
-    min-height: 50px;
+    min-height: 56px;
     align-items: center;
     justify-content: flex-end;
-    gap: 5px;
+    gap: 8px;
   }
 
   .responsive-table .mobile-card-actions::before {
@@ -3386,7 +3632,33 @@ textarea {
   }
 
   .page-heading .btn {
+    min-height: 44px;
     align-self: start;
+  }
+
+  .action-button {
+    width: 42px;
+    height: 42px;
+    margin-left: 0;
+  }
+
+  .item-row {
+    padding: 16px;
+  }
+
+  .item-row-heading {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .item-row-heading .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+
+  input[type='tel'] {
+    font-size: 16px;
   }
 
   .summary-card {

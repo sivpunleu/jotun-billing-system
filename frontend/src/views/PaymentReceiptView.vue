@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { invoiceApi } from '../api/invoices'
+import ContentSkeleton from '../components/ContentSkeleton.vue'
 import { formatDate, formatMoney } from '../utils/invoice'
 import fallbackLogo from '../assets/logo-marvel.png'
 
@@ -43,9 +44,7 @@ onMounted(async () => {
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="loading" class="loading-state content-card">
-      <div class="spinner-border text-danger"></div>
-    </div>
+    <ContentSkeleton v-if="loading" :cards="1" />
 
     <article v-else-if="receipt" class="receipt-paper">
       <header class="receipt-header">
