@@ -351,7 +351,7 @@ onMounted(() => {
         </div>
         <div class="classic-jotun-block">
           <img
-            class="classic-jotun-logo d-none d-md-block"
+            class="classic-jotun-logo"
             :src="companySettings.jotunLogo || jotunLogo"
             alt="Jotun"
             style="width: 150px; height: 50px"
