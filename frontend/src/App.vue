@@ -247,7 +247,10 @@ const logout = async () => {
     </template>
 
     <header
-      v-else-if="route.name !== 'invoice-preview'"
+      v-else-if="
+        route.name !== 'invoice-preview' &&
+        route.name !== 'login'
+      "
       class="public-header d-print-none"
     >
       <RouterLink class="public-brand-lockup" to="/login">
@@ -266,7 +269,11 @@ const logout = async () => {
     </main>
 
     <footer
-      v-if="!showWorkspace && route.name !== 'invoice-preview'"
+      v-if="
+        !showWorkspace &&
+        route.name !== 'invoice-preview' &&
+        route.name !== 'login'
+      "
       class="app-footer d-print-none"
     >
       <div class="container d-flex flex-wrap justify-content-between gap-2">
