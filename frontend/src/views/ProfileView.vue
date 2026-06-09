@@ -7,7 +7,11 @@ import {
 } from '../auth/session'
 import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
-import { showToast } from '../ui/feedback'
+import {
+  requestConfirmation,
+  showToast,
+  validateForm,
+} from '../ui/feedback'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -151,7 +155,20 @@ const chooseAvatar = async (event) => {
   }
 }
 
-const saveProfile = async () => {
+const removeAvatar = async () => {
+  const confirmed = await requestConfirmation({
+    title: 'លុបរូប Profile?',
+    message: 'រូប Profile នឹងត្រូវដកចេញនៅពេលអ្នករក្សាទុក។',
+    confirmLabel: 'លុបរូប',
+    cancelLabel: 'បោះបង់',
+    tone: 'danger',
+  })
+  if (confirmed) profile.avatar = ''
+}
+
+const saveProfile = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   saving.value = true
   error.value = ''
   try {
@@ -172,12 +189,20 @@ const saveProfile = async () => {
   }
 }
 
-const changePassword = async () => {
+const changePassword = async (event) => {
   error.value = ''
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    error.value = 'New passwords do not match'
-    return
-  }
+  const customMessage =
+    passwordForm.newPassword !== passwordForm.confirmPassword
+      ? 'Password ថ្មី និង Confirm Password មិនដូចគ្នាទេ។'
+      : passwordForm.currentPassword === passwordForm.newPassword
+        ? 'Password ថ្មីត្រូវតែខុសពី Password បច្ចុប្បន្ន។'
+        : ''
+  if (
+    !(await validateForm(event?.currentTarget, {
+      customMessage,
+    }))
+  ) return
+
   changingPassword.value = true
   try {
     await authApi.changePassword({
@@ -263,7 +288,7 @@ onMounted(initialize)
               </div>
             </div>
 
-            <form @submit.prevent="saveProfile">
+            <form novalidate @submit.prevent="saveProfile">
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Username</label>
@@ -286,7 +311,9 @@ onMounted(initialize)
                   <input
                     v-model.trim="profile.displayName"
                     class="form-control"
+                    minlength="2"
                     maxlength="80"
+                    required
                   />
                 </div>
                 <div class="col-12">
@@ -305,7 +332,7 @@ onMounted(initialize)
                       v-if="profile.avatar"
                       class="btn btn-outline-danger"
                       type="button"
-                      @click="profile.avatar = ''"
+                      @click="removeAvatar"
                     >
                       <i class="bi bi-trash3 me-1"></i> លុបរូប
                     </button>
@@ -331,7 +358,7 @@ onMounted(initialize)
                 <p>ប្រើ password យ៉ាងតិច 10 តួអក្សរ។</p>
               </div>
             </div>
-            <form class="row g-3" @submit.prevent="changePassword">
+            <form class="row g-3" novalidate @submit.prevent="changePassword">
               <div class="col-md-4">
                 <label class="form-label">Current Password</label>
                 <input

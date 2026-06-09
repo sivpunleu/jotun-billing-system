@@ -10,6 +10,10 @@ import {
   isAuthenticated,
   isOwner,
 } from './auth/session'
+import {
+  requestConfirmation,
+  showSuccessAlert,
+} from './ui/feedback'
 import logo from './assets/logo-marvel.png'
 import jotunLogo from './assets/jotun.jpg'
 
@@ -67,8 +71,21 @@ watch(
 )
 
 const logout = async () => {
+  const confirmed = await requestConfirmation({
+    title: 'ចាកចេញពីប្រព័ន្ធ?',
+    message: 'តើអ្នកប្រាកដថាចង់ចាកចេញពីគណនីនេះមែនទេ?',
+    confirmLabel: 'ចាកចេញ',
+    cancelLabel: 'នៅបន្ត',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+
   clearAuthSession()
   await router.replace('/login')
+  await showSuccessAlert(
+    'អ្នកបានចាកចេញពីប្រព័ន្ធដោយជោគជ័យ។',
+    'ចាកចេញបានជោគជ័យ',
+  )
 }
 </script>
 

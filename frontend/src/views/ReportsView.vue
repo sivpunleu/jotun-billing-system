@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { reportApi, salespersonApi } from '../api/invoices'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
-import { showToast } from '../ui/feedback'
+import { showToast, validateForm } from '../ui/feedback'
 
 const report = ref(null)
 const loading = ref(true)
@@ -33,6 +33,21 @@ const loadReport = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const submitReport = async (event) => {
+  const customMessage =
+    filters.from &&
+    filters.to &&
+    new Date(filters.from) > new Date(filters.to)
+      ? 'កាលបរិច្ឆេទ From មិនអាចក្រោយកាលបរិច្ឆេទ To បានទេ។'
+      : ''
+  if (
+    !(await validateForm(event?.currentTarget, {
+      customMessage,
+    }))
+  ) return
+  await loadReport()
 }
 
 const applyPreset = (preset) => {
@@ -95,15 +110,16 @@ onMounted(initialize)
 
     <form
       class="content-card form-card report-filters mb-4"
-      @submit.prevent="loadReport"
+      novalidate
+      @submit.prevent="submitReport"
     >
       <div>
         <label class="form-label">From</label>
-        <input v-model="filters.from" class="form-control" type="date" />
+        <input v-model="filters.from" class="form-control" type="date" required />
       </div>
       <div>
         <label class="form-label">To</label>
-        <input v-model="filters.to" class="form-control" type="date" />
+        <input v-model="filters.to" class="form-control" type="date" required />
       </div>
       <div>
         <label class="form-label">Group By</label>

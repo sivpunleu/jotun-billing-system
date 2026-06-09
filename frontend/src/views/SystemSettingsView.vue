@@ -1,7 +1,11 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { settingsApi } from '../api/invoices'
-import { showToast } from '../ui/feedback'
+import {
+  requestConfirmation,
+  showToast,
+  validateForm,
+} from '../ui/feedback'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -102,7 +106,20 @@ const chooseImage = async (field, event) => {
   }
 }
 
-const save = async () => {
+const removeAsset = async (asset) => {
+  const confirmed = await requestConfirmation({
+    title: `លុប ${asset.label}?`,
+    message: 'រូបនេះនឹងត្រូវដកចេញនៅពេលអ្នករក្សាទុក Settings។',
+    confirmLabel: 'លុបរូប',
+    cancelLabel: 'បោះបង់',
+    tone: 'danger',
+  })
+  if (confirmed) form[asset.key] = ''
+}
+
+const save = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   saving.value = true
   error.value = ''
   try {
@@ -139,7 +156,7 @@ onMounted(load)
       <div class="spinner-border text-danger"></div>
     </div>
 
-    <form v-else class="row g-4" @submit.prevent="save">
+    <form v-else class="row g-4" novalidate @submit.prevent="save">
       <div class="col-xl-8">
         <div class="content-card form-card mb-4">
           <div class="section-title">
@@ -152,7 +169,13 @@ onMounted(load)
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Company Name</label>
-              <input v-model="form.companyName" class="form-control" required />
+              <input
+                v-model.trim="form.companyName"
+                class="form-control"
+                minlength="2"
+                maxlength="120"
+                required
+              />
             </div>
             <div class="col-md-6">
               <label class="form-label">ឈ្មោះក្រុមហ៊ុន</label>
@@ -238,7 +261,7 @@ onMounted(load)
                 v-if="form[asset.key]"
                 class="btn btn-outline-danger btn-sm"
                 type="button"
-                @click="form[asset.key] = ''"
+                @click="removeAsset(asset)"
               >
                 Remove
               </button>

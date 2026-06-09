@@ -6,6 +6,7 @@ import TableSkeleton from '../components/TableSkeleton.vue'
 import {
   requestConfirmation,
   showToast,
+  validateForm,
 } from '../ui/feedback'
 
 const error = ref('')
@@ -36,7 +37,9 @@ const loadAdmins = async () => {
   }
 }
 
-const createAdmin = async () => {
+const createAdmin = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   creatingAdmin.value = true
   error.value = ''
   try {
@@ -92,6 +95,7 @@ const toggleAdmin = async (admin) => {
       message: `${admin.displayName || admin.username} នឹងមិនអាច Login បានទៀតទេ រហូតដល់អ្នក Enable វិញ។`,
       confirmLabel: 'Disable',
       cancelLabel: 'Cancel',
+      tone: 'danger',
     })
     if (!confirmed) return
   }
@@ -120,10 +124,17 @@ onMounted(loadAdmins)
           <span class="section-number"><i class="bi bi-person-plus"></i></span>
           <div><h2>បង្កើត Admin</h2><p>Owner គ្រប់គ្រងបានទាំងអស់, Admin គ្រប់គ្រងការលក់, Viewer មើលតែប៉ុណ្ណោះ។</p></div>
         </div>
-        <form class="row g-3" @submit.prevent="createAdmin">
+        <form class="row g-3" novalidate @submit.prevent="createAdmin">
           <div class="col-md-3">
             <label class="form-label">Username *</label>
-            <input v-model.trim="adminForm.username" class="form-control" required />
+            <input
+              v-model.trim="adminForm.username"
+              class="form-control"
+              minlength="3"
+              maxlength="40"
+              pattern="[A-Za-z0-9._-]+"
+              required
+            />
           </div>
           <div class="col-md-3">
             <label class="form-label">Display Name</label>
@@ -135,7 +146,7 @@ onMounted(loadAdmins)
           </div>
           <div class="col-md-3">
             <label class="form-label">Role</label>
-            <select v-model="adminForm.role" class="form-select">
+            <select v-model="adminForm.role" class="form-select" required>
               <option value="admin">Admin</option>
               <option value="viewer">Viewer</option>
               <option value="owner">Owner</option>

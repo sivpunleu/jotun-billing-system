@@ -11,6 +11,7 @@ import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
 import {
   requestConfirmation,
   showToast,
+  validateForm,
 } from '../ui/feedback'
 import logo from '../assets/logo-marvel.png'
 import jotunLogo from '../assets/jotun.jpg'
@@ -109,6 +110,7 @@ const deleteInvoice = async () => {
     message: `វិក្កយបត្រ ${invoice.value.invoiceNumber} នឹងត្រូវផ្លាស់ទីទៅធុងសំរាម។`,
     confirmLabel: 'លុប',
     cancelLabel: 'បោះបង់',
+    tone: 'danger',
   })
   if (!confirmed) return
 
@@ -131,7 +133,9 @@ const loadSettings = async () => {
   }
 }
 
-const addPayment = async () => {
+const addPayment = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   recordingPayment.value = true
   error.value = ''
   try {
@@ -235,6 +239,7 @@ onMounted(() => {
             !['draft', 'cancelled', 'paid'].includes(resolvedStatus)
           "
           class="row g-3 payment-form"
+          novalidate
           @submit.prevent="addPayment"
         >
           <div class="col-md-3">

@@ -23,6 +23,95 @@ export const showToast = (message, type = 'success') =>
     },
   })
 
+export const showSuccessAlert = (
+  message,
+  title = 'ជោគជ័យ',
+  options = {},
+) =>
+  Swal.fire({
+    icon: 'success',
+    title,
+    text: message,
+    timer: options.timer ?? 1400,
+    timerProgressBar: true,
+    showConfirmButton: options.showConfirmButton ?? false,
+    confirmButtonText: options.confirmLabel || 'យល់ព្រម',
+    buttonsStyling: false,
+    customClass: {
+      popup: 'billing-swal-popup',
+      confirmButton: 'btn btn-danger px-4',
+    },
+  })
+
+const fieldLabel = (control) => {
+  const label = control.labels?.[0]?.textContent
+  return String(label || control.name || 'ទិន្នន័យនេះ')
+    .replace('*', '')
+    .trim()
+}
+
+const validationMessage = (control) => {
+  const label = fieldLabel(control)
+  const validity = control.validity
+
+  if (validity.valueMissing) return `សូមបំពេញ "${label}"។`
+  if (validity.tooShort) {
+    return `"${label}" ត្រូវមានយ៉ាងតិច ${control.minLength} តួអក្សរ។`
+  }
+  if (validity.tooLong) {
+    return `"${label}" មិនអាចលើស ${control.maxLength} តួអក្សរបានទេ។`
+  }
+  if (validity.rangeUnderflow) {
+    return `"${label}" ត្រូវធំជាង ឬស្មើ ${control.min}។`
+  }
+  if (validity.rangeOverflow) {
+    return `"${label}" មិនអាចលើស ${control.max} បានទេ។`
+  }
+  if (validity.stepMismatch || validity.badInput) {
+    return `សូមបញ្ចូលតម្លៃត្រឹមត្រូវសម្រាប់ "${label}"។`
+  }
+  if (validity.typeMismatch || validity.patternMismatch) {
+    return `ទម្រង់ "${label}" មិនត្រឹមត្រូវទេ។`
+  }
+  return control.validationMessage || `សូមពិនិត្យ "${label}" ម្តងទៀត។`
+}
+
+export const validateForm = async (
+  formElement,
+  { customMessage = '' } = {},
+) => {
+  const controls = formElement
+    ? Array.from(formElement.elements || []).filter(
+        (control) =>
+          typeof control.checkValidity === 'function' &&
+          !control.disabled &&
+          !['button', 'submit', 'reset'].includes(control.type),
+      )
+    : []
+  const invalidControl = controls.find((control) => !control.checkValidity())
+  const message = invalidControl
+    ? validationMessage(invalidControl)
+    : customMessage
+
+  if (!message) return true
+
+  await Swal.fire({
+    icon: 'warning',
+    title: 'សូមពិនិត្យព័ត៌មាន',
+    text: message,
+    confirmButtonText: 'យល់ព្រម',
+    buttonsStyling: false,
+    customClass: {
+      popup: 'billing-swal-popup',
+      confirmButton: 'btn btn-danger px-4',
+    },
+  })
+
+  invalidControl?.focus({ preventScroll: true })
+  invalidControl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  return false
+}
+
 export const requestConfirmation = async (options = {}) => {
   const input = options.inputType
     ? options.inputType === 'password'

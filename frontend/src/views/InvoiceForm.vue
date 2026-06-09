@@ -8,7 +8,11 @@ import {
   salespersonApi,
 } from '../api/invoices'
 import { formatMoney, toDateInput } from '../utils/invoice'
-import { showToast } from '../ui/feedback'
+import {
+  requestConfirmation,
+  showToast,
+  validateForm,
+} from '../ui/feedback'
 
 const route = useRoute()
 const router = useRouter()
@@ -160,8 +164,17 @@ const applySalesperson = () => {
 }
 
 const addItem = () => form.items.push(newItem())
-const removeItem = (index) => {
-  if (form.items.length > 1) form.items.splice(index, 1)
+const removeItem = async (index) => {
+  if (form.items.length <= 1) return
+  const itemName = form.items[index]?.description || `ផលិតផលទី ${index + 1}`
+  const confirmed = await requestConfirmation({
+    title: 'លុបផលិតផលនេះ?',
+    message: `"${itemName}" នឹងត្រូវដកចេញពីវិក្កយបត្រនេះ។`,
+    confirmLabel: 'លុប',
+    cancelLabel: 'បោះបង់',
+    tone: 'danger',
+  })
+  if (confirmed) form.items.splice(index, 1)
 }
 
 const loadInvoice = async () => {
@@ -212,7 +225,27 @@ const initialize = async () => {
   }
 }
 
-const submitForm = async () => {
+const submitForm = async (event) => {
+  const dueDateInvalid =
+    form.invoiceDate &&
+    form.dueDate &&
+    new Date(form.dueDate) < new Date(form.invoiceDate)
+  const invalidDiscount = form.items.some(
+    (item) =>
+      Number(item.discount || 0) >
+      Number(item.quantity || 0) * Number(item.unitPrice || 0),
+  )
+  const customMessage = dueDateInvalid
+    ? 'ថ្ងៃកំណត់បង់ប្រាក់ មិនអាចមុនកាលបរិច្ឆេទវិក្កយបត្របានទេ។'
+    : invalidDiscount
+      ? 'បញ្ចុះតម្លៃផលិតផល មិនអាចលើសតម្លៃសរុបរបស់ផលិតផលបានទេ។'
+      : ''
+  if (
+    !(await validateForm(event?.currentTarget, {
+      customMessage,
+    }))
+  ) return
+
   saving.value = true
   error.value = ''
   try {
@@ -261,7 +294,7 @@ onMounted(initialize)
       <span>កំពុងទាញទិន្នន័យ...</span>
     </div>
 
-    <form v-else @submit.prevent="submitForm">
+    <form v-else novalidate @submit.prevent="submitForm">
       <div class="row g-4">
         <div class="col-lg-8">
           <div class="content-card form-card mb-4">
@@ -368,7 +401,13 @@ onMounted(initialize)
               </div>
               <div class="col-md-6">
                 <label class="form-label">លេខទូរស័ព្ទ</label>
-                <input v-model.trim="form.customer.phone" class="form-control" />
+                <input
+                  v-model.trim="form.customer.phone"
+                  class="form-control"
+                  type="tel"
+                  pattern="[0-9+() -]{7,20}"
+                  title="សូមបញ្ចូលលេខទូរស័ព្ទត្រឹមត្រូវ"
+                />
               </div>
               <div class="col-12">
                 <label class="form-label">អាសយដ្ឋាន</label>
@@ -424,7 +463,7 @@ onMounted(initialize)
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">បញ្ចុះតម្លៃ</label>
-                    <div class="input-group"><span class="input-group-text">$</span><input v-model.number="item.discount" class="form-control" type="number" min="0" step="0.01" /></div>
+                    <div class="input-group"><span class="input-group-text">$</span><input v-model.number="item.discount" class="form-control" type="number" min="0" :max="Number(item.quantity || 0) * Number(item.unitPrice || 0)" step="0.01" /></div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">សរុប</label>

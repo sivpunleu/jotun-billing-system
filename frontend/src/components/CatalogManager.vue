@@ -9,6 +9,7 @@ import {
   requestConfirmation,
   requestStockMovement,
   showToast,
+  validateForm,
 } from '../ui/feedback'
 
 const props = defineProps({
@@ -123,7 +124,9 @@ const editRecord = (record) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-const saveRecord = async () => {
+const saveRecord = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   saving.value = true
   error.value = ''
   try {
@@ -152,6 +155,7 @@ const removeRecord = async (record) => {
     message: `"${record.name}" អាចស្ដារឡើងវិញនៅពេលក្រោយ។`,
     confirmLabel: 'លុប',
     cancelLabel: 'បោះបង់',
+    tone: 'danger',
   })
   if (!confirmed) return
   try {
@@ -235,11 +239,17 @@ onMounted(() => {
           <p>ព័ត៌មាននេះអាចជ្រើសបានក្នុងពេលបង្កើតវិក្កយបត្រ។</p>
         </div>
       </div>
-      <form @submit.prevent="saveRecord">
+      <form novalidate @submit.prevent="saveRecord">
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">ឈ្មោះ *</label>
-            <input v-model.trim="form.name" class="form-control" required />
+            <input
+              v-model.trim="form.name"
+              class="form-control"
+              minlength="2"
+              maxlength="120"
+              required
+            />
           </div>
           <template v-if="isProduct">
             <div class="col-md-2">
@@ -286,7 +296,13 @@ onMounted(() => {
           <template v-else>
             <div class="col-md-3">
               <label class="form-label">លេខទូរស័ព្ទ</label>
-              <input v-model.trim="form.phone" class="form-control" />
+              <input
+                v-model.trim="form.phone"
+                class="form-control"
+                type="tel"
+                pattern="[0-9+() -]{7,20}"
+                title="សូមបញ្ចូលលេខទូរស័ព្ទត្រឹមត្រូវ"
+              />
             </div>
             <div v-if="isCustomer" class="col-md-5">
               <label class="form-label">អាសយដ្ឋាន</label>

@@ -62,6 +62,7 @@ const deleteInvoice = async (invoice) => {
     message: `វិក្កយបត្រ ${invoice.invoiceNumber} នឹងត្រូវផ្លាស់ទីទៅធុងសំរាម។`,
     confirmLabel: 'ផ្លាស់ទីទៅធុងសំរាម',
     cancelLabel: 'បោះបង់',
+    tone: 'danger',
   })
   if (!confirmed) return
 

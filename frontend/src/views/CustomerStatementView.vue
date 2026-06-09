@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { customerApi } from '../api/invoices'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import { formatDate, formatMoney } from '../utils/invoice'
+import { validateForm } from '../ui/feedback'
 
 const route = useRoute()
 const statement = ref(null)
@@ -51,6 +52,21 @@ const load = async () => {
   }
 }
 
+const applyFilters = async (event) => {
+  const customMessage =
+    filters.from &&
+    filters.to &&
+    new Date(filters.from) > new Date(filters.to)
+      ? 'កាលបរិច្ឆេទ From មិនអាចក្រោយកាលបរិច្ឆេទ To បានទេ។'
+      : ''
+  if (
+    !(await validateForm(event?.currentTarget, {
+      customMessage,
+    }))
+  ) return
+  await load()
+}
+
 onMounted(load)
 </script>
 
@@ -84,9 +100,25 @@ onMounted(load)
         </div>
       </header>
 
-      <form class="statement-filters d-print-none" @submit.prevent="load">
-        <input v-model="filters.from" class="form-control" type="date" />
-        <input v-model="filters.to" class="form-control" type="date" />
+      <form
+        class="statement-filters d-print-none"
+        novalidate
+        @submit.prevent="applyFilters"
+      >
+        <label class="visually-hidden" for="statementFrom">From</label>
+        <input
+          id="statementFrom"
+          v-model="filters.from"
+          class="form-control"
+          type="date"
+        />
+        <label class="visually-hidden" for="statementTo">To</label>
+        <input
+          id="statementTo"
+          v-model="filters.to"
+          class="form-control"
+          type="date"
+        />
         <button class="btn btn-outline-primary" type="submit">Filter</button>
       </form>
 

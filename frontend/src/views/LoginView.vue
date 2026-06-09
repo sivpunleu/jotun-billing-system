@@ -3,6 +3,11 @@ import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '../api/invoices'
 import { setAuthSession } from '../auth/session'
+import {
+  showSuccessAlert,
+  showToast,
+  validateForm,
+} from '../ui/feedback'
 import logo from '../assets/logo-marvel.png'
 import jotunLogo from '../assets/jotun.jpg'
 
@@ -22,7 +27,9 @@ const expiredMessage = computed(() =>
     : '',
 )
 
-const submitLogin = async () => {
+const submitLogin = async (event) => {
+  if (!(await validateForm(event?.currentTarget))) return
+
   loading.value = true
   error.value = ''
 
@@ -33,11 +40,16 @@ const submitLogin = async () => {
       typeof route.query.redirect === 'string'
         ? route.query.redirect
         : '/invoices'
+    await showSuccessAlert(
+      `សូមស្វាគមន៍ ${response.data.admin?.displayName || response.data.admin?.username || ''}`,
+      'Login បានជោគជ័យ',
+    )
     await router.replace(redirect)
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message ||
       'មិនអាច Login បានទេ។ សូមពិនិត្យព័ត៌មានរបស់អ្នក។'
+    showToast(error.value, 'error')
   } finally {
     loading.value = false
   }
@@ -74,7 +86,7 @@ const submitLogin = async () => {
       </div>
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
-      <form @submit.prevent="submitLogin">
+      <form novalidate @submit.prevent="submitLogin">
         <div class="mb-3">
           <label class="form-label" for="adminUsername">ឈ្មោះអ្នកប្រើប្រាស់</label>
           <div class="input-group">
@@ -84,6 +96,7 @@ const submitLogin = async () => {
               v-model.trim="form.username"
               class="form-control"
               autocomplete="username"
+              minlength="3"
               required
             />
           </div>
@@ -99,6 +112,7 @@ const submitLogin = async () => {
               class="form-control"
               :type="showPassword ? 'text' : 'password'"
               autocomplete="current-password"
+              minlength="8"
               required
             />
             <button
