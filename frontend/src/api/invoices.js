@@ -113,10 +113,24 @@ export const invoiceApi = {
   addPayment(id, payload) {
     return api.post(`/invoices/${id}/payments`, payload)
   },
+  paymentReceipt(id, paymentId) {
+    return api.get(`/invoices/${id}/payments/${paymentId}/receipt`)
+  },
 }
 
-export const customerApi = createCatalogApi('/customers')
-export const productApi = createCatalogApi('/products')
+export const customerApi = {
+  ...createCatalogApi('/customers'),
+  statement(id, params = {}) {
+    return api.get(`/customers/${id}/statement`, { params })
+  },
+}
+
+export const productApi = {
+  ...createCatalogApi('/products'),
+  stock(id, payload) {
+    return api.post(`/products/${id}/stock`, payload)
+  },
+}
 
 export const auditApi = {
   list(params = {}) {
@@ -140,10 +154,31 @@ const downloadBlob = async (path, fallbackName) => {
 }
 
 export const reportApi = {
+  revenue(params = {}) {
+    return api.get('/reports/revenue', { params })
+  },
   exportCsv() {
     return downloadBlob('/reports/invoices.csv', 'invoices.csv')
   },
   backup() {
     return downloadBlob('/reports/backup.json', 'jotun-billing-backup.json')
+  },
+}
+
+export const insightApi = {
+  search(query) {
+    return api.get('/insights/search', { params: { q: query } })
+  },
+  notifications() {
+    return api.get('/insights/notifications')
+  },
+}
+
+export const settingsApi = {
+  get() {
+    return api.get('/settings')
+  },
+  update(payload) {
+    return api.put('/settings', payload)
   },
 }

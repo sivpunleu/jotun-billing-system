@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { invoiceApi } from '../api/invoices'
+import { invoiceApi, settingsApi } from '../api/invoices'
 import {
   canManageBilling,
   currentAdmin,
@@ -28,6 +28,20 @@ const paymentForm = reactive({
   receivedBy:
     currentAdmin.value?.displayName || currentAdmin.value?.username || '',
   note: '',
+})
+const companySettings = reactive({
+  companyName: 'Marvel Decor & JOTUN',
+  companyNameKh: 'ម៉ាវែល ដេគ័រ & JOTUN',
+  address: '',
+  telegram: '068 8888 70',
+  phones: ['098 689 883', '068 888 870'],
+  paymentAccount: 'ABA : 068 888 187',
+  invoiceNotes: '',
+  footerKh: 'សូមអរគុណចំពោះការគាំទ្រ !',
+  footerEn: 'Thank you for support !',
+  logo: '',
+  jotunLogo: '',
+  paymentQr: '',
 })
 
 const printInvoice = () => window.print()
@@ -108,6 +122,14 @@ const deleteInvoice = async () => {
   }
 }
 
+const loadSettings = async () => {
+  try {
+    Object.assign(companySettings, (await settingsApi.get()).data)
+  } catch {
+    // Keep local fallback branding if settings cannot be loaded.
+  }
+}
+
 const addPayment = async () => {
   recordingPayment.value = true
   error.value = ''
@@ -131,7 +153,10 @@ const addPayment = async () => {
   }
 }
 
-onMounted(loadInvoice)
+onMounted(() => {
+  loadInvoice()
+  loadSettings()
+})
 </script>
 
 <template>
@@ -267,6 +292,7 @@ onMounted(loadInvoice)
                 <th>អ្នកទទួល</th>
                 <th>កំណត់ចំណាំ</th>
                 <th class="text-end">ចំនួន</th>
+                <th class="text-end">Receipt</th>
               </tr>
             </thead>
             <tbody>
@@ -275,6 +301,20 @@ onMounted(loadInvoice)
                 <td data-label="អ្នកទទួល">{{ payment.receivedBy }}</td>
                 <td data-label="កំណត់ចំណាំ">{{ payment.note || '-' }}</td>
                 <td class="text-end fw-bold" data-label="ចំនួន">{{ formatMoney(payment.amount) }}</td>
+                <td class="text-end" data-label="Receipt">
+                  <RouterLink
+                    class="btn btn-sm btn-outline-primary"
+                    :to="{
+                      name: 'payment-receipt',
+                      params: {
+                        id: invoice._id,
+                        paymentId: payment._id,
+                      },
+                    }"
+                  >
+                    <i class="bi bi-printer"></i>
+                  </RouterLink>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -288,25 +328,31 @@ onMounted(loadInvoice)
     <article v-if="invoice" class="invoice-paper classic-invoice">
       <header class="classic-header">
         <div class="classic-brand-block">
-          <img class="classic-logo" :src="logo" alt="Marvel Decor" />
+          <img class="classic-logo" :src="companySettings.logo || logo" alt="Marvel Decor" />
           <div class="classic-brand-copy">
             <h5 class="classic-brand-title">ម៉ាវែល ដេគ័រ</h5>
             <h6 class="classic-subtitle">Marvel Decor</h6>
           </div>
         </div>
         <div class="company-copy">
-          <h1>ម៉ាវែល ដេគ័រ &amp; JOTUN</h1>
-          <p>មជ្ឈមណ្ឌលលាយថ្នាំពណ៍ចូតាន់ដោយកុំព្យូទ័រ
-            ការិយាល័យលាយថ្នាំពណ៌ចូតាន់ បោះដុំ លក់រាយ ចែកចាយបន្ត</p>
-          <p>អាស័យដ្ឋាន : ផ្ទះលេខ200 ផ្លូវឧកញ៉ាម៉ុងរិទ្ធី សង្កាត់ភ្នំពេញថ្មី ខណ្ឌសែនសុខ រាជធានីភ្នំពេញ</p>
-          <p>Telegram : 068 8888 70</p>
-          <p>លេខទូរស័ព្ទ | Phone: 098 689 883</p>
-          <p>លេខទូរស័ព្ទ | Phone: 068 888 870</p>
+          <h1>{{ companySettings.companyNameKh || companySettings.companyName }}</h1>
+          <p v-if="companySettings.companyName">
+            {{ companySettings.companyName }}
+          </p>
+          <p v-if="companySettings.address">
+            អាស័យដ្ឋាន : {{ companySettings.address }}
+          </p>
+          <p v-if="companySettings.telegram">
+            Telegram : {{ companySettings.telegram }}
+          </p>
+          <p v-for="phone in companySettings.phones" :key="phone">
+            លេខទូរស័ព្ទ | Phone: {{ phone }}
+          </p>
         </div>
         <div class="classic-jotun-block">
           <img
             class="classic-jotun-logo d-none d-md-block"
-            :src="jotunLogo"
+            :src="companySettings.jotunLogo || jotunLogo"
             alt="Jotun"
             style="width: 150px; height: 50px"
           />
@@ -400,6 +446,9 @@ onMounted(loadInvoice)
         <div class="classic-payment">
           <div class="payment-notes">
             <p v-if="invoice.notes">{{ invoice.notes }}</p>
+            <template v-else-if="companySettings.invoiceNotes">
+              <p>{{ companySettings.invoiceNotes }}</p>
+            </template>
             <template v-else>
               <p>- ទំនិញទិញហើយមិនអាចប្តូរ ឬសងត្រឡប់វិញបានទេ</p>
               <p>- រាល់ការទូទាត់ត្រូវមានវិក្កយបត្រត្រឹមត្រូវ</p>
@@ -407,8 +456,8 @@ onMounted(loadInvoice)
           </div>
           <div class="qr-block">
             <p>ទូទាត់តាមរយៈ៖</p>
-            <strong>ABA : 068 888 187</strong>
-            <img :src="qrPlaceholder" alt="ABA payment QR placeholder" />
+            <strong>{{ companySettings.paymentAccount }}</strong>
+            <img :src="companySettings.paymentQr || qrPlaceholder" alt="ABA payment QR" />
             <!-- <small>REN THEA R. &amp; KHIM C.</small> -->
           </div>
         </div>
@@ -462,8 +511,8 @@ onMounted(loadInvoice)
       </section>
 
       <footer class="classic-footer">
-        <span>Thank you for support !</span>
-        <strong>សូមអរគុណចំពោះការគាំទ្រ !</strong>
+        <span>{{ companySettings.footerEn }}</span>
+        <strong>{{ companySettings.footerKh }}</strong>
       </footer>
     </article>
   </section>

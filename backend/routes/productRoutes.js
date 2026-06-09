@@ -1,5 +1,8 @@
 import express from 'express'
-import { productController } from '../controllers/catalogController.js'
+import {
+  productController,
+  updateProductStock,
+} from '../controllers/catalogController.js'
 import {
   authorizeRoles,
   requireAdmin,
@@ -12,6 +15,7 @@ router
   .route('/')
   .get(requireAdmin, productController.list)
   .post(requireAdmin, canManage, productController.create)
+router.post('/:id/stock', requireAdmin, canManage, updateProductStock)
 router.post(
   '/:id/restore',
   requireAdmin,

@@ -9,6 +9,7 @@ import {
   restoreDeletedInvoice,
   updateInvoice,
 } from '../controllers/invoiceController.js'
+import { getPaymentReceipt } from '../controllers/insightController.js'
 import {
   authorizeRoles,
   requireAdmin,
@@ -22,6 +23,11 @@ router
   .route('/')
   .get(requireAdmin, getInvoices)
   .post(requireAdmin, canManage, createInvoice)
+router.get(
+  '/:id/payments/:paymentId/receipt',
+  requireAdmin,
+  getPaymentReceipt,
+)
 router.post('/:id/payments', requireAdmin, canManage, addInvoicePayment)
 router.post('/:id/restore', requireAdmin, canManage, restoreDeletedInvoice)
 router

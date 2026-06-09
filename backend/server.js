@@ -6,8 +6,10 @@ import auditRoutes from './routes/auditRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import customerRoutes from './routes/customerRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
+import insightRoutes from './routes/insightRoutes.js'
 import productRoutes from './routes/productRoutes.js'
 import reportRoutes from './routes/reportRoutes.js'
+import settingsRoutes from './routes/settingsRoutes.js'
 import { migrateExistingData } from './services/migrationService.js'
 
 dotenv.config()
@@ -31,7 +33,7 @@ app.use(
     },
   }),
 )
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '5mb' }))
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -47,6 +49,8 @@ app.use('/api/customers', customerRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/audit-logs', auditRoutes)
 app.use('/api/reports', reportRoutes)
+app.use('/api/insights', insightRoutes)
+app.use('/api/settings', settingsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found' })

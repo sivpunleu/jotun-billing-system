@@ -62,6 +62,9 @@ onMounted(loadLogs)
           <option value="delete">Delete</option>
           <option value="restore">Restore</option>
           <option value="payment">Payment</option>
+          <option value="stock_in">Stock In</option>
+          <option value="stock_out">Stock Out</option>
+          <option value="stock_set">Stock Set</option>
           <option value="login">Login</option>
           <option value="change_password">Change Password</option>
           <option value="export_csv">Export CSV</option>
@@ -74,6 +77,7 @@ onMounted(loadLogs)
           <option value="product">Product</option>
           <option value="admin">Admin</option>
           <option value="database">Database</option>
+          <option value="settings">Settings</option>
         </select>
         <button class="btn btn-outline-secondary" type="button" @click="loadLogs(pagination.page)">
           <i class="bi bi-arrow-clockwise"></i>

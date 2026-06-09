@@ -1,5 +1,6 @@
 import express from 'express'
 import { customerController } from '../controllers/catalogController.js'
+import { getCustomerStatement } from '../controllers/insightController.js'
 import {
   authorizeRoles,
   requireAdmin,
@@ -12,6 +13,7 @@ router
   .route('/')
   .get(requireAdmin, customerController.list)
   .post(requireAdmin, canManage, customerController.create)
+router.get('/:id/statement', requireAdmin, getCustomerStatement)
 router.post(
   '/:id/restore',
   requireAdmin,

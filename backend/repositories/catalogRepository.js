@@ -219,3 +219,81 @@ export const getAllCatalogRecords = async (type) => {
   }
   return readLocalCollection(type)
 }
+
+export const recordProductStockMovement = async (
+  id,
+  { type, quantity, note = '', actor = '' },
+) => {
+  const numericQuantity = Number(quantity)
+
+  if (getStorageMode() === 'mongodb') {
+    const product = await Product.findOne({ _id: id, deletedAt: null })
+    if (!product) return null
+
+    const previousStock = Number(product.stockQuantity || 0)
+    const resultingStock =
+      type === 'set'
+        ? numericQuantity
+        : type === 'in'
+          ? previousStock + numericQuantity
+          : previousStock - numericQuantity
+
+    if (resultingStock < 0) {
+      const error = new Error('Stock out cannot exceed current stock')
+      error.statusCode = 400
+      throw error
+    }
+
+    product.stockQuantity = resultingStock
+    product.updatedBy = actor
+    product.stockMovements.push({
+      type,
+      quantity: numericQuantity,
+      previousStock,
+      resultingStock,
+      note,
+      recordedBy: actor,
+      recordedAt: new Date(),
+    })
+    await product.save()
+    return product
+  }
+
+  return mutateLocalCollection('products', (products) => {
+    const product = products.find(
+      (item) => String(item._id) === String(id) && !item.deletedAt,
+    )
+    if (!product) return null
+
+    const previousStock = Number(product.stockQuantity || 0)
+    const resultingStock =
+      type === 'set'
+        ? numericQuantity
+        : type === 'in'
+          ? previousStock + numericQuantity
+          : previousStock - numericQuantity
+
+    if (resultingStock < 0) {
+      throw new Error('Stock out cannot exceed current stock')
+    }
+
+    const timestamp = new Date().toISOString()
+    product.stockQuantity = resultingStock
+    product.stockMovements = Array.isArray(product.stockMovements)
+      ? product.stockMovements
+      : []
+    product.stockMovements.push({
+      _id: randomUUID(),
+      type,
+      quantity: numericQuantity,
+      previousStock,
+      resultingStock,
+      note,
+      recordedBy: actor,
+      recordedAt: timestamp,
+    })
+    product.updatedBy = actor
+    product.updatedAt = timestamp
+    return product
+  })
+}

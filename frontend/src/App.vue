@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import GlobalSearch from './components/GlobalSearch.vue'
+import NotificationCenter from './components/NotificationCenter.vue'
 import {
   canManageBilling,
   clearAuthSession,
@@ -27,8 +29,12 @@ const pageMeta = computed(() => {
     customers: ['អតិថិជន', 'Customer management'],
     products: ['ទំនិញ', 'Product catalogue'],
     'audit-logs': ['ប្រវត្តិសកម្មភាព', 'Audit log'],
+    reports: ['Reports', 'Revenue and performance'],
+    'customer-statement': ['Customer Statement', 'Billing history'],
+    'payment-receipt': ['Payment Receipt', 'Printable receipt'],
     profile: ['Profile', 'My account'],
     settings: ['Admin Accounts', 'User management'],
+    'system-settings': ['System Settings', 'Company and invoice setup'],
   }
 
   return pages[route.name] || ['Marvel Decor', 'Billing system']
@@ -110,6 +116,10 @@ const logout = async () => {
             <i class="bi bi-box-seam"></i>
             <span>ទំនិញ</span>
           </RouterLink>
+          <RouterLink to="/reports">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Reports</span>
+          </RouterLink>
 
           <span
             v-if="canManageBilling"
@@ -124,6 +134,10 @@ const logout = async () => {
           <RouterLink v-if="isOwner" to="/settings">
             <i class="bi bi-shield-lock"></i>
             <span>Admin Accounts</span>
+          </RouterLink>
+          <RouterLink v-if="isOwner" to="/system-settings">
+            <i class="bi bi-sliders"></i>
+            <span>System Settings</span>
           </RouterLink>
         </nav>
 
@@ -193,6 +207,7 @@ const logout = async () => {
           <small>{{ pageMeta[1] }}</small>
           <h1>{{ pageMeta[0] }}</h1>
         </div>
+        <GlobalSearch />
         <div class="topbar-actions">
           <div class="topbar-date">
             <i class="bi bi-calendar3"></i>
@@ -206,6 +221,7 @@ const logout = async () => {
             <i class="bi bi-plus-lg"></i>
             <span>វិក្កយបត្រថ្មី</span>
           </RouterLink>
+          <NotificationCenter />
           <RouterLink class="topbar-profile" to="/profile">
             <img
               v-if="currentAdmin?.avatar"

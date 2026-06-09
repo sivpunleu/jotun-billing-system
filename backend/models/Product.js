@@ -1,5 +1,45 @@
 import mongoose from 'mongoose'
 
+const stockMovementSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ['in', 'out', 'set'],
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    previousStock: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    resultingStock: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    recordedBy: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    recordedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true },
+)
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -27,6 +67,20 @@ const productSchema = new mongoose.Schema(
       type: Number,
       min: [0, 'Unit price cannot be negative'],
       required: true,
+    },
+    stockQuantity: {
+      type: Number,
+      min: [0, 'Stock quantity cannot be negative'],
+      default: 0,
+    },
+    lowStockThreshold: {
+      type: Number,
+      min: [0, 'Low stock threshold cannot be negative'],
+      default: 5,
+    },
+    stockMovements: {
+      type: [stockMovementSchema],
+      default: [],
     },
     notes: {
       type: String,

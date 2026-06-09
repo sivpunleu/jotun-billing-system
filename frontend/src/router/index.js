@@ -8,7 +8,11 @@ import InvoicePreview from '../views/InvoicePreview.vue'
 import LoginView from '../views/LoginView.vue'
 import ProductList from '../views/ProductList.vue'
 import ProfileView from '../views/ProfileView.vue'
+import PaymentReceiptView from '../views/PaymentReceiptView.vue'
+import ReportsView from '../views/ReportsView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import CustomerStatementView from '../views/CustomerStatementView.vue'
+import SystemSettingsView from '../views/SystemSettingsView.vue'
 import {
   currentAdmin,
   hasValidSession,
@@ -63,6 +67,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/customers/:id/statement',
+      name: 'customer-statement',
+      component: CustomerStatementView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/products',
       name: 'products',
       component: ProductList,
@@ -75,6 +85,18 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['owner', 'admin'] },
     },
     {
+      path: '/reports',
+      name: 'reports',
+      component: ReportsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/invoices/:id/payments/:paymentId/receipt',
+      name: 'payment-receipt',
+      component: PaymentReceiptView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: ProfileView,
@@ -84,6 +106,12 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+      meta: { requiresAuth: true, roles: ['owner'] },
+    },
+    {
+      path: '/system-settings',
+      name: 'system-settings',
+      component: SystemSettingsView,
       meta: { requiresAuth: true, roles: ['owner'] },
     },
   ],

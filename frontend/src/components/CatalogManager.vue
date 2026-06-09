@@ -1,11 +1,13 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { canManageBilling } from '../auth/session'
 import PaginationControls from './PaginationControls.vue'
 import TableSkeleton from './TableSkeleton.vue'
 import { formatMoney } from '../utils/invoice'
 import {
   requestConfirmation,
+  requestStockMovement,
   showToast,
 } from '../ui/feedback'
 
@@ -24,6 +26,7 @@ const props = defineProps({
   },
 })
 
+const route = useRoute()
 const isProduct = computed(() => props.kind === 'product')
 const records = ref([])
 const loading = ref(true)
@@ -42,6 +45,8 @@ const form = reactive({
   colorCode: '',
   unit: 'ធុង',
   unitPrice: 0,
+  stockQuantity: 0,
+  lowStockThreshold: 5,
 })
 
 const resetForm = () => {
@@ -55,6 +60,8 @@ const resetForm = () => {
     colorCode: '',
     unit: 'ធុង',
     unitPrice: 0,
+    stockQuantity: 0,
+    lowStockThreshold: 5,
   })
 }
 
@@ -94,6 +101,8 @@ const editRecord = (record) => {
     colorCode: record.colorCode || '',
     unit: record.unit || 'ធុង',
     unitPrice: record.unitPrice || 0,
+    stockQuantity: record.stockQuantity || 0,
+    lowStockThreshold: record.lowStockThreshold ?? 5,
   })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -156,7 +165,34 @@ const toggleTrash = () => {
   loadRecords(1)
 }
 
-onMounted(loadRecords)
+const manageStock = async (record) => {
+  const movement = await requestStockMovement(record)
+  if (!movement) return
+  error.value = ''
+  try {
+    await props.api.stock(record._id, movement)
+    showToast('Stock updated successfully')
+    await loadRecords(pagination.page)
+  } catch (requestError) {
+    error.value =
+      requestError.response?.data?.message || 'Unable to update stock'
+    showToast(error.value, 'error')
+  }
+}
+
+watch(
+  () => route.query.search,
+  (value) => {
+    if (!value) return
+    search.value = String(value)
+    loadRecords(1)
+  },
+)
+
+onMounted(() => {
+  if (route.query.search) search.value = String(route.query.search)
+  loadRecords()
+})
 </script>
 
 <template>
@@ -206,6 +242,30 @@ onMounted(loadRecords)
               <label class="form-label">តម្លៃ *</label>
               <input v-model.number="form.unitPrice" class="form-control" type="number" min="0" step="0.01" required />
             </div>
+            <div class="col-md-3">
+              <label class="form-label">Stock Quantity</label>
+              <input
+                v-model.number="form.stockQuantity"
+                class="form-control"
+                type="number"
+                min="0"
+                step="0.01"
+                :disabled="Boolean(editingId)"
+              />
+              <small v-if="editingId" class="text-secondary">
+                Use Stock button to record movements.
+              </small>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Low Stock Alert</label>
+              <input
+                v-model.number="form.lowStockThreshold"
+                class="form-control"
+                type="number"
+                min="0"
+                step="0.01"
+              />
+            </div>
           </template>
           <template v-else>
             <div class="col-md-3">
@@ -250,6 +310,7 @@ onMounted(loadRecords)
               <th>ឈ្មោះ</th>
               <th v-if="isProduct">Code / Color</th>
               <th v-if="isProduct">ឯកតា</th>
+              <th v-if="isProduct">Stock</th>
               <th v-if="isProduct" class="text-end">តម្លៃ</th>
               <th v-if="!isProduct">ទូរស័ព្ទ</th>
               <th v-if="!isProduct">អាសយដ្ឋាន</th>
@@ -261,6 +322,21 @@ onMounted(loadRecords)
               <td class="mobile-card-primary" data-label="ឈ្មោះ"><strong>{{ record.name }}</strong><small v-if="record.notes" class="d-block text-secondary">{{ record.notes }}</small></td>
               <td v-if="isProduct" data-label="Code / Color">{{ record.itemCode || '-' }}<small class="d-block text-secondary">{{ record.colorCode }}</small></td>
               <td v-if="isProduct" data-label="ឯកតា">{{ record.unit }}</td>
+              <td v-if="isProduct" data-label="Stock">
+                <span
+                  class="stock-value"
+                  :class="{
+                    'stock-low':
+                      Number(record.stockQuantity || 0) <=
+                      Number(record.lowStockThreshold ?? 5),
+                  }"
+                >
+                  {{ record.stockQuantity || 0 }} {{ record.unit }}
+                </span>
+                <small class="d-block text-secondary">
+                  Alert at {{ record.lowStockThreshold ?? 5 }}
+                </small>
+              </td>
               <td v-if="isProduct" class="text-end fw-bold" data-label="តម្លៃ">{{ formatMoney(record.unitPrice) }}</td>
               <td v-if="!isProduct" data-label="ទូរស័ព្ទ">{{ record.phone || '-' }}</td>
               <td v-if="!isProduct" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
@@ -268,9 +344,26 @@ onMounted(loadRecords)
                 <button v-if="showTrash && canManageBilling" class="btn btn-sm btn-outline-success" type="button" @click="restoreRecord(record)">
                   <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
                 </button>
-                <template v-else-if="canManageBilling">
-                  <button class="btn btn-sm btn-light action-button" type="button" @click="editRecord(record)"><i class="bi bi-pencil"></i></button>
-                  <button class="btn btn-sm btn-light action-button text-danger" type="button" @click="removeRecord(record)"><i class="bi bi-trash3"></i></button>
+                <template v-else>
+                  <RouterLink
+                    v-if="!isProduct"
+                    class="btn btn-sm btn-outline-primary"
+                    :to="`/customers/${record._id}/statement`"
+                  >
+                    <i class="bi bi-file-earmark-text me-1"></i> Statement
+                  </RouterLink>
+                  <template v-if="canManageBilling">
+                    <button
+                      v-if="isProduct"
+                      class="btn btn-sm btn-outline-primary"
+                      type="button"
+                      @click="manageStock(record)"
+                    >
+                      <i class="bi bi-box-arrow-in-down me-1"></i> Stock
+                    </button>
+                    <button class="btn btn-sm btn-light action-button" type="button" @click="editRecord(record)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-light action-button text-danger" type="button" @click="removeRecord(record)"><i class="bi bi-trash3"></i></button>
+                  </template>
                 </template>
               </td>
             </tr>

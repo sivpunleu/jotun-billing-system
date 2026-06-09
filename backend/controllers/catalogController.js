@@ -5,6 +5,7 @@ import {
   deleteCatalogRecord,
   listCatalogRecords,
   restoreCatalogRecord,
+  recordProductStockMovement,
   updateCatalogRecord,
 } from '../repositories/catalogRepository.js'
 
@@ -41,10 +42,18 @@ const cleanProduct = (body, actor) => {
   const name = String(body.name || '').trim()
   const unit = String(body.unit || '').trim()
   const unitPrice = Number(body.unitPrice)
+  const stockQuantity = Number(body.stockQuantity ?? 0)
+  const lowStockThreshold = Number(body.lowStockThreshold ?? 5)
   if (!name) throw new Error('Product name is required')
   if (!unit) throw new Error('Product unit is required')
   if (!Number.isFinite(unitPrice) || unitPrice < 0) {
     throw new Error('Unit price must be zero or greater')
+  }
+  if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
+    throw new Error('Stock quantity must be zero or greater')
+  }
+  if (!Number.isFinite(lowStockThreshold) || lowStockThreshold < 0) {
+    throw new Error('Low stock threshold must be zero or greater')
   }
   return {
     name,
@@ -52,6 +61,8 @@ const cleanProduct = (body, actor) => {
     colorCode: String(body.colorCode || '').trim(),
     unit,
     unitPrice: Math.round(unitPrice * 100) / 100,
+    stockQuantity: Math.round(stockQuantity * 100) / 100,
+    lowStockThreshold: Math.round(lowStockThreshold * 100) / 100,
     notes: String(body.notes || '').trim(),
     updatedBy: actor,
   }
@@ -167,3 +178,44 @@ const buildController = (type, entityType) => ({
 
 export const customerController = buildController('customers', 'customer')
 export const productController = buildController('products', 'product')
+
+export const updateProductStock = async (req, res) => {
+  try {
+    const type = String(req.body.type || '').trim()
+    const quantity = Number(req.body.quantity)
+    if (!['in', 'out', 'set'].includes(type)) {
+      throw new Error('Stock movement type must be in, out, or set')
+    }
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      throw new Error('Stock quantity must be zero or greater')
+    }
+    if (type !== 'set' && quantity <= 0) {
+      throw new Error('Stock movement quantity must be greater than zero')
+    }
+
+    const product = await recordProductStockMovement(req.params.id, {
+      type,
+      quantity: Math.round(quantity * 100) / 100,
+      note: String(req.body.note || '').trim(),
+      actor: req.admin.username,
+    })
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' })
+    }
+
+    await writeAuditLog({
+      actor: req.admin,
+      action: `stock_${type}`,
+      entityType: 'product',
+      entityId: product._id,
+      summary: `${product.name}: ${quantity}`,
+      details: {
+        quantity,
+        stockQuantity: product.stockQuantity,
+      },
+    })
+    res.json(product)
+  } catch (error) {
+    sendError(res, error)
+  }
+}
