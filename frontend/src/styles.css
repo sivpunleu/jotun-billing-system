@@ -932,6 +932,13 @@ textarea {
   padding-bottom: 64px;
 }
 
+@media screen and (min-width: 992px) {
+  .app-shell.has-sidebar .page-section {
+    max-width: none;
+    padding: 36px 30px 64px;
+  }
+}
+
 .page-heading {
   display: flex;
   align-items: end;
