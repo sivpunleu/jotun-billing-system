@@ -395,7 +395,7 @@ onMounted(() => {
           <tr>
             <th class="number-column">ល.រ<br />No.</th>
             <th>ឈ្មោះ និងបរិយាយទំនិញ<br />Item &amp; Description</th>
-            <th class="code-column">លេខកូដ<br />Item code</th>
+            <th class="code-column">លេខកូដពណ៌<br />Color Code</th>
             <th class="qty-column">ចំនួន<br />Qty</th>
             <th class="money-column">តម្លៃ<br />Unit Price</th>
             <th class="money-column">សរុប<br />Amount</th>
@@ -405,15 +405,7 @@ onMounted(() => {
           <tr v-for="(item, index) in invoice.items" :key="item._id || index">
             <td class="text-center">{{ index + 1 }}</td>
             <td>{{ item.description }}</td>
-            <td class="text-center">
-              {{ item.itemCode || item.colorCode || '-' }}
-              <small
-                v-if="item.itemCode && item.colorCode"
-                class="d-block"
-              >
-                {{ item.colorCode }}
-              </small>
-            </td>
+            <td class="text-center">{{ item.colorCode || '-' }}</td>
             <td class="text-center qty-value">
               {{ item.quantity }}
               <span v-if="item.unit">{{ item.unit }}</span>
