@@ -1716,7 +1716,15 @@ textarea {
   font-family: cursive;
   font-size: 25px;
   font-style: italic;
-  transform: rotate(-8deg);
+}
+
+.seller-signature-image {
+  display: block;
+  width: auto;
+  max-width: 82%;
+  height: auto;
+  max-height: 92px;
+  object-fit: contain;
 }
 
 .signature-line {
@@ -3283,6 +3291,14 @@ textarea {
 
   .signature-space {
     height: 27mm;
+  }
+
+  .seller-signature-image {
+    display: block !important;
+    max-width: 82%;
+    max-height: 24mm;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .classic-footer {

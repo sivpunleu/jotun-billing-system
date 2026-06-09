@@ -20,6 +20,7 @@ export const defaultSystemSettings = {
   logo: '',
   jotunLogo: '',
   paymentQr: '',
+  sellerSignature: '',
   updatedBy: '',
 }
 

@@ -19,6 +19,7 @@ const form = reactive({
   logo: '',
   jotunLogo: '',
   paymentQr: '',
+  sellerSignature: '',
 })
 const phoneText = ref('')
 
@@ -38,7 +39,13 @@ const load = async () => {
 
 const resizeImage = (
   file,
-  { maxWidth = 700, quality = 0.86, format = 'image/jpeg' } = {},
+  {
+    maxWidth = 700,
+    maxHeight = Infinity,
+    quality = 0.86,
+    format = 'image/jpeg',
+    preserveTransparency = false,
+  } = {},
 ) =>
   new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
@@ -53,13 +60,19 @@ const resizeImage = (
     reader.onload = () => {
       const image = new Image()
       image.onload = () => {
-        const scale = Math.min(1, maxWidth / image.width)
+        const scale = Math.min(
+          1,
+          maxWidth / image.width,
+          maxHeight / image.height,
+        )
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(image.width * scale)
         canvas.height = Math.round(image.height * scale)
         const context = canvas.getContext('2d')
-        context.fillStyle = '#ffffff'
-        context.fillRect(0, 0, canvas.width, canvas.height)
+        if (!preserveTransparency) {
+          context.fillStyle = '#ffffff'
+          context.fillRect(0, 0, canvas.width, canvas.height)
+        }
         context.drawImage(image, 0, 0, canvas.width, canvas.height)
         resolve(canvas.toDataURL(format, quality))
       }
@@ -74,9 +87,13 @@ const chooseImage = async (field, event) => {
   const [file] = event.target.files || []
   if (!file) return
   try {
+    const isSignature = field === 'sellerSignature'
     form[field] = await resizeImage(file, {
-      maxWidth: field === 'paymentQr' ? 500 : 700,
-      format: field === 'paymentQr' ? 'image/png' : 'image/jpeg',
+      maxWidth: field === 'paymentQr' ? 500 : isSignature ? 900 : 700,
+      maxHeight: isSignature ? 360 : Infinity,
+      format:
+        field === 'paymentQr' || isSignature ? 'image/png' : 'image/jpeg',
+      preserveTransparency: isSignature,
     })
   } catch (imageError) {
     showToast(imageError.message, 'error')
@@ -197,6 +214,7 @@ onMounted(load)
               { key: 'logo', label: 'Marvel Logo' },
               { key: 'jotunLogo', label: 'JOTUN Logo' },
               { key: 'paymentQr', label: 'ABA QR Code' },
+              { key: 'sellerSignature', label: 'Seller Signature' },
             ]"
             :key="asset.key"
             class="settings-asset"

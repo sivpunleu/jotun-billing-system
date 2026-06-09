@@ -44,6 +44,7 @@ export const updateSystemSettings = async (req, res) => {
       logo: cleanImage(req.body.logo),
       jotunLogo: cleanImage(req.body.jotunLogo),
       paymentQr: cleanImage(req.body.paymentQr),
+      sellerSignature: cleanImage(req.body.sellerSignature),
       updatedBy: req.admin.username,
     }
     if (!payload.companyName && !payload.companyNameKh) {

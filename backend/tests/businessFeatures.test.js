@@ -47,11 +47,16 @@ test('local stock movements and system settings persist correctly', async () => 
     await settings.saveSystemSettings({
       companyName: 'Updated Company',
       phones: ['012 345 678'],
+      sellerSignature: 'data:image/png;base64,c2lnbmF0dXJl',
       updatedBy: 'owner',
     })
     const savedSettings = await settings.getSystemSettings()
     assert.equal(savedSettings.companyName, 'Updated Company')
     assert.deepEqual(savedSettings.phones, ['012 345 678'])
+    assert.equal(
+      savedSettings.sellerSignature,
+      'data:image/png;base64,c2lnbmF0dXJl',
+    )
   } finally {
     delete process.env.LOCAL_DATA_DIR
     await rm(dataDirectory, { recursive: true, force: true })

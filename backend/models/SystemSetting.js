@@ -64,6 +64,10 @@ const systemSettingSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    sellerSignature: {
+      type: String,
+      default: '',
+    },
     updatedBy: {
       type: String,
       trim: true,

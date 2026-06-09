@@ -42,6 +42,7 @@ const companySettings = reactive({
   logo: '',
   jotunLogo: '',
   paymentQr: '',
+  sellerSignature: '',
 })
 
 const printInvoice = () => window.print()
@@ -495,7 +496,14 @@ onMounted(() => {
           <span>Customer's Signature &amp; Name</span>
         </div>
         <div class="signature-box">
-          <div class="signature-space seller-mark"></div>
+          <div class="signature-space seller-mark">
+            <img
+              v-if="companySettings.sellerSignature"
+              class="seller-signature-image"
+              :src="companySettings.sellerSignature"
+              alt="Seller signature"
+            />
+          </div>
           <div class="signature-line"></div>
           <p>ហត្ថលេខា និងឈ្មោះ អ្នកលក់</p>
           <span>Seller's Signature &amp; Name</span>
