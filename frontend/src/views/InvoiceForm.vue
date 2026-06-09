@@ -310,18 +310,14 @@ onMounted(initialize)
                     <input v-model.trim="item.description" class="form-control" required />
                   </div>
                   <div class="col-md-2">
-                    <label class="form-label">Item Code</label>
-                    <input v-model.trim="item.itemCode" class="form-control" />
-                  </div>
-                  <div class="col-md-2">
                     <label class="form-label">Color Code</label>
                     <input v-model.trim="item.colorCode" class="form-control" />
                   </div>
-                  <div class="col-md-1">
+                  <div class="col-md-2">
                     <label class="form-label">បរិមាណ *</label>
                     <input v-model.number="item.quantity" class="form-control" type="number" min="0.01" step="0.01" required />
                   </div>
-                  <div class="col-md-2">
+                  <div class="col-md-3">
                     <label class="form-label">ឯកតា *</label>
                     <select v-model="item.unit" class="form-select" required>
                       <option v-for="option in unitOptions" :key="option" :value="option">{{ option }}</option>
