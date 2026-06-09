@@ -1262,12 +1262,27 @@ textarea {
   background: #edf7fc;
 }
 
+.sales-source-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-source-control {
+  min-height: 58px;
+}
+
+.sales-source-preview-field {
+  display: flex;
+  align-items: flex-end;
+}
+
 .sales-source-preview {
   display: flex;
-  min-height: 46px;
+  width: 100%;
+  min-height: 58px;
   align-items: center;
   gap: 12px;
-  padding: 9px 14px;
+  padding: 8px 16px;
   border: 1px solid #cfe7dc;
   border-radius: 10px;
   color: #08734e;

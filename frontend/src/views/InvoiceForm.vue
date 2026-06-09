@@ -286,11 +286,11 @@ onMounted(initialize)
                 <label class="form-label">ថ្ងៃកំណត់ *</label>
                 <input v-model="form.dueDate" class="form-control" type="date" required />
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6 sales-source-field">
                 <label class="form-label">ប្រភពការលក់ *</label>
                 <select
                   v-model="form.salesChannel"
-                  class="form-select"
+                  class="form-select sales-source-control"
                   required
                   @change="changeSalesChannel"
                 >
@@ -298,11 +298,14 @@ onMounted(initialize)
                   <option value="salesperson">Sale ជាអ្នកលក់</option>
                 </select>
               </div>
-              <div v-if="form.salesChannel === 'salesperson'" class="col-md-8">
+              <div
+                v-if="form.salesChannel === 'salesperson'"
+                class="col-md-6 sales-source-field"
+              >
                 <label class="form-label">ឈ្មោះ Sale *</label>
                 <select
                   v-model="form.salespersonId"
-                  class="form-select"
+                  class="form-select sales-source-control"
                   required
                   @change="applySalesperson"
                 >
@@ -332,7 +335,7 @@ onMounted(initialize)
                   <RouterLink to="/salespeople">បន្ថែម Sale ថ្មី</RouterLink>
                 </small>
               </div>
-              <div v-else class="col-md-8">
+              <div v-else class="col-md-6 sales-source-preview-field">
                 <div class="sales-source-preview">
                   <i class="bi bi-shop"></i>
                   <span>
