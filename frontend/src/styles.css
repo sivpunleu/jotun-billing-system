@@ -820,27 +820,47 @@ textarea {
 
 .public-header {
   display: flex;
-  min-height: 78px;
+  min-height: 88px;
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid var(--line);
   background: #fff;
+  box-shadow: 0 4px 18px rgba(7, 27, 58, 0.04);
 }
 
-.public-header > a {
+.public-brand-lockup {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
+  padding: 10px 18px;
+  border-radius: 14px;
 }
 
-.public-header img {
-  width: 150px;
-  max-height: 50px;
+.public-logo-frame {
+  display: grid;
+  height: 58px;
+  place-items: center;
+}
+
+.public-logo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
-.public-header .public-jotun-logo {
-  width: 120px;
+.public-logo-frame-marvel {
+  width: 58px;
+}
+
+.public-logo-frame-jotun {
+  width: 154px;
+}
+
+.public-brand-divider {
+  width: 1px;
+  height: 38px;
+  background: #dce3ec;
 }
 
 .app-header {
@@ -1550,23 +1570,42 @@ textarea {
 
 .login-brand {
   display: flex;
-  height: 62px;
+  min-height: 92px;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 26px;
+  padding: 10px 18px;
+  border: 1px solid #e7ecf2;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbfcfe 0%, #f5f8fb 100%);
 }
 
-.login-brand img {
-  max-width: 150px;
-  max-height: 58px;
+.login-logo-frame {
+  display: grid;
+  height: 70px;
+  place-items: center;
+}
+
+.login-logo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+
+.login-logo-frame-marvel {
+  width: 70px;
+}
+
+.login-logo-frame-jotun {
+  width: 174px;
 }
 
 .login-divider {
   width: 1px;
-  height: 42px;
-  background: var(--line);
+  height: 48px;
+  background: #d7dfe9;
 }
 
 .login-heading {
@@ -3000,6 +3039,61 @@ textarea {
 }
 
 @media screen and (max-width: 767px) {
+  .public-header {
+    min-height: 76px;
+  }
+
+  .public-brand-lockup {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .public-logo-frame {
+    height: 48px;
+  }
+
+  .public-logo-frame-marvel {
+    width: 48px;
+  }
+
+  .public-logo-frame-jotun {
+    width: 132px;
+  }
+
+  .public-brand-divider {
+    height: 32px;
+  }
+
+  .login-page {
+    padding: 30px 14px;
+  }
+
+  .login-card {
+    padding: 26px 22px;
+  }
+
+  .login-brand {
+    min-height: 78px;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .login-logo-frame {
+    height: 58px;
+  }
+
+  .login-logo-frame-marvel {
+    width: 58px;
+  }
+
+  .login-logo-frame-jotun {
+    width: min(136px, 48vw);
+  }
+
+  .login-divider {
+    height: 38px;
+  }
+
   .settings-save-button {
     right: 16px;
     bottom: 16px;

@@ -48,9 +48,13 @@ const submitLogin = async () => {
   <section class="login-page">
     <div class="login-card">
       <div class="login-brand">
-        <img :src="logo" alt="Marvel Decor" />
-        <span class="login-divider"></span>
-        <img :src="jotunLogo" alt="Jotun" />
+        <span class="login-logo-frame login-logo-frame-marvel">
+          <img :src="logo" alt="Marvel Decor" />
+        </span>
+        <span class="login-divider" aria-hidden="true"></span>
+        <span class="login-logo-frame login-logo-frame-jotun">
+          <img :src="jotunLogo" alt="Jotun" />
+        </span>
       </div>
 
       <div class="login-heading">
@@ -120,4 +124,3 @@ const submitLogin = async () => {
     </div>
   </section>
 </template>
-

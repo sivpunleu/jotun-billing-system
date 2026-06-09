@@ -250,9 +250,14 @@ const logout = async () => {
       v-else-if="route.name !== 'invoice-preview'"
       class="public-header d-print-none"
     >
-      <RouterLink to="/login">
-        <img :src="logo" alt="Marvel Decor" />
-        <img class="public-jotun-logo" :src="jotunLogo" alt="Jotun" />
+      <RouterLink class="public-brand-lockup" to="/login">
+        <span class="public-logo-frame public-logo-frame-marvel">
+          <img :src="logo" alt="Marvel Decor" />
+        </span>
+        <span class="public-brand-divider" aria-hidden="true"></span>
+        <span class="public-logo-frame public-logo-frame-jotun">
+          <img :src="jotunLogo" alt="Jotun" />
+        </span>
       </RouterLink>
     </header>
 
