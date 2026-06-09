@@ -132,6 +132,8 @@ export const productApi = {
   },
 }
 
+export const salespersonApi = createCatalogApi('/salespeople')
+
 export const auditApi = {
   list(params = {}) {
     return api.get('/audit-logs', { params })

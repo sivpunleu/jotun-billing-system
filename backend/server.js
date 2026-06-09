@@ -9,6 +9,7 @@ import invoiceRoutes from './routes/invoiceRoutes.js'
 import insightRoutes from './routes/insightRoutes.js'
 import productRoutes from './routes/productRoutes.js'
 import reportRoutes from './routes/reportRoutes.js'
+import salespersonRoutes from './routes/salespersonRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
 import { migrateExistingData } from './services/migrationService.js'
 
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/salespeople', salespersonRoutes)
 app.use('/api/audit-logs', auditRoutes)
 app.use('/api/reports', reportRoutes)
 app.use('/api/insights', insightRoutes)

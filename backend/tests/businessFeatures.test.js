@@ -44,6 +44,17 @@ test('local stock movements and system settings persist correctly', async () => 
     assert.equal(stockedOut.stockMovements.length, 2)
     assert.equal(stockedOut.stockMovements[1].resultingStock, 11)
 
+    const salesperson = await catalog.createCatalogRecord('salespeople', {
+      name: 'Sokha Sale',
+      phone: '012 345 678',
+      notes: 'North area',
+    })
+    const salespeople = await catalog.listCatalogRecords('salespeople', {
+      search: 'Sokha',
+    })
+    assert.equal(salespeople.total, 1)
+    assert.equal(salespeople.items[0]._id, salesperson._id)
+
     await settings.saveSystemSettings({
       companyName: 'Updated Company',
       phones: ['012 345 678'],
@@ -82,7 +93,19 @@ test('revenue report groups deposits and payment history by date', async () => {
       invoiceDate: '2026-06-01T00:00:00.000Z',
       dueDate: '2026-06-10T00:00:00.000Z',
       customer: { name: 'Report Customer' },
-      items: [],
+      salesChannel: 'salesperson',
+      salespersonId: 'sale-1',
+      salesperson: { name: 'Sokha Sale', phone: '012 345 678' },
+      items: [
+        {
+          description: 'Jotun Paint',
+          colorCode: '1024',
+          quantity: 2,
+          unit: 'can',
+          unitPrice: 50,
+          total: 100,
+        },
+      ],
       subtotal: 100,
       grandTotal: 100,
       depositAmount: 20,
@@ -127,6 +150,10 @@ test('revenue report groups deposits and payment history by date', async () => {
       responseBody.trend.map((item) => item.revenue),
       [20, 30],
     )
+    assert.equal(responseBody.salesPerformance[0].label, 'Sokha Sale')
+    assert.equal(responseBody.salesPerformance[0].invoiced, 100)
+    assert.equal(responseBody.salesItems[0].productName, 'Jotun Paint')
+    assert.equal(responseBody.salesItems[0].quantity, 2)
   } finally {
     delete process.env.LOCAL_DATA_DIR
     await rm(dataDirectory, { recursive: true, force: true })

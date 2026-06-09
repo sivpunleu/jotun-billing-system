@@ -28,6 +28,7 @@ const pageMeta = computed(() => {
     'invoice-preview': ['មើលវិក្កយបត្រ', 'Invoice preview'],
     customers: ['អតិថិជន', 'Customer management'],
     products: ['ទំនិញ', 'Product catalogue'],
+    salespeople: ['ក្រុមការងារ Sale', 'Sales team management'],
     'audit-logs': ['ប្រវត្តិសកម្មភាព', 'Audit log'],
     reports: ['Reports', 'Revenue and performance'],
     'customer-statement': ['Customer Statement', 'Billing history'],
@@ -115,6 +116,10 @@ const logout = async () => {
           <RouterLink to="/products">
             <i class="bi bi-box-seam"></i>
             <span>ទំនិញ</span>
+          </RouterLink>
+          <RouterLink to="/salespeople">
+            <i class="bi bi-person-badge"></i>
+            <span>ក្រុមការងារ Sale</span>
           </RouterLink>
           <RouterLink to="/reports">
             <i class="bi bi-bar-chart-line"></i>

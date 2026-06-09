@@ -1238,6 +1238,56 @@ textarea {
   background: #e5e7eb;
 }
 
+.sales-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sales-source-store {
+  border-color: #bfe4d6;
+  color: #08734e;
+  background: #e8f8f2;
+}
+
+.sales-source-person {
+  border-color: #c9def0;
+  color: #12658f;
+  background: #edf7fc;
+}
+
+.sales-source-preview {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border: 1px solid #cfe7dc;
+  border-radius: 10px;
+  color: #08734e;
+  background: #f0faf6;
+}
+
+.sales-source-preview > i {
+  font-size: 1.25rem;
+}
+
+.sales-source-preview > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-source-preview small {
+  color: #5d7c70;
+  font-size: 0.7rem;
+}
+
 .action-button {
   display: inline-grid;
   width: 34px;
@@ -2381,7 +2431,7 @@ textarea {
 
 .report-filters {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
   align-items: end;
   gap: 15px;
 }
@@ -2623,8 +2673,13 @@ textarea {
   border-right: 0;
 }
 
-.receipt-meta > div:nth-last-child(-n + 2) {
+.receipt-meta > div:last-child {
   border-bottom: 0;
+}
+
+.receipt-meta > div:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  border-right: 0;
 }
 
 .receipt-meta span,
@@ -2797,6 +2852,14 @@ textarea {
     min-width: 46px;
     grid-template-columns: 36px;
     padding-right: 4px;
+  }
+
+  .report-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .report-filters .btn {
+    width: 100%;
   }
 }
 

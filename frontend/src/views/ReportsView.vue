@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { reportApi } from '../api/invoices'
+import { reportApi, salespersonApi } from '../api/invoices'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
 import { showToast } from '../ui/feedback'
@@ -8,10 +8,13 @@ import { showToast } from '../ui/feedback'
 const report = ref(null)
 const loading = ref(true)
 const error = ref('')
+const salespeople = ref([])
 const filters = reactive({
   from: toDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
   to: toDateInput(),
   groupBy: 'day',
+  salesChannel: '',
+  salespersonId: '',
 })
 
 const maxRevenue = computed(() =>
@@ -52,7 +55,21 @@ const applyPreset = (preset) => {
   loadReport()
 }
 
-onMounted(loadReport)
+const changeSalesChannel = () => {
+  if (filters.salesChannel !== 'salesperson') filters.salespersonId = ''
+}
+
+const initialize = async () => {
+  try {
+    const { data } = await salespersonApi.list({ limit: 100 })
+    salespeople.value = data.items || []
+  } catch {
+    salespeople.value = []
+  }
+  await loadReport()
+}
+
+onMounted(initialize)
 </script>
 
 <template>
@@ -94,6 +111,35 @@ onMounted(loadReport)
           <option value="day">Day</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Sales Source</label>
+        <select
+          v-model="filters.salesChannel"
+          class="form-select"
+          @change="changeSalesChannel"
+        >
+          <option value="">All Sources</option>
+          <option value="store">ទិញនៅហាងផ្ទាល់</option>
+          <option value="salesperson">Sale ជាអ្នកលក់</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Salesperson</label>
+        <select
+          v-model="filters.salespersonId"
+          class="form-select"
+          :disabled="filters.salesChannel !== 'salesperson'"
+        >
+          <option value="">All Salespeople</option>
+          <option
+            v-for="salesperson in salespeople"
+            :key="salesperson._id"
+            :value="salesperson._id"
+          >
+            {{ salesperson.name }}
+          </option>
         </select>
       </div>
       <button class="btn btn-danger" type="submit" :disabled="loading">
@@ -187,6 +233,123 @@ onMounted(loadReport)
         </div>
       </div>
 
+      <div class="content-card mb-4">
+        <div class="card-toolbar">
+          <div>
+            <h2 class="panel-title mb-1">Sales Performance</h2>
+            <small class="text-secondary">
+              ប្រៀបធៀបការលក់នៅហាង និង Sale នីមួយៗ
+            </small>
+          </div>
+          <span class="role-badge">
+            {{ report.salesPerformance?.length || 0 }} sources
+          </span>
+        </div>
+        <div class="table-responsive">
+          <table class="table invoice-table responsive-table mb-0">
+            <thead>
+              <tr>
+                <th>Sales Source</th>
+                <th class="text-end">Invoices</th>
+                <th class="text-end">Invoiced</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Outstanding</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in report.salesPerformance || []"
+                :key="item.key"
+              >
+                <td class="mobile-card-primary" data-label="Sales Source">
+                  <span
+                    class="sales-source-badge"
+                    :class="
+                      item.salesChannel === 'salesperson'
+                        ? 'sales-source-person'
+                        : 'sales-source-store'
+                    "
+                  >
+                    <i
+                      :class="
+                        item.salesChannel === 'salesperson'
+                          ? 'bi bi-person-badge'
+                          : 'bi bi-shop'
+                      "
+                    ></i>
+                    {{ item.label }}
+                  </span>
+                </td>
+                <td class="text-end" data-label="Invoices">
+                  {{ item.invoiceCount }}
+                </td>
+                <td class="text-end fw-bold" data-label="Invoiced">
+                  {{ formatMoney(item.invoiced) }}
+                </td>
+                <td class="text-end" data-label="Paid">
+                  {{ formatMoney(item.paid) }}
+                </td>
+                <td class="text-end" data-label="Outstanding">
+                  {{ formatMoney(item.outstanding) }}
+                </td>
+              </tr>
+              <tr v-if="!report.salesPerformance?.length">
+                <td colspan="5" class="text-center text-secondary py-4">
+                  No sales data in this period
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="content-card mb-4">
+        <div class="card-toolbar">
+          <div>
+            <h2 class="panel-title mb-1">Products by Sales Source</h2>
+            <small class="text-secondary">
+              ទំនិញដែលលក់នៅហាង និងទំនិញដែល Sale នីមួយៗបានលក់
+            </small>
+          </div>
+          <span class="role-badge">
+            {{ report.salesItems?.length || 0 }} items
+          </span>
+        </div>
+        <div class="table-responsive">
+          <table class="table invoice-table responsive-table mb-0">
+            <thead>
+              <tr>
+                <th>Sales Source</th>
+                <th>Product</th>
+                <th>Color Code</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in report.salesItems || []" :key="item.key">
+                <td class="mobile-card-primary" data-label="Sales Source">
+                  {{ item.sourceLabel }}
+                </td>
+                <td data-label="Product">{{ item.productName }}</td>
+                <td data-label="Color Code">{{ item.colorCode || '-' }}</td>
+                <td class="text-end" data-label="Quantity">
+                  {{ item.quantity }} {{ item.unit }}
+                </td>
+                <td class="text-end fw-bold" data-label="Amount">
+                  {{ formatMoney(item.amount) }}
+                </td>
+              </tr>
+              <tr v-if="!report.salesItems?.length">
+                <td colspan="5" class="text-center text-secondary py-4">
+                  No product sales in this period
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="content-card">
         <div class="card-toolbar">
           <h2 class="panel-title mb-0">Invoices in Period</h2>
@@ -199,6 +362,7 @@ onMounted(loadReport)
               <tr>
                 <th>Invoice</th>
                 <th>Customer</th>
+                <th>Sales Source</th>
                 <th>Date</th>
                 <th>Status</th>
                 <th class="text-end">Total</th>
@@ -216,6 +380,13 @@ onMounted(loadReport)
                   </RouterLink>
                 </td>
                 <td data-label="Customer">{{ invoice.customer?.name }}</td>
+                <td data-label="Sales Source">
+                  {{
+                    invoice.salesChannel === 'salesperson'
+                      ? invoice.salesperson?.name || 'Sale'
+                      : 'នៅហាង'
+                  }}
+                </td>
                 <td data-label="Date">{{ formatDate(invoice.invoiceDate) }}</td>
                 <td data-label="Status">{{ invoice.status }}</td>
                 <td class="text-end fw-bold" data-label="Total">
@@ -226,7 +397,7 @@ onMounted(loadReport)
                 </td>
               </tr>
               <tr v-if="!report.invoices.length">
-                <td colspan="6" class="text-center text-secondary py-4">
+                <td colspan="7" class="text-center text-secondary py-4">
                   No invoices in this period
                 </td>
               </tr>

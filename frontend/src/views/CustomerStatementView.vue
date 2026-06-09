@@ -102,6 +102,7 @@ onMounted(load)
             <tr>
               <th>Date</th>
               <th>Invoice</th>
+              <th>Sales Source</th>
               <th>Status</th>
               <th class="text-end">Total</th>
               <th class="text-end">Paid</th>
@@ -122,6 +123,13 @@ onMounted(load)
                 </RouterLink>
                 <span class="d-none d-print-inline">{{ invoice.invoiceNumber }}</span>
               </td>
+              <td data-label="Sales Source">
+                {{
+                  invoice.salesChannel === 'salesperson'
+                    ? invoice.salesperson?.name || 'Sale'
+                    : 'នៅហាង'
+                }}
+              </td>
               <td data-label="Status">{{ invoice.status }}</td>
               <td class="text-end" data-label="Total">
                 {{ formatMoney(invoice.grandTotal) }}
@@ -134,7 +142,7 @@ onMounted(load)
               </td>
             </tr>
             <tr v-if="!statement.invoices.length">
-              <td colspan="6" class="text-center py-4 text-secondary">
+              <td colspan="7" class="text-center py-4 text-secondary">
                 No invoices found
               </td>
             </tr>

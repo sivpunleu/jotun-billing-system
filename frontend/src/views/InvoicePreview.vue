@@ -388,6 +388,16 @@ onMounted(() => {
             <strong>វិក្កយបត្រ | Invoice No:</strong>
             <span>{{ invoice.invoiceNumber }}</span>
           </div>
+          <div class="invoice-info-row">
+            <strong>ប្រភពលក់ | Sold By:</strong>
+            <span>
+              {{
+                invoice.salesChannel === 'salesperson'
+                  ? invoice.salesperson?.name || '-'
+                  : 'ទិញនៅហាងផ្ទាល់'
+              }}
+            </span>
+          </div>
         </div>
       </section>
 

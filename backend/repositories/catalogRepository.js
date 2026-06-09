@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getStorageMode } from '../config/db.js'
 import Customer from '../models/Customer.js'
 import Product from '../models/Product.js'
+import Salesperson from '../models/Salesperson.js'
 import {
   mutateLocalCollection,
   readLocalCollection,
@@ -15,6 +16,10 @@ const catalogConfig = {
   products: {
     Model: Product,
     duplicateField: 'itemCode',
+  },
+  salespeople: {
+    Model: Salesperson,
+    duplicateField: null,
   },
 }
 
@@ -43,9 +48,11 @@ export const listCatalogRecords = async (
   if (getStorageMode() === 'mongodb') {
     const safeSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const searchFields =
-      type === 'customers'
-        ? ['name', 'phone', 'address']
-        : ['name', 'itemCode', 'colorCode']
+      type === 'products'
+        ? ['name', 'itemCode', 'colorCode']
+        : type === 'customers'
+          ? ['name', 'phone', 'address']
+          : ['name', 'phone', 'notes']
     const filter = {
       deletedAt: deleted ? { $ne: null } : null,
     }
@@ -66,9 +73,11 @@ export const listCatalogRecords = async (
   }
 
   const fields =
-    type === 'customers'
-      ? ['name', 'phone', 'address']
-      : ['name', 'itemCode', 'colorCode']
+    type === 'products'
+      ? ['name', 'itemCode', 'colorCode']
+      : type === 'customers'
+        ? ['name', 'phone', 'address']
+        : ['name', 'phone', 'notes']
   const records = (await readLocalCollection(type))
     .filter((record) =>
       deleted ? Boolean(record.deletedAt) : !record.deletedAt,

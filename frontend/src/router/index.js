@@ -10,6 +10,7 @@ import ProductList from '../views/ProductList.vue'
 import ProfileView from '../views/ProfileView.vue'
 import PaymentReceiptView from '../views/PaymentReceiptView.vue'
 import ReportsView from '../views/ReportsView.vue'
+import SalespersonList from '../views/SalespersonList.vue'
 import SettingsView from '../views/SettingsView.vue'
 import CustomerStatementView from '../views/CustomerStatementView.vue'
 import SystemSettingsView from '../views/SystemSettingsView.vue'
@@ -76,6 +77,12 @@ const router = createRouter({
       path: '/products',
       name: 'products',
       component: ProductList,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/salespeople',
+      name: 'salespeople',
+      component: SalespersonList,
       meta: { requiresAuth: true },
     },
     {

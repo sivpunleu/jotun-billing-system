@@ -15,6 +15,15 @@ const dateStamp = () => new Date().toISOString().slice(0, 10)
 
 const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100
 
+const paidAmount = (invoice) =>
+  Math.max(
+    Number(invoice.paidAmount || 0),
+    Math.max(
+      0,
+      Number(invoice.grandTotal || 0) - Number(invoice.balanceDue || 0),
+    ),
+  )
+
 const resolvedStatus = (invoice) => {
   if (invoice.status) return invoice.status
   if (invoice.paymentStatus === 'partial') return 'partially_paid'
@@ -50,10 +59,20 @@ export const getRevenueReport = async (req, res) => {
     const groupBy = ['day', 'month', 'year'].includes(req.query.groupBy)
       ? req.query.groupBy
       : 'day'
+    const salesChannel = ['store', 'salesperson'].includes(
+      req.query.salesChannel,
+    )
+      ? req.query.salesChannel
+      : ''
+    const salespersonId = String(req.query.salespersonId || '').trim()
     const invoices = (await getAllInvoices()).filter(
       (invoice) =>
         !invoice.deletedAt &&
-        !['draft', 'cancelled'].includes(resolvedStatus(invoice)),
+        !['draft', 'cancelled'].includes(resolvedStatus(invoice)) &&
+        (!salesChannel ||
+          (invoice.salesChannel || 'store') === salesChannel) &&
+        (!salespersonId ||
+          String(invoice.salespersonId || '') === salespersonId),
     )
     const revenueEntries = []
 
@@ -84,13 +103,7 @@ export const getRevenueReport = async (req, res) => {
         0,
       )
       const knownRevenue = deposit + recordedPayments
-      const effectivePaidAmount = Math.max(
-        Number(invoice.paidAmount || 0),
-        Math.max(
-          0,
-          Number(invoice.grandTotal || 0) - Number(invoice.balanceDue || 0),
-        ),
-      )
+      const effectivePaidAmount = paidAmount(invoice)
       const legacyRevenue = Math.max(
         0,
         effectivePaidAmount - knownRevenue,
@@ -120,12 +133,95 @@ export const getRevenueReport = async (req, res) => {
     const trend = Array.from(trendMap.entries())
       .map(([label, revenue]) => ({ label, revenue }))
       .sort((left, right) => left.label.localeCompare(right.label))
+    const salesMap = new Map()
+    for (const invoice of periodInvoices) {
+      const isSalesperson = invoice.salesChannel === 'salesperson'
+      const key = isSalesperson
+        ? String(
+            invoice.salespersonId ||
+              invoice.salesperson?.name ||
+              'unknown-salesperson',
+          )
+        : 'store'
+      const current = salesMap.get(key) || {
+        key,
+        salesChannel: isSalesperson ? 'salesperson' : 'store',
+        salespersonId: isSalesperson
+          ? String(invoice.salespersonId || '')
+          : '',
+        label: isSalesperson
+          ? invoice.salesperson?.name || 'Unknown Sale'
+          : 'ទិញនៅហាងផ្ទាល់',
+        invoiceCount: 0,
+        invoiced: 0,
+        paid: 0,
+        outstanding: 0,
+      }
+      current.invoiceCount += 1
+      current.invoiced += Number(invoice.grandTotal || 0)
+      current.paid += paidAmount(invoice)
+      current.outstanding += Number(invoice.balanceDue || 0)
+      salesMap.set(key, current)
+    }
+    const salesPerformance = Array.from(salesMap.values())
+      .map((item) => ({
+        ...item,
+        invoiced: roundMoney(item.invoiced),
+        paid: roundMoney(item.paid),
+        outstanding: roundMoney(item.outstanding),
+      }))
+      .sort((left, right) => right.invoiced - left.invoiced)
+    const salesItemMap = new Map()
+    for (const invoice of periodInvoices) {
+      const isSalesperson = invoice.salesChannel === 'salesperson'
+      const sourceKey = isSalesperson
+        ? String(
+            invoice.salespersonId ||
+              invoice.salesperson?.name ||
+              'unknown-salesperson',
+          )
+        : 'store'
+      const sourceLabel = isSalesperson
+        ? invoice.salesperson?.name || 'Unknown Sale'
+        : 'ទិញនៅហាងផ្ទាល់'
+
+      for (const item of invoice.items || []) {
+        const itemKey = [
+          sourceKey,
+          item.productId || item.description,
+          item.colorCode || '',
+          item.unit || '',
+        ].join('::')
+        const current = salesItemMap.get(itemKey) || {
+          key: itemKey,
+          salesChannel: isSalesperson ? 'salesperson' : 'store',
+          sourceLabel,
+          productName: item.description,
+          colorCode: item.colorCode || '',
+          unit: item.unit || '',
+          quantity: 0,
+          amount: 0,
+        }
+        current.quantity += Number(item.quantity || 0)
+        current.amount += Number(item.total || 0)
+        salesItemMap.set(itemKey, current)
+      }
+    }
+    const salesItems = Array.from(salesItemMap.values())
+      .map((item) => ({
+        ...item,
+        quantity: roundMoney(item.quantity),
+        amount: roundMoney(item.amount),
+      }))
+      .sort((left, right) => right.amount - left.amount)
 
     res.json({
       range: {
         from: from.toISOString(),
         to: to.toISOString(),
         groupBy,
+        salesChannel,
+        salespersonId,
       },
       summary: {
         revenue: roundMoney(
@@ -146,6 +242,8 @@ export const getRevenueReport = async (req, res) => {
         invoiceCount: periodInvoices.length,
       },
       trend,
+      salesPerformance,
+      salesItems,
       invoices: periodInvoices
         .sort(
           (left, right) =>
@@ -168,6 +266,8 @@ export const exportInvoicesCsv = async (req, res) => {
       'Date',
       'Customer',
       'Phone',
+      'Sales Channel',
+      'Salesperson',
       'Status',
       'Subtotal',
       'Grand Total',
@@ -180,6 +280,10 @@ export const exportInvoicesCsv = async (req, res) => {
       invoice.invoiceDate,
       invoice.customer?.name,
       invoice.customer?.phone,
+      invoice.salesChannel || 'store',
+      invoice.salesChannel === 'salesperson'
+        ? invoice.salesperson?.name || ''
+        : 'In-store',
       invoice.status || invoice.paymentStatus,
       invoice.subtotal,
       invoice.grandTotal,
@@ -211,11 +315,20 @@ export const exportInvoicesCsv = async (req, res) => {
 
 export const exportDatabaseBackup = async (req, res) => {
   try {
-    const [invoices, customers, products, admins, auditLogs, settings] =
+    const [
+      invoices,
+      customers,
+      products,
+      salespeople,
+      admins,
+      auditLogs,
+      settings,
+    ] =
       await Promise.all([
         getAllInvoices(),
         getAllCatalogRecords('customers'),
         getAllCatalogRecords('products'),
+        getAllCatalogRecords('salespeople'),
         getAllAdminsForBackup(),
         getAllAuditLogs(),
         getSystemSettings(),
@@ -229,6 +342,7 @@ export const exportDatabaseBackup = async (req, res) => {
       invoices,
       customers,
       products,
+      salespeople,
       admins,
       auditLogs,
       settings,

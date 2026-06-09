@@ -25,6 +25,7 @@ const matchesInvoiceSearch = (invoice, search) => {
     invoice.invoiceNumber,
     invoice.customer?.name,
     invoice.customer?.phone,
+    invoice.salesperson?.name,
   ].some((value) => String(value || '').toLocaleLowerCase().includes(query))
 }
 
@@ -39,6 +40,8 @@ export const listInvoices = async ({
   page = 1,
   limit = 10,
   status = '',
+  salesChannel = '',
+  salespersonId = '',
   deleted = false,
 } = {}) => {
   const pagination = normalizePagination(page, limit)
@@ -53,6 +56,7 @@ export const listInvoices = async ({
         { invoiceNumber: { $regex: safeQuery, $options: 'i' } },
         { 'customer.name': { $regex: safeQuery, $options: 'i' } },
         { 'customer.phone': { $regex: safeQuery, $options: 'i' } },
+        { 'salesperson.name': { $regex: safeQuery, $options: 'i' } },
       ]
     }
     if (status) {
@@ -74,6 +78,22 @@ export const listInvoices = async ({
         filter.status = status
       }
     }
+    if (salesChannel === 'store') {
+      filter.$and = [
+        ...(filter.$and || []),
+        {
+          $or: [
+            { salesChannel: 'store' },
+            { salesChannel: { $exists: false } },
+          ],
+        },
+      ]
+    } else if (salesChannel === 'salesperson') {
+      filter.salesChannel = 'salesperson'
+    }
+    if (salespersonId) {
+      filter.salespersonId = salespersonId
+    }
 
     const [items, total] = await Promise.all([
       Invoice.find(filter)
@@ -91,6 +111,16 @@ export const listInvoices = async ({
     )
     .filter((invoice) => matchesInvoiceSearch(invoice, search))
     .filter((invoice) => !status || resolvedStatus(invoice) === status)
+    .filter(
+      (invoice) =>
+        !salesChannel ||
+        (invoice.salesChannel || 'store') === salesChannel,
+    )
+    .filter(
+      (invoice) =>
+        !salespersonId ||
+        String(invoice.salespersonId || '') === String(salespersonId),
+    )
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
   const offset = (pagination.page - 1) * pagination.limit
   return {

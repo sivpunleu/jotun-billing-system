@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { calculateTotals } from '../controllers/invoiceController.js'
+import {
+  calculateTotals,
+  normalizeSalesAttribution,
+} from '../controllers/invoiceController.js'
 
 test('calculateTotals calculates line items, discount, tax, and grand total', () => {
   const result = calculateTotals({
@@ -83,5 +86,33 @@ test('calculateTotals rejects a non-numeric invoice discount', () => {
         discount: 'not-a-number',
       }),
     /valid number/,
+  )
+})
+
+test('normalizeSalesAttribution supports store and salesperson sales', () => {
+  assert.deepEqual(normalizeSalesAttribution({ salesChannel: 'store' }), {
+    salesChannel: 'store',
+    salespersonId: null,
+    salesperson: { name: '', phone: '' },
+  })
+
+  assert.deepEqual(
+    normalizeSalesAttribution({
+      salesChannel: 'salesperson',
+      salespersonId: 'sale-1',
+      salesperson: { name: 'Sokha', phone: '012 345 678' },
+    }),
+    {
+      salesChannel: 'salesperson',
+      salespersonId: 'sale-1',
+      salesperson: { name: 'Sokha', phone: '012 345 678' },
+    },
+  )
+})
+
+test('normalizeSalesAttribution requires a selected salesperson', () => {
+  assert.throws(
+    () => normalizeSalesAttribution({ salesChannel: 'salesperson' }),
+    /select a salesperson/,
   )
 })

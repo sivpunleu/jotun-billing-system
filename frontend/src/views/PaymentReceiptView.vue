@@ -85,6 +85,16 @@ onMounted(async () => {
           <span>Received By</span>
           <strong>{{ receipt.payment.receivedBy }}</strong>
         </div>
+        <div>
+          <span>Sales Source</span>
+          <strong>
+            {{
+              receipt.invoice.salesChannel === 'salesperson'
+                ? receipt.invoice.salesperson?.name || 'Sale'
+                : 'In-store'
+            }}
+          </strong>
+        </div>
       </div>
 
       <section class="receipt-customer">

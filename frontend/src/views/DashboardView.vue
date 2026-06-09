@@ -236,15 +236,22 @@ onMounted(loadDashboard)
             </div>
             <div class="table-responsive">
               <table class="table invoice-table responsive-table mb-0">
-                <thead><tr><th>លេខ</th><th>អតិថិជន</th><th>ថ្ងៃ</th><th class="text-end">នៅសល់</th></tr></thead>
+                <thead><tr><th>លេខ</th><th>អតិថិជន</th><th>ប្រភពលក់</th><th>ថ្ងៃ</th><th class="text-end">នៅសល់</th></tr></thead>
                 <tbody>
                   <tr v-for="invoice in metrics.recentInvoices" :key="invoice._id">
                     <td class="mobile-card-primary" data-label="លេខ"><RouterLink class="invoice-number" :to="`/invoices/${invoice._id}`">{{ invoice.invoiceNumber }}</RouterLink></td>
                     <td data-label="អតិថិជន">{{ invoice.customer?.name }}</td>
+                    <td data-label="ប្រភពលក់">
+                      {{
+                        invoice.salesChannel === 'salesperson'
+                          ? invoice.salesperson?.name || 'Sale'
+                          : 'នៅហាង'
+                      }}
+                    </td>
                     <td data-label="ថ្ងៃ">{{ formatDate(invoice.invoiceDate) }}</td>
                     <td class="text-end fw-bold" data-label="នៅសល់">{{ formatMoney(invoice.balanceDue) }}</td>
                   </tr>
-                  <tr v-if="!metrics.recentInvoices.length"><td colspan="4" class="text-center text-secondary py-4">មិនទាន់មានវិក្កយបត្រ</td></tr>
+                  <tr v-if="!metrics.recentInvoices.length"><td colspan="5" class="text-center text-secondary py-4">មិនទាន់មានវិក្កយបត្រ</td></tr>
                 </tbody>
               </table>
             </div>

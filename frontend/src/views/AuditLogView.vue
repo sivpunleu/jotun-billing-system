@@ -75,6 +75,7 @@ onMounted(loadLogs)
           <option value="invoice">Invoice</option>
           <option value="customer">Customer</option>
           <option value="product">Product</option>
+          <option value="salesperson">Salesperson</option>
           <option value="admin">Admin</option>
           <option value="database">Database</option>
           <option value="settings">Settings</option>

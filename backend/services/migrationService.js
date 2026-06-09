@@ -10,6 +10,7 @@ export const migrateExistingData = async () => {
         { status: { $exists: false } },
         { paidAmount: { $exists: false } },
         { payments: { $exists: false } },
+        { salesChannel: { $exists: false } },
       ],
     },
     [
@@ -28,6 +29,10 @@ export const migrateExistingData = async () => {
           },
           payments: { $ifNull: ['$payments', []] },
           deletedAt: { $ifNull: ['$deletedAt', null] },
+          salesChannel: { $ifNull: ['$salesChannel', 'store'] },
+          salesperson: {
+            $ifNull: ['$salesperson', { name: '', phone: '' }],
+          },
           status: {
             $switch: {
               branches: [

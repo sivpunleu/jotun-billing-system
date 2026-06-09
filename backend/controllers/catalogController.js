@@ -68,10 +68,22 @@ const cleanProduct = (body, actor) => {
   }
 }
 
-const normalize = (type, body, actor) =>
-  type === 'customers'
-    ? cleanCustomer(body, actor)
-    : cleanProduct(body, actor)
+const cleanSalesperson = (body, actor) => {
+  const name = String(body.name || '').trim()
+  if (!name) throw new Error('Salesperson name is required')
+  return {
+    name,
+    phone: String(body.phone || '').trim(),
+    notes: String(body.notes || '').trim(),
+    updatedBy: actor,
+  }
+}
+
+const normalize = (type, body, actor) => {
+  if (type === 'customers') return cleanCustomer(body, actor)
+  if (type === 'products') return cleanProduct(body, actor)
+  return cleanSalesperson(body, actor)
+}
 
 const buildController = (type, entityType) => ({
   list: async (req, res) => {
@@ -178,6 +190,10 @@ const buildController = (type, entityType) => ({
 
 export const customerController = buildController('customers', 'customer')
 export const productController = buildController('products', 'product')
+export const salespersonController = buildController(
+  'salespeople',
+  'salesperson',
+)
 
 export const updateProductStock = async (req, res) => {
   try {

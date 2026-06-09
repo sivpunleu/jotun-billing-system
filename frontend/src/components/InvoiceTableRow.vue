@@ -53,6 +53,29 @@ const statusLabels = {
         {{ invoice.customer.phone }}
       </small>
     </td>
+    <td data-label="ប្រភពលក់">
+      <span
+        class="sales-source-badge"
+        :class="
+          invoice.salesChannel === 'salesperson'
+            ? 'sales-source-person'
+            : 'sales-source-store'
+        "
+      >
+        <i
+          :class="
+            invoice.salesChannel === 'salesperson'
+              ? 'bi bi-person-badge'
+              : 'bi bi-shop'
+          "
+        ></i>
+        {{
+          invoice.salesChannel === 'salesperson'
+            ? invoice.salesperson?.name || 'Sale'
+            : 'នៅហាង'
+        }}
+      </span>
+    </td>
     <td class="text-nowrap" data-label="ថ្ងៃកំណត់">{{ formatDate(invoice.dueDate) }}</td>
     <td data-label="ស្ថានភាព">
       <span class="status-pill" :class="`status-${resolvedStatus}`">

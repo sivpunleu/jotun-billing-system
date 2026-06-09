@@ -122,6 +122,30 @@ const invoiceSchema = new mongoose.Schema(
       ref: 'Customer',
       default: null,
     },
+    salesChannel: {
+      type: String,
+      enum: ['store', 'salesperson'],
+      default: 'store',
+      index: true,
+    },
+    salespersonId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Salesperson',
+      default: null,
+      index: true,
+    },
+    salesperson: {
+      name: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      phone: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+    },
     items: {
       type: [itemSchema],
       validate: {
@@ -232,5 +256,6 @@ const invoiceSchema = new mongoose.Schema(
 invoiceSchema.index({ createdAt: -1 })
 invoiceSchema.index({ deletedAt: 1, createdAt: -1 })
 invoiceSchema.index({ 'customer.name': 'text', invoiceNumber: 'text' })
+invoiceSchema.index({ salesChannel: 1, salespersonId: 1, invoiceDate: -1 })
 
 export default mongoose.model('Invoice', invoiceSchema)

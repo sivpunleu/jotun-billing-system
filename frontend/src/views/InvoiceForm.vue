@@ -5,6 +5,7 @@ import {
   customerApi,
   invoiceApi,
   productApi,
+  salespersonApi,
 } from '../api/invoices'
 import { formatMoney, toDateInput } from '../utils/invoice'
 import { showToast } from '../ui/feedback'
@@ -16,6 +17,7 @@ const loading = ref(false)
 const error = ref('')
 const customers = ref([])
 const products = ref([])
+const salespeople = ref([])
 const isEditing = computed(() => Boolean(route.params.id))
 
 const addDays = (dateValue, days) => {
@@ -58,6 +60,12 @@ const form = reactive({
     phone: '',
     address: '',
   },
+  salesChannel: 'store',
+  salespersonId: '',
+  salesperson: {
+    name: '',
+    phone: '',
+  },
   items: [newItem()],
   discount: 0,
   taxRate: 0,
@@ -94,12 +102,17 @@ const balanceDue = computed(() =>
 )
 
 const loadLookups = async () => {
-  const [customerResponse, productResponse] = await Promise.all([
+  const [customerResponse, productResponse, salespersonResponse] =
+    await Promise.all([
     customerApi.list({ limit: 100 }),
     productApi.list({ limit: 100 }),
+    salespersonApi
+      .list({ limit: 100 })
+      .catch(() => ({ data: { items: [] } })),
   ])
   customers.value = customerResponse.data.items || []
   products.value = productResponse.data.items || []
+  salespeople.value = salespersonResponse.data.items || []
 }
 
 const applyCustomer = () => {
@@ -128,6 +141,24 @@ const applyProduct = (item) => {
   })
 }
 
+const changeSalesChannel = () => {
+  if (form.salesChannel === 'store') {
+    form.salespersonId = ''
+    form.salesperson = { name: '', phone: '' }
+  }
+}
+
+const applySalesperson = () => {
+  const salesperson = salespeople.value.find(
+    (item) => String(item._id) === String(form.salespersonId),
+  )
+  if (!salesperson) return
+  form.salesperson = {
+    name: salesperson.name || '',
+    phone: salesperson.phone || '',
+  }
+}
+
 const addItem = () => form.items.push(newItem())
 const removeItem = (index) => {
   if (form.items.length > 1) form.items.splice(index, 1)
@@ -142,6 +173,12 @@ const loadInvoice = async () => {
     dueDate: toDateInput(data.dueDate),
     customerId: data.customerId || '',
     customer: { ...data.customer },
+    salesChannel: data.salesChannel || 'store',
+    salespersonId: data.salespersonId || '',
+    salesperson: {
+      name: data.salesperson?.name || '',
+      phone: data.salesperson?.phone || '',
+    },
     status:
       data.status ||
       (data.paymentStatus === 'partial'
@@ -248,6 +285,61 @@ onMounted(initialize)
               <div class="col-md-3">
                 <label class="form-label">ថ្ងៃកំណត់ *</label>
                 <input v-model="form.dueDate" class="form-control" type="date" required />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">ប្រភពការលក់ *</label>
+                <select
+                  v-model="form.salesChannel"
+                  class="form-select"
+                  required
+                  @change="changeSalesChannel"
+                >
+                  <option value="store">ទិញនៅហាងផ្ទាល់</option>
+                  <option value="salesperson">Sale ជាអ្នកលក់</option>
+                </select>
+              </div>
+              <div v-if="form.salesChannel === 'salesperson'" class="col-md-8">
+                <label class="form-label">ឈ្មោះ Sale *</label>
+                <select
+                  v-model="form.salespersonId"
+                  class="form-select"
+                  required
+                  @change="applySalesperson"
+                >
+                  <option value="">-- ជ្រើសរើស Sale --</option>
+                  <option
+                    v-if="
+                      form.salespersonId &&
+                      !salespeople.some(
+                        (item) => String(item._id) === String(form.salespersonId),
+                      )
+                    "
+                    :value="form.salespersonId"
+                  >
+                    {{ form.salesperson.name }}
+                  </option>
+                  <option
+                    v-for="salesperson in salespeople"
+                    :key="salesperson._id"
+                    :value="salesperson._id"
+                  >
+                    {{ salesperson.name }}
+                    {{ salesperson.phone ? `· ${salesperson.phone}` : '' }}
+                  </option>
+                </select>
+                <small class="form-text text-secondary">
+                  មិនឃើញឈ្មោះ?
+                  <RouterLink to="/salespeople">បន្ថែម Sale ថ្មី</RouterLink>
+                </small>
+              </div>
+              <div v-else class="col-md-8">
+                <div class="sales-source-preview">
+                  <i class="bi bi-shop"></i>
+                  <span>
+                    <strong>ទិញនៅហាងផ្ទាល់</strong>
+                    <small>Invoice នេះនឹងត្រូវរាប់ជាការលក់នៅហាង។</small>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

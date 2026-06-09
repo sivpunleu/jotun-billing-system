@@ -28,6 +28,22 @@ const props = defineProps({
 
 const route = useRoute()
 const isProduct = computed(() => props.kind === 'product')
+const isCustomer = computed(() => props.kind === 'customer')
+const isSalesperson = computed(() => props.kind === 'salesperson')
+const pageEyebrow = computed(() => {
+  if (isProduct.value) return 'PRODUCT CATALOGUE'
+  if (isSalesperson.value) return 'SALES TEAM'
+  return 'CUSTOMER MANAGEMENT'
+})
+const pageDescription = computed(() => {
+  if (isProduct.value) {
+    return 'រក្សាទុកទំនិញ តម្លៃ ឯកតា និងលេខកូដ។'
+  }
+  if (isSalesperson.value) {
+    return 'គ្រប់គ្រងឈ្មោះ Sale សម្រាប់កត់ត្រាប្រភពការលក់លើវិក្កយបត្រ។'
+  }
+  return 'រក្សាទុកព័ត៌មានអតិថិជនសម្រាប់ប្រើឡើងវិញ។'
+})
 const records = ref([])
 const loading = ref(true)
 const saving = ref(false)
@@ -199,9 +215,9 @@ onMounted(() => {
   <section class="container page-section">
     <div class="page-heading">
       <div>
-        <span class="eyebrow">{{ isProduct ? 'PRODUCT CATALOGUE' : 'CUSTOMER MANAGEMENT' }}</span>
+        <span class="eyebrow">{{ pageEyebrow }}</span>
         <h1>{{ title }}</h1>
-        <p>{{ isProduct ? 'រក្សាទុកទំនិញ តម្លៃ ឯកតា និងលេខកូដ។' : 'រក្សាទុកព័ត៌មានអតិថិជនសម្រាប់ប្រើឡើងវិញ។' }}</p>
+        <p>{{ pageDescription }}</p>
       </div>
       <button class="btn btn-outline-secondary" type="button" @click="toggleTrash">
         <i :class="showTrash ? 'bi bi-arrow-left' : 'bi bi-trash3'" class="me-1"></i>
@@ -272,7 +288,7 @@ onMounted(() => {
               <label class="form-label">លេខទូរស័ព្ទ</label>
               <input v-model.trim="form.phone" class="form-control" />
             </div>
-            <div class="col-md-5">
+            <div v-if="isCustomer" class="col-md-5">
               <label class="form-label">អាសយដ្ឋាន</label>
               <input v-model.trim="form.address" class="form-control" />
             </div>
@@ -317,13 +333,14 @@ onMounted(() => {
               <th v-if="isProduct">Stock</th>
               <th v-if="isProduct" class="text-end">តម្លៃ</th>
               <th v-if="!isProduct">ទូរស័ព្ទ</th>
-              <th v-if="!isProduct">អាសយដ្ឋាន</th>
+              <th v-if="isCustomer">អាសយដ្ឋាន</th>
+              <th v-if="isSalesperson">កំណត់ចំណាំ</th>
               <th class="text-end">សកម្មភាព</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="record in records" :key="record._id">
-              <td class="mobile-card-primary" data-label="ឈ្មោះ"><strong>{{ record.name }}</strong><small v-if="record.notes" class="d-block text-secondary">{{ record.notes }}</small></td>
+              <td class="mobile-card-primary" data-label="ឈ្មោះ"><strong>{{ record.name }}</strong><small v-if="record.notes && !isSalesperson" class="d-block text-secondary">{{ record.notes }}</small></td>
               <td v-if="isProduct" data-label="Code / Color">{{ record.itemCode || '-' }}<small class="d-block text-secondary">{{ record.colorCode }}</small></td>
               <td v-if="isProduct" data-label="ឯកតា">{{ record.unit }}</td>
               <td v-if="isProduct" data-label="Stock">
@@ -343,14 +360,15 @@ onMounted(() => {
               </td>
               <td v-if="isProduct" class="text-end fw-bold" data-label="តម្លៃ">{{ formatMoney(record.unitPrice) }}</td>
               <td v-if="!isProduct" data-label="ទូរស័ព្ទ">{{ record.phone || '-' }}</td>
-              <td v-if="!isProduct" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
+              <td v-if="isCustomer" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
+              <td v-if="isSalesperson" data-label="កំណត់ចំណាំ">{{ record.notes || '-' }}</td>
               <td class="text-end text-nowrap mobile-card-actions" data-label="សកម្មភាព">
                 <button v-if="showTrash && canManageBilling" class="btn btn-sm btn-outline-success" type="button" @click="restoreRecord(record)">
                   <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
                 </button>
                 <template v-else>
                   <RouterLink
-                    v-if="!isProduct"
+                    v-if="isCustomer"
                     class="btn btn-sm btn-outline-primary"
                     :to="`/customers/${record._id}/statement`"
                   >

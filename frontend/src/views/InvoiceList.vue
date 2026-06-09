@@ -3,7 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import InvoiceTableRow from '../components/InvoiceTableRow.vue'
 import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
-import { invoiceApi } from '../api/invoices'
+import { invoiceApi, salespersonApi } from '../api/invoices'
 import { canManageBilling } from '../auth/session'
 import {
   requestConfirmation,
@@ -15,6 +15,9 @@ const loading = ref(true)
 const error = ref('')
 const search = ref('')
 const status = ref('')
+const salesChannel = ref('')
+const salespersonId = ref('')
+const salespeople = ref([])
 const showTrash = ref(false)
 const pagination = reactive({
   page: 1,
@@ -30,6 +33,8 @@ const loadInvoices = async (page = pagination.page) => {
     const response = await invoiceApi.list({
       search: search.value,
       status: status.value,
+      salesChannel: salesChannel.value,
+      salespersonId: salespersonId.value,
       deleted: showTrash.value,
       page,
       limit: pagination.limit,
@@ -86,10 +91,27 @@ const restoreInvoice = async (invoice) => {
 const toggleTrash = () => {
   showTrash.value = !showTrash.value
   status.value = ''
+  salesChannel.value = ''
+  salespersonId.value = ''
   loadInvoices(1)
 }
 
-onMounted(loadInvoices)
+const changeSalesChannel = () => {
+  if (salesChannel.value !== 'salesperson') salespersonId.value = ''
+  loadInvoices(1)
+}
+
+const initialize = async () => {
+  try {
+    const { data } = await salespersonApi.list({ limit: 100 })
+    salespeople.value = data.items || []
+  } catch {
+    salespeople.value = []
+  }
+  await loadInvoices()
+}
+
+onMounted(initialize)
 </script>
 
 <template>
@@ -140,6 +162,31 @@ onMounted(loadInvoices)
           <option value="paid">Paid</option>
           <option value="cancelled">Cancelled</option>
         </select>
+        <select
+          v-if="!showTrash"
+          v-model="salesChannel"
+          class="form-select filter-select"
+          @change="changeSalesChannel"
+        >
+          <option value="">ប្រភពលក់ទាំងអស់</option>
+          <option value="store">ទិញនៅហាងផ្ទាល់</option>
+          <option value="salesperson">Sale ជាអ្នកលក់</option>
+        </select>
+        <select
+          v-if="!showTrash && salesChannel === 'salesperson'"
+          v-model="salespersonId"
+          class="form-select filter-select"
+          @change="loadInvoices(1)"
+        >
+          <option value="">Sale ទាំងអស់</option>
+          <option
+            v-for="salesperson in salespeople"
+            :key="salesperson._id"
+            :value="salesperson._id"
+          >
+            {{ salesperson.name }}
+          </option>
+        </select>
         <button class="btn btn-outline-secondary" type="button" @click="loadInvoices(pagination.page)">
           <i class="bi bi-arrow-clockwise me-1"></i> ផ្ទុកឡើងវិញ
         </button>
@@ -158,6 +205,7 @@ onMounted(loadInvoices)
             <tr>
               <th>លេខវិក្កយបត្រ</th>
               <th>អតិថិជន</th>
+              <th>ប្រភពលក់</th>
               <th>ថ្ងៃកំណត់</th>
               <th>ស្ថានភាព</th>
               <th class="text-end">សរុប</th>

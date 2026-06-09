@@ -132,6 +132,33 @@ const legacyPaymentStatus = (status) => {
   return 'unpaid'
 }
 
+export const normalizeSalesAttribution = (body) => {
+  const salesChannel =
+    body.salesChannel === 'salesperson' ? 'salesperson' : 'store'
+
+  if (salesChannel === 'store') {
+    return {
+      salesChannel,
+      salespersonId: null,
+      salesperson: { name: '', phone: '' },
+    }
+  }
+
+  const name = String(body.salesperson?.name || '').trim()
+  if (!name) {
+    throw new Error('Please select a salesperson')
+  }
+
+  return {
+    salesChannel,
+    salespersonId: body.salespersonId || null,
+    salesperson: {
+      name,
+      phone: String(body.salesperson?.phone || '').trim(),
+    },
+  }
+}
+
 const normalizeInvoice = (
   body,
   { invoiceNumber, actor, existingPayments = [] } = {},
@@ -169,6 +196,7 @@ const normalizeInvoice = (
     paidAmount,
     balanceDue,
   })
+  const salesAttribution = normalizeSalesAttribution(body)
 
   return {
     invoiceNumber,
@@ -180,6 +208,7 @@ const normalizeInvoice = (
       phone: String(body.customer?.phone || '').trim(),
       address: String(body.customer?.address || '').trim(),
     },
+    ...salesAttribution,
     status,
     paymentStatus: legacyPaymentStatus(status),
     payments,
@@ -225,6 +254,8 @@ export const getInvoices = async (req, res) => {
       page: req.query.page,
       limit: req.query.limit,
       status: String(req.query.status || '').trim(),
+      salesChannel: String(req.query.salesChannel || '').trim(),
+      salespersonId: String(req.query.salespersonId || '').trim(),
       deleted: req.query.deleted === 'true',
     })
     res.json(paginationResponse(result))
