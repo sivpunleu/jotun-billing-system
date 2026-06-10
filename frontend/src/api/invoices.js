@@ -116,6 +116,12 @@ export const invoiceApi = {
   paymentReceipt(id, paymentId) {
     return api.get(`/invoices/${id}/payments/${paymentId}/receipt`)
   },
+  sendTelegram(id) {
+    return api.post(`/invoices/${id}/telegram`)
+  },
+  sendPaymentTelegram(id, paymentId) {
+    return api.post(`/invoices/${id}/payments/${paymentId}/telegram`)
+  },
 }
 
 export const customerApi = {
@@ -173,6 +179,12 @@ export const insightApi = {
   },
   notifications() {
     return api.get('/insights/notifications')
+  },
+  telegramStatus() {
+    return api.get('/insights/telegram/status')
+  },
+  sendDebtTelegram() {
+    return api.post('/insights/telegram/debt-alerts')
   },
 }
 

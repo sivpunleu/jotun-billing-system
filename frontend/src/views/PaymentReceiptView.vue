@@ -1,16 +1,20 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { invoiceApi } from '../api/invoices'
+import { insightApi, invoiceApi } from '../api/invoices'
+import { canManageBilling } from '../auth/session'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
 import ErrorState from '../components/ErrorState.vue'
 import { formatDate, formatMoney } from '../utils/invoice'
+import { showToast } from '../ui/feedback'
 import fallbackLogo from '../assets/logo-marvel.png'
 
 const route = useRoute()
 const receipt = ref(null)
 const loading = ref(true)
 const error = ref('')
+const sendingTelegram = ref(false)
+const telegramConfigured = ref(false)
 const printReceipt = () => window.print()
 
 const loadReceipt = async () => {
@@ -31,7 +35,39 @@ const loadReceipt = async () => {
   }
 }
 
-onMounted(loadReceipt)
+const loadTelegramStatus = async () => {
+  try {
+    telegramConfigured.value = (
+      await insightApi.telegramStatus()
+    ).data.configured
+  } catch {
+    telegramConfigured.value = false
+  }
+}
+
+const sendTelegram = async () => {
+  sendingTelegram.value = true
+  try {
+    await invoiceApi.sendPaymentTelegram(
+      route.params.id,
+      route.params.paymentId,
+    )
+    showToast('ផ្ញើបង្កាន់ដៃទៅ Telegram បានជោគជ័យ')
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'មិនអាចផ្ញើបង្កាន់ដៃទៅ Telegram បានទេ',
+      'error',
+    )
+  } finally {
+    sendingTelegram.value = false
+  }
+}
+
+onMounted(() => {
+  loadReceipt()
+  loadTelegramStatus()
+})
 </script>
 
 <template>
@@ -45,6 +81,25 @@ onMounted(loadReceipt)
       </RouterLink>
       <button class="btn btn-danger" type="button" @click="printReceipt">
         <i class="bi bi-printer me-1"></i> Print Receipt
+      </button>
+      <button
+        v-if="canManageBilling"
+        class="btn btn-outline-info telegram-action"
+        type="button"
+        :disabled="sendingTelegram || !telegramConfigured"
+        :title="
+          telegramConfigured
+            ? 'ផ្ញើបង្កាន់ដៃទៅ Telegram'
+            : 'Telegram Bot មិនទាន់បានកំណត់នៅ Server'
+        "
+        @click="sendTelegram"
+      >
+        <span
+          v-if="sendingTelegram"
+          class="spinner-border spinner-border-sm me-1"
+        ></span>
+        <i v-else class="bi bi-telegram me-1"></i>
+        Telegram
       </button>
     </div>
 

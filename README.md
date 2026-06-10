@@ -79,6 +79,7 @@ the application database. The owner can then create more accounts:
 - Personal profiles with a compressed avatar, display name, password controls,
   last login details, and personal activity history
 - Invoice CSV export and owner-only JSON database backup
+- Telegram delivery for invoices, payment receipts, and debt alerts
 - A shared A4 layout for browser preview and Print / Save PDF
 
 Downloaded backups contain private customer and business data. Store them in a
@@ -108,6 +109,9 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$2b$12$...
 JWT_SECRET=long-random-secret
 JWT_EXPIRES_IN=8h
+TELEGRAM_BOT_TOKEN=123456789:replace-with-bot-token
+TELEGRAM_CHAT_ID=-1001234567890
+TELEGRAM_PUBLIC_URL=https://your-frontend.vercel.app
 ```
 
 After deployment, test:
@@ -128,3 +132,24 @@ VITE_API_URL=https://your-backend.onrender.com/api
 
 4. Deploy, then copy the Vercel URL into Render's `CLIENT_URL` and redeploy
    the backend.
+
+## Telegram alerts
+
+1. Create a bot with `@BotFather` and copy its token.
+2. Open the bot and send `/start`. For a group or channel, add the bot and
+   allow it to post messages.
+3. Read the target chat ID from the Bot API `getUpdates` response.
+4. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to Render Environment.
+   `TELEGRAM_PUBLIC_URL` is optional; when omitted, the first `CLIENT_URL`
+   value is used for invoice links.
+5. Redeploy the backend.
+
+Bot tokens must stay in backend environment variables. Never put a Telegram
+token in Vue code, Vercel variables exposed with `VITE_`, screenshots, or Git.
+
+After configuration:
+
+- Invoice Preview can send the invoice summary and public invoice link.
+- Payment Receipt and payment history can send receipt details.
+- Notification Center can send an overdue and outstanding debt summary.
+- Every send action is recorded in Audit Log.

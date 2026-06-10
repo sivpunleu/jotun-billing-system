@@ -2,6 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { insightApi } from '../api/invoices'
+import { canManageBilling } from '../auth/session'
+import { showToast } from '../ui/feedback'
 import { formatDate, formatMoney } from '../utils/invoice'
 
 const router = useRouter()
@@ -15,6 +17,8 @@ const data = ref({
   activity: [],
 })
 const activeTab = ref('alerts')
+const telegramConfigured = ref(false)
+const sendingDebt = ref(false)
 
 const alertCount = computed(
   () => data.value.counts.overdue + data.value.counts.lowStock,
@@ -37,6 +41,34 @@ const load = async () => {
   }
 }
 
+const loadTelegramStatus = async () => {
+  try {
+    telegramConfigured.value = (
+      await insightApi.telegramStatus()
+    ).data.configured
+  } catch {
+    telegramConfigured.value = false
+  }
+}
+
+const sendDebtTelegram = async () => {
+  sendingDebt.value = true
+  try {
+    const { data: response } = await insightApi.sendDebtTelegram()
+    showToast(
+      `ផ្ញើ Debt Alert បានជោគជ័យ (${response.counts.outstanding} invoices)`,
+    )
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'មិនអាចផ្ញើ Debt Alert ទៅ Telegram បានទេ',
+      'error',
+    )
+  } finally {
+    sendingDebt.value = false
+  }
+}
+
 const toggle = () => {
   open.value = !open.value
   if (open.value) load()
@@ -50,6 +82,7 @@ const navigate = async (target) => {
 let refreshTimer
 onMounted(() => {
   load()
+  loadTelegramStatus()
   refreshTimer = window.setInterval(load, 120000)
 })
 onBeforeUnmount(() => clearInterval(refreshTimer))
@@ -195,6 +228,23 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
       </div>
 
       <footer>
+        <button
+          v-if="canManageBilling"
+          class="notification-telegram-action"
+          type="button"
+          :disabled="sendingDebt || !telegramConfigured"
+          :title="
+            telegramConfigured
+              ? 'ផ្ញើសេចក្តីជូនដំណឹងបំណុលទៅ Telegram'
+              : 'Telegram Bot មិនទាន់បានកំណត់នៅ Server'
+          "
+          @click="sendDebtTelegram"
+        >
+          <span>
+            <i class="bi bi-telegram"></i>
+            {{ sendingDebt ? 'កំពុងផ្ញើ...' : 'ផ្ញើ Debt Alert' }}
+          </span>
+        </button>
         <button type="button" @click="navigate('/reports')">
           មើល Reports និងបំណុលសរុប
           <i class="bi bi-arrow-right"></i>

@@ -11,6 +11,10 @@ import {
 } from '../controllers/invoiceController.js'
 import { getPaymentReceipt } from '../controllers/insightController.js'
 import {
+  sendInvoiceToTelegram,
+  sendReceiptToTelegram,
+} from '../controllers/telegramController.js'
+import {
   authorizeRoles,
   requireAdmin,
 } from '../middleware/authMiddleware.js'
@@ -28,7 +32,19 @@ router.get(
   requireAdmin,
   getPaymentReceipt,
 )
+router.post(
+  '/:id/payments/:paymentId/telegram',
+  requireAdmin,
+  canManage,
+  sendReceiptToTelegram,
+)
 router.post('/:id/payments', requireAdmin, canManage, addInvoicePayment)
+router.post(
+  '/:id/telegram',
+  requireAdmin,
+  canManage,
+  sendInvoiceToTelegram,
+)
 router.post('/:id/restore', requireAdmin, canManage, restoreDeletedInvoice)
 router
   .route('/:id')

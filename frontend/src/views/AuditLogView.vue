@@ -76,6 +76,9 @@ onMounted(loadLogs)
           <option value="change_password">Change Password</option>
           <option value="export_csv">Export CSV</option>
           <option value="backup">Backup</option>
+          <option value="telegram_invoice">Telegram Invoice</option>
+          <option value="telegram_receipt">Telegram Receipt</option>
+          <option value="telegram_debt_alert">Telegram Debt Alert</option>
         </select>
         <select v-model="entityType" class="form-select filter-select" @change="loadLogs(1)">
           <option value="">ប្រភេទទាំងអស់</option>

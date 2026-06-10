@@ -807,6 +807,8 @@ textarea {
 }
 
 .notification-panel footer {
+  display: grid;
+  gap: 8px;
   padding: 10px 14px;
   border-top: 1px solid var(--line);
   background: #f8fafc;
@@ -822,6 +824,25 @@ textarea {
   background: transparent;
   font-size: 0.69rem;
   font-weight: 800;
+}
+
+.notification-panel footer .notification-telegram-action {
+  padding: 9px 10px;
+  border: 1px solid rgba(34, 158, 217, 0.28);
+  border-radius: 9px;
+  color: #137daf;
+  background: #edf8fd;
+}
+
+.notification-panel footer .notification-telegram-action > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.notification-panel footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .spinning {
@@ -1809,6 +1830,17 @@ textarea {
   column-gap: 20px;
   min-height: 166px;
   text-align: center;
+}
+
+.telegram-action {
+  --bs-btn-color: #1689bd;
+  --bs-btn-border-color: #69bde2;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #229ed9;
+  --bs-btn-hover-border-color: #229ed9;
+  --bs-btn-disabled-color: #6e9cb0;
+  --bs-btn-disabled-border-color: #bfd9e5;
+  --bs-btn-disabled-bg: #edf5f8;
 }
 
 .loading-state .spinner-border {

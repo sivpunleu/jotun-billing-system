@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { invoiceApi, settingsApi } from '../api/invoices'
+import { insightApi, invoiceApi, settingsApi } from '../api/invoices'
 import {
   canManageBilling,
   currentAdmin,
@@ -24,6 +24,8 @@ const invoice = ref(null)
 const loading = ref(true)
 const error = ref('')
 const recordingPayment = ref(false)
+const sendingTelegram = ref('')
+const telegramConfigured = ref(false)
 const paymentForm = reactive({
   amount: 0,
   paidAt: toDateInput(),
@@ -134,6 +136,49 @@ const loadSettings = async () => {
   }
 }
 
+const loadTelegramStatus = async () => {
+  if (!isAuthenticated.value) return
+  try {
+    telegramConfigured.value = (
+      await insightApi.telegramStatus()
+    ).data.configured
+  } catch {
+    telegramConfigured.value = false
+  }
+}
+
+const sendInvoiceTelegram = async () => {
+  sendingTelegram.value = 'invoice'
+  try {
+    await invoiceApi.sendTelegram(invoice.value._id)
+    showToast('ផ្ញើវិក្កយបត្រទៅ Telegram បានជោគជ័យ')
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'មិនអាចផ្ញើវិក្កយបត្រទៅ Telegram បានទេ',
+      'error',
+    )
+  } finally {
+    sendingTelegram.value = ''
+  }
+}
+
+const sendReceiptTelegram = async (payment) => {
+  sendingTelegram.value = String(payment._id)
+  try {
+    await invoiceApi.sendPaymentTelegram(invoice.value._id, payment._id)
+    showToast('ផ្ញើបង្កាន់ដៃទៅ Telegram បានជោគជ័យ')
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'មិនអាចផ្ញើបង្កាន់ដៃទៅ Telegram បានទេ',
+      'error',
+    )
+  } finally {
+    sendingTelegram.value = ''
+  }
+}
+
 const addPayment = async (event) => {
   if (!(await validateForm(event?.currentTarget))) return
 
@@ -162,6 +207,7 @@ const addPayment = async (event) => {
 onMounted(() => {
   loadInvoice()
   loadSettings()
+  loadTelegramStatus()
 })
 </script>
 
@@ -197,6 +243,25 @@ onMounted(() => {
           <i class="bi bi-copy me-1"></i>
           ចម្លងវិក្កយបត្រ
         </RouterLink>
+        <button
+          v-if="invoice && canManageBilling"
+          class="btn btn-outline-info telegram-action"
+          type="button"
+          :disabled="Boolean(sendingTelegram) || !telegramConfigured"
+          :title="
+            telegramConfigured
+              ? 'ផ្ញើវិក្កយបត្រទៅ Telegram'
+              : 'Telegram Bot មិនទាន់បានកំណត់នៅ Server'
+          "
+          @click="sendInvoiceTelegram"
+        >
+          <span
+            v-if="sendingTelegram === 'invoice'"
+            class="spinner-border spinner-border-sm me-1"
+          ></span>
+          <i v-else class="bi bi-telegram me-1"></i>
+          Telegram
+        </button>
         <button
           v-if="invoice && canManageBilling"
           class="btn btn-outline-danger"
@@ -317,18 +382,36 @@ onMounted(() => {
                 <td data-label="កំណត់ចំណាំ">{{ payment.note || '-' }}</td>
                 <td class="text-end fw-bold" data-label="ចំនួន">{{ formatMoney(payment.amount) }}</td>
                 <td class="text-end" data-label="Receipt">
-                  <RouterLink
-                    class="btn btn-sm btn-outline-primary"
-                    :to="{
-                      name: 'payment-receipt',
-                      params: {
-                        id: invoice._id,
-                        paymentId: payment._id,
-                      },
-                    }"
-                  >
-                    <i class="bi bi-printer"></i>
-                  </RouterLink>
+                  <div class="d-inline-flex gap-1">
+                    <RouterLink
+                      class="btn btn-sm btn-outline-primary"
+                      :to="{
+                        name: 'payment-receipt',
+                        params: {
+                          id: invoice._id,
+                          paymentId: payment._id,
+                        },
+                      }"
+                    >
+                      <i class="bi bi-printer"></i>
+                    </RouterLink>
+                    <button
+                      v-if="canManageBilling"
+                      class="btn btn-sm btn-outline-info telegram-action"
+                      type="button"
+                      :disabled="
+                        Boolean(sendingTelegram) || !telegramConfigured
+                      "
+                      title="ផ្ញើបង្កាន់ដៃទៅ Telegram"
+                      @click="sendReceiptTelegram(payment)"
+                    >
+                      <span
+                        v-if="sendingTelegram === String(payment._id)"
+                        class="spinner-border spinner-border-sm"
+                      ></span>
+                      <i v-else class="bi bi-telegram"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
