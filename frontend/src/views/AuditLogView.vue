@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { auditApi } from '../api/invoices'
+import ErrorState from '../components/ErrorState.vue'
 import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import { formatDate } from '../utils/invoice'
@@ -52,7 +53,13 @@ onMounted(loadLogs)
       </div>
     </div>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !logs.length"
+      :message="error"
+      :retrying="loading"
+      @retry="loadLogs(pagination.page)"
+    />
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
     <div class="content-card">
       <div class="card-toolbar flex-wrap">
         <select v-model="action" class="form-select filter-select" @change="loadLogs(1)">
@@ -85,7 +92,7 @@ onMounted(loadLogs)
         </button>
       </div>
       <TableSkeleton v-if="loading" />
-      <div v-else-if="!logs.length" class="empty-state">
+      <div v-else-if="!error && !logs.length" class="empty-state">
         <div class="empty-icon"><i class="bi bi-clock-history"></i></div>
         <h3>មិនមានកំណត់ត្រា</h3>
         <p>មិនទាន់មានសកម្មភាពត្រូវបង្ហាញតាមលក្ខខណ្ឌនេះទេ។</p>

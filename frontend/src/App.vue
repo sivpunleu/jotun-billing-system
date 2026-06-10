@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GlobalSearch from './components/GlobalSearch.vue'
 import NotificationCenter from './components/NotificationCenter.vue'
@@ -20,6 +20,9 @@ import jotunLogo from './assets/jotun.jpg'
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const online = ref(
+  typeof navigator === 'undefined' ? true : navigator.onLine,
+)
 const sidebarCollapsed = ref(
   typeof window !== 'undefined' &&
     window.localStorage.getItem('jotun_sidebar_collapsed') === 'true',
@@ -78,6 +81,20 @@ watch(sidebarCollapsed, (value) => {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem('jotun_sidebar_collapsed', String(value))
   }
+})
+
+const updateNetworkStatus = () => {
+  online.value = navigator.onLine
+}
+
+onMounted(() => {
+  window.addEventListener('online', updateNetworkStatus)
+  window.addEventListener('offline', updateNetworkStatus)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', updateNetworkStatus)
+  window.removeEventListener('offline', updateNetworkStatus)
 })
 
 const logout = async () => {
@@ -321,6 +338,12 @@ const logout = async () => {
     </header>
 
     <main class="app-content">
+      <div v-if="!online" class="network-status-banner d-print-none">
+        <i class="bi bi-wifi-off"></i>
+        <span>
+          អ៊ីនធឺណិតបានផ្ដាច់។ ទិន្នន័យដែលមិនទាន់រក្សាទុកនឹងនៅលើ Form នេះ។
+        </span>
+      </div>
       <RouterView />
     </main>
 

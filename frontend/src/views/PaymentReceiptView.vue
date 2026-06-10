@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { invoiceApi } from '../api/invoices'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
+import ErrorState from '../components/ErrorState.vue'
 import { formatDate, formatMoney } from '../utils/invoice'
 import fallbackLogo from '../assets/logo-marvel.png'
 
@@ -12,7 +13,9 @@ const loading = ref(true)
 const error = ref('')
 const printReceipt = () => window.print()
 
-onMounted(async () => {
+const loadReceipt = async () => {
+  loading.value = true
+  error.value = ''
   try {
     receipt.value = (
       await invoiceApi.paymentReceipt(
@@ -26,7 +29,9 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadReceipt)
 </script>
 
 <template>
@@ -43,7 +48,12 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !receipt"
+      :message="error"
+      :retrying="loading"
+      @retry="loadReceipt"
+    />
     <ContentSkeleton v-if="loading" :cards="1" />
 
     <article v-else-if="receipt" class="receipt-paper">

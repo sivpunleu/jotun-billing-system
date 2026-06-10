@@ -2,9 +2,11 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { canManageBilling } from '../auth/session'
+import ErrorState from './ErrorState.vue'
 import PaginationControls from './PaginationControls.vue'
 import TableSkeleton from './TableSkeleton.vue'
 import { formatMoney } from '../utils/invoice'
+import { downloadCsvTemplate, parseCsv } from '../utils/csv'
 import {
   requestConfirmation,
   requestStockMovement,
@@ -53,6 +55,11 @@ const search = ref('')
 const showTrash = ref(false)
 const editingId = ref('')
 const formCard = ref(null)
+const csvInput = ref(null)
+const importing = ref(false)
+const importProgress = reactive({ current: 0, total: 0 })
+const importResult = ref('')
+const importError = ref('')
 const pagination = reactive({ page: 1, limit: 10, total: 0, pages: 1 })
 const form = reactive({
   name: '',
@@ -89,6 +96,151 @@ const focusCreateForm = () => {
   window.setTimeout(() => {
     formCard.value?.querySelector('input:not([disabled])')?.focus()
   }, 350)
+}
+
+const field = (row, ...keys) => {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== '') return row[key]
+  }
+  return ''
+}
+
+const numberField = (row, fallback, ...keys) => {
+  const value = field(row, ...keys)
+  if (value === '') return fallback
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`Row ${row.__row}: invalid number for ${keys[0]}`)
+  }
+  return parsed
+}
+
+const csvRecord = (row) => {
+  const name = field(row, 'name', 'customer', 'customername', 'product', 'productname')
+  if (!name) throw new Error(`Row ${row.__row}: name is required`)
+
+  if (isCustomer.value) {
+    return {
+      name,
+      phone: field(row, 'phone', 'telephone'),
+      address: field(row, 'address'),
+      notes: field(row, 'notes', 'note'),
+    }
+  }
+
+  const unit = field(row, 'unit')
+  if (!unit) throw new Error(`Row ${row.__row}: unit is required`)
+  return {
+    name,
+    itemCode: field(row, 'itemcode', 'code'),
+    colorCode: field(row, 'colorcode', 'color'),
+    unit,
+    unitPrice: numberField(row, 0, 'unitprice', 'price'),
+    stockQuantity: numberField(row, 0, 'stockquantity', 'stock'),
+    lowStockThreshold: numberField(
+      row,
+      5,
+      'lowstockthreshold',
+      'lowstock',
+      'alertat',
+    ),
+    notes: field(row, 'notes', 'note'),
+  }
+}
+
+const downloadTemplate = () => {
+  if (isCustomer.value) {
+    downloadCsvTemplate(
+      'customer-import-template.csv',
+      ['name', 'phone', 'address', 'notes'],
+      ['Sok Dara', '012345678', 'Phnom Penh', 'Regular customer'],
+    )
+    return
+  }
+  downloadCsvTemplate(
+    'product-import-template.csv',
+    [
+      'name',
+      'itemCode',
+      'colorCode',
+      'unit',
+      'unitPrice',
+      'stockQuantity',
+      'lowStockThreshold',
+      'notes',
+    ],
+    ['Jotun Majestic 5L', 'MJ-5L', '9918', 'ធុង', '35', '20', '5', ''],
+  )
+}
+
+const chooseCsv = () => csvInput.value?.click()
+
+const importCsv = async (event) => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  importResult.value = ''
+  importError.value = ''
+  error.value = ''
+
+  let rows
+  try {
+    rows = parseCsv(await file.text())
+    if (rows.length > 500) {
+      throw new Error('CSV cannot contain more than 500 data rows')
+    }
+  } catch (parseError) {
+    importError.value = parseError.message || 'Unable to read CSV file'
+    showToast(importError.value, 'error')
+    return
+  }
+
+  const confirmed = await requestConfirmation({
+    title: `Import ${rows.length} records?`,
+    message:
+      'ទិន្នន័យត្រឹមត្រូវនឹងត្រូវបញ្ចូល។ Row ដែលខុសនឹងត្រូវរាយការណ៍ដោយឡែក។',
+    confirmLabel: 'ចាប់ផ្ដើម Import',
+    cancelLabel: 'បោះបង់',
+  })
+  if (!confirmed) return
+
+  importing.value = true
+  importProgress.current = 0
+  importProgress.total = rows.length
+  let imported = 0
+  const failures = []
+
+  for (let index = 0; index < rows.length; index += 5) {
+    const batch = rows.slice(index, index + 5)
+    await Promise.all(
+      batch.map(async (row) => {
+        try {
+          await props.api.create(csvRecord(row))
+          imported += 1
+        } catch (requestError) {
+          failures.push(
+            requestError.response?.data?.message
+              ? `Row ${row.__row}: ${requestError.response.data.message}`
+              : requestError.message || `Row ${row.__row}: import failed`,
+          )
+        } finally {
+          importProgress.current += 1
+        }
+      }),
+    )
+  }
+
+  importing.value = false
+  importResult.value = failures.length
+    ? `Imported ${imported}/${rows.length}. ${failures.slice(0, 3).join(' · ')}${
+        failures.length > 3 ? ` · +${failures.length - 3} more` : ''
+      }`
+    : `Imported ${imported} records successfully.`
+  showToast(
+    failures.length ? importResult.value : 'CSV import completed successfully',
+    failures.length ? 'warning' : 'success',
+  )
+  await loadRecords(1)
 }
 
 const loadRecords = async (page = pagination.page) => {
@@ -232,13 +384,74 @@ onMounted(() => {
         <h1>{{ title }}</h1>
         <p>{{ pageDescription }}</p>
       </div>
-      <button class="btn btn-outline-secondary" type="button" @click="toggleTrash">
-        <i :class="showTrash ? 'bi bi-arrow-left' : 'bi bi-trash3'" class="me-1"></i>
-        {{ showTrash ? 'ត្រឡប់ទៅបញ្ជី' : 'ធុងសំរាម' }}
-      </button>
+      <div class="d-flex flex-wrap gap-2">
+        <template v-if="canManageBilling && !showTrash && !isSalesperson">
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            :disabled="importing"
+            @click="chooseCsv"
+          >
+            <i class="bi bi-file-earmark-arrow-up me-1"></i>
+            {{ importing ? `${importProgress.current}/${importProgress.total}` : 'Import CSV' }}
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            :disabled="importing"
+            @click="downloadTemplate"
+          >
+            <i class="bi bi-download me-1"></i> CSV Template
+          </button>
+          <input
+            ref="csvInput"
+            class="visually-hidden"
+            type="file"
+            accept=".csv,text/csv"
+            @change="importCsv"
+          />
+        </template>
+        <button class="btn btn-outline-secondary" type="button" @click="toggleTrash">
+          <i :class="showTrash ? 'bi bi-arrow-left' : 'bi bi-trash3'" class="me-1"></i>
+          {{ showTrash ? 'ត្រឡប់ទៅបញ្ជី' : 'ធុងសំរាម' }}
+        </button>
+      </div>
     </div>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !records.length"
+      :message="error"
+      :retrying="loading"
+      @retry="loadRecords(pagination.page)"
+    />
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
+    <div v-if="importError" class="alert alert-danger">
+      <i class="bi bi-file-earmark-x me-1"></i> {{ importError }}
+    </div>
+    <div v-if="importing" class="import-progress" role="status">
+      <div>
+        <strong>កំពុង Import CSV</strong>
+        <span>{{ importProgress.current }} / {{ importProgress.total }}</span>
+      </div>
+      <div class="progress">
+        <div
+          class="progress-bar"
+          :style="{
+            width: `${
+              importProgress.total
+                ? (importProgress.current / importProgress.total) * 100
+                : 0
+            }%`,
+          }"
+        ></div>
+      </div>
+    </div>
+    <div
+      v-else-if="importResult"
+      class="alert alert-info import-result"
+    >
+      <i class="bi bi-info-circle me-1"></i> {{ importResult }}
+    </div>
 
     <div
       v-if="canManageBilling && !showTrash"
@@ -347,7 +560,7 @@ onMounted(() => {
         </button>
       </div>
       <TableSkeleton v-if="loading" />
-      <div v-else-if="!records.length" class="empty-state">
+      <div v-else-if="!error && !records.length" class="empty-state">
         <div class="empty-icon"><i class="bi bi-inbox"></i></div>
         <h3>មិនមានទិន្នន័យ</h3>
         <p>បង្កើតកំណត់ត្រាថ្មី ឬកែពាក្យស្វែងរករបស់អ្នក។</p>

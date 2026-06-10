@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { customerApi } from '../api/invoices'
+import ErrorState from '../components/ErrorState.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import {
   formatDate,
@@ -86,7 +87,13 @@ onMounted(load)
       </button>
     </div>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !statement"
+      :message="error"
+      :retrying="loading"
+      @retry="load"
+    />
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
     <TableSkeleton v-if="loading" />
 
     <article v-else-if="statement" class="statement-paper">

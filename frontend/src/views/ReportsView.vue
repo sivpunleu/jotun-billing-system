@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { reportApi, salespersonApi } from '../api/invoices'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
+import ErrorState from '../components/ErrorState.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import {
   formatDate,
@@ -170,7 +171,13 @@ onMounted(initialize)
       </button>
     </form>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !report"
+      :message="error"
+      :retrying="loading"
+      @retry="loadReport"
+    />
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
     <ContentSkeleton v-if="loading" :cards="4" />
 
     <template v-else-if="report">

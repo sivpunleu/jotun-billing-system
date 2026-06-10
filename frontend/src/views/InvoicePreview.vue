@@ -186,6 +186,17 @@ onMounted(() => {
           <i class="bi bi-pencil me-1"></i>
           កែប្រែ
         </RouterLink>
+        <RouterLink
+          v-if="invoice && canManageBilling"
+          class="btn btn-outline-secondary"
+          :to="{
+            name: 'invoice-create',
+            query: { duplicate: invoice._id },
+          }"
+        >
+          <i class="bi bi-copy me-1"></i>
+          ចម្លងវិក្កយបត្រ
+        </RouterLink>
         <button
           v-if="invoice && canManageBilling"
           class="btn btn-outline-danger"

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { invoiceApi, reportApi } from '../api/invoices'
 import { isOwner } from '../auth/session'
+import ErrorState from '../components/ErrorState.vue'
 import { formatDate, formatMoney } from '../utils/invoice'
 import { showToast } from '../ui/feedback'
 
@@ -124,7 +125,13 @@ onMounted(loadDashboard)
       </div>
     </div>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <ErrorState
+      v-if="error && !metrics"
+      :message="error"
+      :retrying="loading"
+      @retry="loadDashboard"
+    />
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
     <div v-if="loading" class="dashboard-skeleton">
       <div v-for="index in 4" :key="index" class="skeleton-block"></div>
     </div>

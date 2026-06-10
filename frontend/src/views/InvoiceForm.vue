@@ -1,6 +1,18 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
+import {
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+  useRoute,
+  useRouter,
+} from 'vue-router'
 import {
   customerApi,
   invoiceApi,
@@ -24,6 +36,11 @@ const customers = ref([])
 const products = ref([])
 const salespeople = ref([])
 const isEditing = computed(() => Boolean(route.params.id))
+const duplicateId = computed(() => String(route.query.duplicate || ''))
+const duplicatedFrom = ref('')
+const formReady = ref(false)
+const savedSnapshot = ref('')
+const allowNavigation = ref(false)
 
 const addDays = (dateValue, days) => {
   const date = new Date(dateValue)
@@ -55,7 +72,7 @@ const unitOptions = [
   'ផ្សេងៗ',
 ]
 
-const form = reactive({
+const defaultForm = () => ({
   invoiceNumber: '',
   invoiceDate: toDateInput(),
   dueDate: addDays(new Date(), 7),
@@ -79,6 +96,22 @@ const form = reactive({
   status: 'unpaid',
   notes: '',
 })
+const form = reactive(defaultForm())
+
+const formSnapshot = () => JSON.stringify(form)
+const hasUnsavedChanges = computed(
+  () =>
+    formReady.value &&
+    formSnapshot() !== savedSnapshot.value,
+)
+
+const resetInvoiceForm = () => {
+  Object.assign(form, defaultForm())
+  duplicatedFrom.value = ''
+  formReady.value = false
+  savedSnapshot.value = ''
+  allowNavigation.value = false
+}
 
 const lineTotal = (item) =>
   Math.max(
@@ -179,12 +212,15 @@ const removeItem = async (index) => {
 }
 
 const loadInvoice = async () => {
-  if (!isEditing.value) return
-  const { data } = await invoiceApi.get(route.params.id)
+  const sourceId = isEditing.value ? route.params.id : duplicateId.value
+  if (!sourceId) return
+  const { data } = await invoiceApi.get(sourceId)
   Object.assign(form, {
-    ...data,
-    invoiceDate: toDateInput(data.invoiceDate),
-    dueDate: toDateInput(data.dueDate),
+    invoiceNumber: isEditing.value ? data.invoiceNumber : '',
+    invoiceDate: isEditing.value ? toDateInput(data.invoiceDate) : toDateInput(),
+    dueDate: isEditing.value
+      ? toDateInput(data.dueDate)
+      : addDays(new Date(), 7),
     customerId: data.customerId || '',
     customer: { ...data.customer },
     salesChannel: data.salesChannel || 'store',
@@ -193,11 +229,17 @@ const loadInvoice = async () => {
       name: data.salesperson?.name || '',
       phone: data.salesperson?.phone || '',
     },
-    status:
-      data.status ||
-      (data.paymentStatus === 'partial'
-        ? 'partially_paid'
-        : data.paymentStatus || 'unpaid'),
+    discount: Number(data.discount || 0),
+    taxRate: Number(data.taxRate || 0),
+    deliveryFee: Number(data.deliveryFee || 0),
+    depositRate: Number(data.depositRate || 0),
+    status: isEditing.value
+      ? data.status ||
+        (data.paymentStatus === 'partial'
+          ? 'partially_paid'
+          : data.paymentStatus || 'unpaid')
+      : 'unpaid',
+    notes: data.notes || '',
     items: Array.isArray(data.items)
       ? data.items.map((item) => ({
           productId: item.productId || '',
@@ -211,6 +253,7 @@ const loadInvoice = async () => {
         }))
       : [newItem()],
   })
+  if (!isEditing.value) duplicatedFrom.value = data.invoiceNumber || ''
 }
 
 const initialize = async () => {
@@ -223,6 +266,8 @@ const initialize = async () => {
       requestError.response?.data?.message || 'មិនអាចទាញយកទិន្នន័យបានទេ'
   } finally {
     loading.value = false
+    formReady.value = !error.value
+    savedSnapshot.value = formSnapshot()
   }
 }
 
@@ -259,6 +304,8 @@ const submitForm = async (event) => {
         ? 'កែប្រែវិក្កយបត្របានជោគជ័យ'
         : 'បង្កើតវិក្កយបត្របានជោគជ័យ',
     )
+    allowNavigation.value = true
+    savedSnapshot.value = formSnapshot()
     await router.push({
       name: 'invoice-preview',
       params: { id: response.data._id },
@@ -273,7 +320,49 @@ const submitForm = async (event) => {
   }
 }
 
-onMounted(initialize)
+const confirmLeave = () =>
+  requestConfirmation({
+    title: 'ចាកចេញដោយមិនរក្សាទុក?',
+    message:
+      'ទិន្នន័យដែលអ្នកបានកែប្រែនៅលើវិក្កយបត្រនេះមិនទាន់បានរក្សាទុកទេ។',
+    confirmLabel: 'ចាកចេញ',
+    cancelLabel: 'បន្តកែប្រែ',
+    tone: 'danger',
+  })
+
+onBeforeRouteLeave(async () => {
+  if (allowNavigation.value || !hasUnsavedChanges.value) return true
+  return confirmLeave()
+})
+
+onBeforeRouteUpdate(async () => {
+  if (allowNavigation.value || !hasUnsavedChanges.value) return true
+  return confirmLeave()
+})
+
+const handleBeforeUnload = (event) => {
+  if (!hasUnsavedChanges.value || allowNavigation.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!['invoice-create', 'invoice-edit'].includes(route.name)) return
+    resetInvoiceForm()
+    initialize()
+  },
+)
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  initialize()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 </script>
 
 <template>
@@ -290,6 +379,16 @@ onMounted(initialize)
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <div
+      v-if="duplicatedFrom && !isEditing"
+      class="duplicate-invoice-notice"
+    >
+      <i class="bi bi-copy"></i>
+      <span>
+        ចម្លងពីវិក្កយបត្រ <strong>{{ duplicatedFrom }}</strong>។ លេខវិក្កយបត្រថ្មី
+        នឹងបង្កើតដោយស្វ័យប្រវត្តិពេលរក្សាទុក។
+      </span>
+    </div>
     <ContentSkeleton v-if="loading" :cards="3" />
 
     <form v-else novalidate @submit.prevent="submitForm">

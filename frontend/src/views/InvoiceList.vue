@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import InvoiceTableRow from '../components/InvoiceTableRow.vue'
+import ErrorState from '../components/ErrorState.vue'
 import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import { invoiceApi, salespersonApi } from '../api/invoices'
@@ -193,9 +194,16 @@ onMounted(initialize)
         </button>
       </div>
 
-      <div v-if="error" class="alert alert-danger mx-3 mt-3">{{ error }}</div>
+      <ErrorState
+        v-if="error && !invoices.length"
+        class="m-3"
+        :message="error"
+        :retrying="loading"
+        @retry="loadInvoices(pagination.page)"
+      />
+      <div v-else-if="error" class="alert alert-danger mx-3 mt-3">{{ error }}</div>
       <TableSkeleton v-if="loading" />
-      <div v-else-if="!invoices.length" class="empty-state">
+      <div v-else-if="!error && !invoices.length" class="empty-state">
         <div class="empty-icon"><i class="bi bi-receipt-cutoff"></i></div>
         <h3>មិនមានវិក្កយបត្រ</h3>
         <p>{{ showTrash ? 'ធុងសំរាមនៅទទេ។' : 'ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូង។' }}</p>
