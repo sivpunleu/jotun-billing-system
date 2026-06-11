@@ -28,7 +28,10 @@ const sidebarCollapsed = ref(
     window.localStorage.getItem('jotun_sidebar_collapsed') === 'true',
 )
 const showWorkspace = computed(
-  () => isAuthenticated.value && route.name !== 'login',
+  () =>
+    isAuthenticated.value &&
+    route.name !== 'login' &&
+    route.name !== 'public-invoice-preview',
 )
 const pageMeta = computed(() => {
   const pages = {
@@ -322,6 +325,7 @@ const logout = async () => {
     <header
       v-else-if="
         route.name !== 'invoice-preview' &&
+        route.name !== 'public-invoice-preview' &&
         route.name !== 'login'
       "
       class="public-header d-print-none"
@@ -351,6 +355,7 @@ const logout = async () => {
       v-if="
         !showWorkspace &&
         route.name !== 'invoice-preview' &&
+        route.name !== 'public-invoice-preview' &&
         route.name !== 'login'
       "
       class="app-footer d-print-none"

@@ -60,6 +60,12 @@ const router = createRouter({
       path: '/invoices/:id',
       name: 'invoice-preview',
       component: InvoicePreview,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/public/invoices/:token',
+      name: 'public-invoice-preview',
+      component: InvoicePreview,
     },
     {
       path: '/customers',

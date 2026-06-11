@@ -98,6 +98,9 @@ export const invoiceApi = {
   get(id) {
     return api.get(`/invoices/${id}`)
   },
+  getPublic(token) {
+    return api.get(`/invoices/public/${token}`)
+  },
   create(payload) {
     return api.post('/invoices', payload)
   },

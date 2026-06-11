@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { createShareToken } from '../utils/shareToken.js'
 
 const itemSchema = new mongoose.Schema(
   {
@@ -90,6 +91,11 @@ const invoiceSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       uppercase: true,
+    },
+    shareToken: {
+      type: String,
+      trim: true,
+      default: createShareToken,
     },
     invoiceDate: {
       type: Date,
@@ -257,5 +263,12 @@ invoiceSchema.index({ createdAt: -1 })
 invoiceSchema.index({ deletedAt: 1, createdAt: -1 })
 invoiceSchema.index({ 'customer.name': 'text', invoiceNumber: 'text' })
 invoiceSchema.index({ salesChannel: 1, salespersonId: 1, invoiceDate: -1 })
+invoiceSchema.index(
+  { shareToken: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { shareToken: { $type: 'string', $gt: '' } },
+  },
+)
 
 export default mongoose.model('Invoice', invoiceSchema)

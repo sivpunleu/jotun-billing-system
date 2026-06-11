@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getStorageMode } from '../config/db.js'
 import Counter from '../models/Counter.js'
 import Invoice from '../models/Invoice.js'
+import { createShareToken } from '../utils/shareToken.js'
 import {
   mutateLocalCollection,
   readLocalCollection,
@@ -33,6 +34,16 @@ const resolvedStatus = (invoice) => {
   if (invoice.status) return invoice.status
   if (invoice.paymentStatus === 'partial') return 'partially_paid'
   return invoice.paymentStatus || 'unpaid'
+}
+
+const existingShareTokens = (invoices) =>
+  new Set(invoices.map((invoice) => invoice.shareToken).filter(Boolean))
+
+export const createUniqueShareToken = (usedTokens = new Set()) => {
+  let token = createShareToken()
+  while (usedTokens.has(token)) token = createShareToken()
+  usedTokens.add(token)
+  return token
 }
 
 export const listInvoices = async ({
@@ -148,6 +159,23 @@ export const findInvoiceById = async (id, { includeDeleted = false } = {}) => {
   )
 }
 
+export const findInvoiceByShareToken = async (shareToken) => {
+  const token = String(shareToken || '').trim()
+  if (!token) return null
+
+  if (getStorageMode() === 'mongodb') {
+    return Invoice.findOne({ shareToken: token, deletedAt: null })
+  }
+
+  const invoices = await readLocalCollection('invoices')
+  return (
+    invoices.find(
+      (invoice) =>
+        String(invoice.shareToken || '') === token && !invoice.deletedAt,
+    ) || null
+  )
+}
+
 export const reserveInvoiceNumber = async (dateValue = new Date()) => {
   const year = new Date(dateValue).getFullYear()
   if (getStorageMode() === 'mongodb') {
@@ -204,7 +232,10 @@ export const reserveInvoiceNumber = async (dateValue = new Date()) => {
 
 export const insertInvoice = async (payload) => {
   if (getStorageMode() === 'mongodb') {
-    return Invoice.create(payload)
+    return Invoice.create({
+      ...payload,
+      shareToken: payload.shareToken || createShareToken(),
+    })
   }
 
   return mutateLocalCollection('invoices', (invoices) => {
@@ -216,9 +247,11 @@ export const insertInvoice = async (payload) => {
     if (duplicate) throw duplicateInvoiceError()
 
     const timestamp = new Date().toISOString()
+    const usedTokens = existingShareTokens(invoices)
     const invoice = {
       ...payload,
       invoiceNumber: String(payload.invoiceNumber).toUpperCase(),
+      shareToken: payload.shareToken || createUniqueShareToken(usedTokens),
       _id: randomUUID(),
       deletedAt: null,
       createdAt: timestamp,
@@ -345,6 +378,21 @@ export const getAllInvoices = async () => {
     return Invoice.find({}).sort({ createdAt: -1 }).lean()
   }
   return readLocalCollection('invoices')
+}
+
+export const backfillLocalShareTokens = async () => {
+  if (getStorageMode() === 'mongodb') return 0
+  return mutateLocalCollection('invoices', (invoices) => {
+    const usedTokens = existingShareTokens(invoices)
+    let updated = 0
+    invoices.forEach((invoice) => {
+      if (invoice.shareToken) return
+      invoice.shareToken = createUniqueShareToken(usedTokens)
+      invoice.updatedAt = new Date().toISOString()
+      updated += 1
+    })
+    return updated
+  })
 }
 
 export const getInvoiceDashboard = async () => {

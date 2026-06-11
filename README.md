@@ -31,8 +31,9 @@ The frontend runs at `http://localhost:5173` and the API runs at
 
 ## Admin authentication
 
-Invoice preview links are public. Viewing the invoice list and creating,
-editing, or deleting invoices requires an admin login.
+Admin invoice pages, the invoice list, and create/edit/delete actions require
+an admin login. Customer-facing invoice links use random share tokens at
+`/public/invoices/:token`.
 
 Generate a bcrypt password hash:
 

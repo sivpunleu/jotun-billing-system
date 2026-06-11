@@ -34,12 +34,23 @@ test('local repository sequences, paginates, deletes, and restores', async () =>
     const active = await repository.listInvoices({ page: 1, limit: 10 })
     assert.equal(active.total, 1)
     assert.equal(active.items[0].invoiceNumber, firstNumber)
+    assert.equal(typeof invoice.shareToken, 'string')
+    assert.equal(invoice.shareToken.length > 20, true)
+
+    const publicInvoice = await repository.findInvoiceByShareToken(
+      invoice.shareToken,
+    )
+    assert.equal(publicInvoice._id, invoice._id)
 
     await repository.softDeleteInvoice(invoice._id, 'tester')
     const afterDelete = await repository.listInvoices({})
     const trash = await repository.listInvoices({ deleted: true })
+    const deletedPublicInvoice = await repository.findInvoiceByShareToken(
+      invoice.shareToken,
+    )
     assert.equal(afterDelete.total, 0)
     assert.equal(trash.total, 1)
+    assert.equal(deletedPublicInvoice, null)
 
     await repository.restoreInvoice(invoice._id, 'tester')
     const afterRestore = await repository.listInvoices({})

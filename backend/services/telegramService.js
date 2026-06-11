@@ -23,10 +23,13 @@ const date = (value) => {
   }).format(new Date(value))
 }
 
-const invoiceUrl = (config, invoice) =>
-  config.publicUrl && invoice?._id
-    ? `${config.publicUrl}/invoices/${invoice._id}`
+const invoiceUrl = (config, invoice) => {
+  const publicUrl = String(config.publicUrl || '').replace(/\/+$/, '')
+  const token = String(invoice?.shareToken || '').trim()
+  return publicUrl && token
+    ? `${publicUrl}/public/invoices/${encodeURIComponent(token)}`
     : ''
+}
 
 const invoiceKeyboard = (config, invoice) => {
   const url = invoiceUrl(config, invoice)

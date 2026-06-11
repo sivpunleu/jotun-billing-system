@@ -6,6 +6,7 @@ import {
   getDashboard,
   getInvoiceById,
   getInvoices,
+  getPublicInvoiceByToken,
   restoreDeletedInvoice,
   updateInvoice,
 } from '../controllers/invoiceController.js'
@@ -22,6 +23,7 @@ import {
 const router = express.Router()
 const canManage = authorizeRoles('owner', 'admin')
 
+router.get('/public/:token', getPublicInvoiceByToken)
 router.get('/dashboard', requireAdmin, getDashboard)
 router
   .route('/')
@@ -48,7 +50,7 @@ router.post(
 router.post('/:id/restore', requireAdmin, canManage, restoreDeletedInvoice)
 router
   .route('/:id')
-  .get(getInvoiceById)
+  .get(requireAdmin, getInvoiceById)
   .put(requireAdmin, canManage, updateInvoice)
   .delete(requireAdmin, canManage, deleteInvoice)
 

@@ -95,9 +95,21 @@ const statusLabels = {
   cancelled: 'Cancelled',
 }
 
+const isPublicPreview = computed(
+  () => route.name === 'public-invoice-preview',
+)
+const showAdminControls = computed(
+  () => !isPublicPreview.value && isAuthenticated.value,
+)
+const showManageControls = computed(
+  () => showAdminControls.value && canManageBilling.value,
+)
+
 const loadInvoice = async () => {
   try {
-    const response = await invoiceApi.get(route.params.id)
+    const response = isPublicPreview.value
+      ? await invoiceApi.getPublic(route.params.token)
+      : await invoiceApi.get(route.params.id)
     invoice.value = response.data
   } catch (requestError) {
     error.value =
@@ -137,7 +149,7 @@ const loadSettings = async () => {
 }
 
 const loadTelegramStatus = async () => {
-  if (!isAuthenticated.value) return
+  if (!showAdminControls.value) return
   try {
     telegramConfigured.value = (
       await insightApi.telegramStatus()
@@ -215,7 +227,7 @@ onMounted(() => {
   <section class="container page-section preview-page">
     <div class="preview-actions d-print-none">
       <RouterLink
-        v-if="isAuthenticated"
+        v-if="showAdminControls"
         class="btn btn-outline-secondary"
         to="/invoices"
       >
@@ -225,7 +237,7 @@ onMounted(() => {
       <span v-else></span>
       <div class="d-flex flex-wrap gap-2">
         <RouterLink
-          v-if="invoice && canManageBilling"
+          v-if="invoice && showManageControls"
           class="btn btn-outline-primary"
           :to="{ name: 'invoice-edit', params: { id: invoice._id } }"
         >
@@ -233,7 +245,7 @@ onMounted(() => {
           កែប្រែ
         </RouterLink>
         <RouterLink
-          v-if="invoice && canManageBilling"
+          v-if="invoice && showManageControls"
           class="btn btn-outline-secondary"
           :to="{
             name: 'invoice-create',
@@ -244,7 +256,7 @@ onMounted(() => {
           ចម្លងវិក្កយបត្រ
         </RouterLink>
         <button
-          v-if="invoice && canManageBilling"
+          v-if="invoice && showManageControls"
           class="btn btn-outline-info telegram-action"
           type="button"
           :disabled="Boolean(sendingTelegram) || !telegramConfigured"
@@ -263,7 +275,7 @@ onMounted(() => {
           Telegram
         </button>
         <button
-          v-if="invoice && canManageBilling"
+          v-if="invoice && showManageControls"
           class="btn btn-outline-danger"
           type="button"
           @click="deleteInvoice"
@@ -287,7 +299,7 @@ onMounted(() => {
     <ContentSkeleton v-if="loading" :cards="2" />
 
     <div
-      v-if="invoice && isAuthenticated"
+      v-if="invoice && showAdminControls"
       class="payment-management d-print-none"
     >
       <div class="content-card form-card">
@@ -309,7 +321,7 @@ onMounted(() => {
 
         <form
           v-if="
-            canManageBilling &&
+            showManageControls &&
             !['draft', 'cancelled', 'paid'].includes(resolvedStatus)
           "
           class="row g-3 payment-form"
@@ -396,7 +408,7 @@ onMounted(() => {
                       <i class="bi bi-printer"></i>
                     </RouterLink>
                     <button
-                      v-if="canManageBilling"
+                      v-if="showManageControls"
                       class="btn btn-sm btn-outline-info telegram-action"
                       type="button"
                       :disabled="

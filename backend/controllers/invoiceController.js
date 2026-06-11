@@ -3,6 +3,7 @@ import { writeAuditLog } from '../repositories/auditRepository.js'
 import {
   appendInvoicePayment,
   findInvoiceById,
+  findInvoiceByShareToken,
   getInvoiceDashboard,
   insertInvoice,
   listInvoices,
@@ -247,6 +248,23 @@ const paginationResponse = ({ items, total, page, limit }) => ({
   },
 })
 
+const toPublicInvoice = (invoice) => {
+  const data = typeof invoice.toObject === 'function' ? invoice.toObject() : invoice
+  const {
+    _id,
+    id,
+    shareToken,
+    payments,
+    createdBy,
+    updatedBy,
+    deletedBy,
+    deletedAt,
+    __v,
+    ...publicInvoice
+  } = data
+  return publicInvoice
+}
+
 export const getInvoices = async (req, res) => {
   try {
     const result = await listInvoices({
@@ -271,6 +289,18 @@ export const getInvoiceById = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' })
     }
     res.json(invoice)
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const getPublicInvoiceByToken = async (req, res) => {
+  try {
+    const invoice = await findInvoiceByShareToken(req.params.token)
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' })
+    }
+    res.json(toPublicInvoice(invoice))
   } catch (error) {
     sendError(res, error)
   }

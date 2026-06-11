@@ -16,6 +16,7 @@ const config = {
 
 const invoice = {
   _id: 'invoice-1',
+  shareToken: 'public-share-token',
   invoiceNumber: 'INV-2026-00001',
   invoiceDate: '2026-06-10T00:00:00.000Z',
   dueDate: '2999-06-17T00:00:00.000Z',
@@ -44,7 +45,7 @@ test('invoice and receipt Telegram messages escape HTML and include links', () =
   assert.match(invoiceMessage.text, /Jotun &lt;Paint&gt;/)
   assert.equal(
     invoiceMessage.replyMarkup.inline_keyboard[0][0].url,
-    'https://billing.example.com/invoices/invoice-1',
+    'https://billing.example.com/public/invoices/public-share-token',
   )
 
   const receiptMessage = buildReceiptTelegram(
