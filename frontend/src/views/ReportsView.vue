@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { reportApi, salespersonApi } from '../api/invoices'
+import { isOwner } from '../auth/session'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
 import ErrorState from '../components/ErrorState.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
@@ -11,12 +12,22 @@ import {
   resolveInvoiceStatus,
   toDateInput,
 } from '../utils/invoice'
-import { showToast, validateForm } from '../ui/feedback'
+import {
+  requestConfirmation,
+  showToast,
+  validateForm,
+} from '../ui/feedback'
 
 const report = ref(null)
 const loading = ref(true)
 const error = ref('')
 const salespeople = ref([])
+const backups = ref([])
+const backupMeta = ref(null)
+const backupLoading = ref(false)
+const backupAction = ref('')
+const uploadedBackup = ref(null)
+const uploadedBackupName = ref('')
 const filters = reactive({
   from: toDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
   to: toDateInput(),
@@ -82,6 +93,153 @@ const changeSalesChannel = () => {
   if (filters.salesChannel !== 'salesperson') filters.salespersonId = ''
 }
 
+const snapshotCounts = (item = {}) =>
+  item.counts ||
+  item.metadata?.counts || {
+    invoices: item.invoices?.length || 0,
+    customers: item.customers?.length || 0,
+    products: item.products?.length || 0,
+    salespeople: item.salespeople?.length || 0,
+    auditLogs: item.auditLogs?.length || 0,
+  }
+
+const backupCountLabel = (item) => {
+  const counts = snapshotCounts(item)
+  return `${counts.invoices || 0} invoices · ${counts.customers || 0} customers · ${counts.products || 0} products`
+}
+
+const loadBackups = async () => {
+  if (!isOwner.value) return
+  backupLoading.value = true
+  try {
+    const { data } = await reportApi.backups({ limit: 10 })
+    backups.value = data.items || []
+    backupMeta.value = data
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to load backups',
+      'error',
+    )
+  } finally {
+    backupLoading.value = false
+  }
+}
+
+const runBackupNow = async () => {
+  backupAction.value = 'run'
+  try {
+    await reportApi.createBackup({ reason: 'Manual backup from Reports page' })
+    showToast('Backup snapshot created')
+    await loadBackups()
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to create backup',
+      'error',
+    )
+  } finally {
+    backupAction.value = ''
+  }
+}
+
+const downloadSnapshot = async (snapshot) => {
+  backupAction.value = `download-${snapshot._id}`
+  try {
+    await reportApi.downloadBackup(snapshot._id)
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to download backup',
+      'error',
+    )
+  } finally {
+    backupAction.value = ''
+  }
+}
+
+const confirmRestore = async (message) => {
+  const value = await requestConfirmation({
+    title: 'Restore database?',
+    message,
+    confirmLabel: 'Restore',
+    cancelLabel: 'Cancel',
+    tone: 'danger',
+    inputType: 'text',
+    inputLabel: 'Type RESTORE to confirm',
+    inputPlaceholder: 'RESTORE',
+    inputMinLength: 7,
+  })
+  if (value === false) return false
+  if (String(value).trim() !== 'RESTORE') {
+    showToast('Restore cancelled: confirmation text did not match', 'error')
+    return false
+  }
+  return true
+}
+
+const restoreSnapshot = async (snapshot) => {
+  const confirmed = await confirmRestore(
+    `This will replace business data with snapshot ${formatDate(snapshot.createdAt)}. A safety backup will be created first.`,
+  )
+  if (!confirmed) return
+
+  backupAction.value = `restore-${snapshot._id}`
+  try {
+    await reportApi.restoreBackup(snapshot._id)
+    showToast('Database restored from snapshot')
+    await Promise.all([loadBackups(), loadReport()])
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to restore backup',
+      'error',
+    )
+  } finally {
+    backupAction.value = ''
+  }
+}
+
+const handleBackupFile = async (event) => {
+  const file = event.target.files?.[0]
+  uploadedBackup.value = null
+  uploadedBackupName.value = ''
+  if (!file) return
+
+  try {
+    uploadedBackup.value = JSON.parse(await file.text())
+    uploadedBackupName.value = file.name
+    showToast('Backup JSON loaded')
+  } catch {
+    showToast('Invalid JSON backup file', 'error')
+    event.target.value = ''
+  }
+}
+
+const restoreUploaded = async () => {
+  if (!uploadedBackup.value) {
+    showToast('Please choose a backup JSON file first', 'error')
+    return
+  }
+  const counts = snapshotCounts(uploadedBackup.value)
+  const confirmed = await confirmRestore(
+    `This will restore ${counts.invoices || 0} invoices, ${counts.customers || 0} customers, and ${counts.products || 0} products from ${uploadedBackupName.value}.`,
+  )
+  if (!confirmed) return
+
+  backupAction.value = 'restore-upload'
+  try {
+    await reportApi.restoreUploadedBackup(uploadedBackup.value)
+    showToast('Database restored from uploaded backup')
+    uploadedBackup.value = null
+    uploadedBackupName.value = ''
+    await Promise.all([loadBackups(), loadReport()])
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to restore backup',
+      'error',
+    )
+  } finally {
+    backupAction.value = ''
+  }
+}
+
 const initialize = async () => {
   try {
     const { data } = await salespersonApi.list({ limit: 100 })
@@ -89,7 +247,7 @@ const initialize = async () => {
   } catch {
     salespeople.value = []
   }
-  await loadReport()
+  await Promise.all([loadReport(), loadBackups()])
 }
 
 onMounted(initialize)
@@ -170,6 +328,134 @@ onMounted(initialize)
         <i class="bi bi-funnel me-1"></i> Apply Filter
       </button>
     </form>
+
+    <div v-if="isOwner" class="content-card form-card mb-4">
+      <div class="card-toolbar align-items-start">
+        <div>
+          <h2 class="panel-title mb-1">Backup & Restore</h2>
+          <small class="text-secondary">
+            Daily backup: {{ backupMeta?.automaticEnabled ? 'Enabled' : 'Disabled' }}
+            · {{ backupMeta?.backupTimeUtc || '02:00' }} UTC
+            · retention {{ backupMeta?.retentionDays || 30 }} days
+          </small>
+        </div>
+        <button
+          class="btn btn-outline-primary"
+          type="button"
+          :disabled="Boolean(backupAction)"
+          @click="runBackupNow"
+        >
+          <span
+            v-if="backupAction === 'run'"
+            class="spinner-border spinner-border-sm me-1"
+          ></span>
+          <i v-else class="bi bi-database-add me-1"></i>
+          Run Backup Now
+        </button>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div class="table-responsive">
+            <table class="table invoice-table responsive-table mb-0">
+              <thead>
+                <tr>
+                  <th>Created</th>
+                  <th>Type</th>
+                  <th>Records</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="snapshot in backups" :key="snapshot._id">
+                  <td class="mobile-card-primary" data-label="Created">
+                    {{ formatDate(snapshot.createdAt) }}
+                    <small class="d-block text-secondary">
+                      {{ snapshot.createdBy || 'system' }}
+                    </small>
+                  </td>
+                  <td data-label="Type">
+                    <span class="role-badge">{{ snapshot.type }}</span>
+                  </td>
+                  <td data-label="Records">{{ backupCountLabel(snapshot) }}</td>
+                  <td class="text-end" data-label="Actions">
+                    <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        :disabled="Boolean(backupAction)"
+                        @click="downloadSnapshot(snapshot)"
+                      >
+                        <span
+                          v-if="backupAction === `download-${snapshot._id}`"
+                          class="spinner-border spinner-border-sm"
+                        ></span>
+                        <i v-else class="bi bi-download"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        type="button"
+                        :disabled="Boolean(backupAction)"
+                        @click="restoreSnapshot(snapshot)"
+                      >
+                        <span
+                          v-if="backupAction === `restore-${snapshot._id}`"
+                          class="spinner-border spinner-border-sm"
+                        ></span>
+                        <i v-else class="bi bi-arrow-counterclockwise"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="!backupLoading && !backups.length">
+                  <td colspan="4" class="text-center text-secondary py-4">
+                    No backup snapshots yet
+                  </td>
+                </tr>
+                <tr v-if="backupLoading">
+                  <td colspan="4" class="text-center text-secondary py-4">
+                    Loading backups...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="restore-upload-card">
+            <label class="form-label">Restore from JSON file</label>
+            <input
+              class="form-control"
+              type="file"
+              accept="application/json,.json"
+              @change="handleBackupFile"
+            />
+            <div v-if="uploadedBackup" class="alert alert-warning mt-3 mb-3">
+              <strong>{{ uploadedBackupName }}</strong>
+              <span class="d-block">{{ backupCountLabel(uploadedBackup) }}</span>
+            </div>
+            <button
+              class="btn btn-danger w-100"
+              type="button"
+              :disabled="!uploadedBackup || Boolean(backupAction)"
+              @click="restoreUploaded"
+            >
+              <span
+                v-if="backupAction === 'restore-upload'"
+                class="spinner-border spinner-border-sm me-1"
+              ></span>
+              <i v-else class="bi bi-upload me-1"></i>
+              Restore Uploaded Backup
+            </button>
+            <small class="d-block text-secondary mt-2">
+              Restore replaces business data. Admin accounts are not restored
+              from backup files.
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <ErrorState
       v-if="error && !report"

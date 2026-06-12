@@ -11,6 +11,7 @@ import productRoutes from './routes/productRoutes.js'
 import reportRoutes from './routes/reportRoutes.js'
 import salespersonRoutes from './routes/salespersonRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
+import { startAutomatedBackupScheduler } from './services/backupScheduler.js'
 import { migrateExistingData } from './services/migrationService.js'
 
 dotenv.config()
@@ -34,7 +35,7 @@ app.use(
     },
   }),
 )
-app.use(express.json({ limit: '5mb' }))
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '20mb' }))
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -68,6 +69,7 @@ const startServer = async () => {
   await migrateExistingData()
   app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`)
+    startAutomatedBackupScheduler()
   })
 }
 

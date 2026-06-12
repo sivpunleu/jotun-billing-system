@@ -174,6 +174,24 @@ export const reportApi = {
   backup() {
     return downloadBlob('/reports/backup.json', 'jotun-billing-backup.json')
   },
+  backups(params = {}) {
+    return api.get('/reports/backups', { params })
+  },
+  createBackup(payload = {}) {
+    return api.post('/reports/backups', payload)
+  },
+  downloadBackup(id) {
+    return downloadBlob(
+      `/reports/backups/${id}.json`,
+      `jotun-billing-snapshot-${id}.json`,
+    )
+  },
+  restoreBackup(id) {
+    return api.post(`/reports/backups/${id}/restore`)
+  },
+  restoreUploadedBackup(backup) {
+    return api.post('/reports/backup/restore', { backup })
+  },
 }
 
 export const insightApi = {

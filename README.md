@@ -80,11 +80,16 @@ the application database. The owner can then create more accounts:
 - Personal profiles with a compressed avatar, display name, password controls,
   last login details, and personal activity history
 - Invoice CSV export and owner-only JSON database backup
+- Automated daily backup snapshots with owner-only download and restore workflow
 - Telegram delivery for invoices, payment receipts, and debt alerts
 - A shared A4 layout for browser preview and Print / Save PDF
 
 Downloaded backups contain private customer and business data. Store them in a
 secure location.
+
+Backup restore replaces business data such as invoices, customers, products,
+salespeople, settings, audit logs, and invoice counters. Admin accounts are not
+restored from uploaded backup files.
 
 ## Deploy
 
@@ -113,6 +118,9 @@ JWT_EXPIRES_IN=8h
 TELEGRAM_BOT_TOKEN=123456789:replace-with-bot-token
 TELEGRAM_CHAT_ID=-1001234567890
 TELEGRAM_PUBLIC_URL=https://your-frontend.vercel.app
+AUTO_BACKUP_ENABLED=true
+AUTO_BACKUP_TIME=02:00
+AUTO_BACKUP_RETENTION_DAYS=30
 ```
 
 After deployment, test:

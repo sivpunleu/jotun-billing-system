@@ -1,9 +1,14 @@
-import { getAllAdminsForBackup } from '../repositories/adminRepository.js'
-import { getAllAuditLogs } from '../repositories/auditRepository.js'
 import { getAllCatalogRecords } from '../repositories/catalogRepository.js'
 import { getAllInvoices } from '../repositories/invoiceRepository.js'
 import { writeAuditLog } from '../repositories/auditRepository.js'
-import { getSystemSettings } from '../repositories/settingsRepository.js'
+import {
+  buildDatabaseBackup,
+  createBackupSnapshot,
+  getBackupDownloadPayload,
+  listDatabaseBackups,
+  restoreDatabaseBackup,
+  restoreDatabaseBackupSnapshot,
+} from '../services/backupService.js'
 
 const csvValue = (value) => {
   const stringValue =
@@ -315,38 +320,10 @@ export const exportInvoicesCsv = async (req, res) => {
 
 export const exportDatabaseBackup = async (req, res) => {
   try {
-    const [
-      invoices,
-      customers,
-      products,
-      salespeople,
-      admins,
-      auditLogs,
-      settings,
-    ] =
-      await Promise.all([
-        getAllInvoices(),
-        getAllCatalogRecords('customers'),
-        getAllCatalogRecords('products'),
-        getAllCatalogRecords('salespeople'),
-        getAllAdminsForBackup(),
-        getAllAuditLogs(),
-        getSystemSettings(),
-      ])
-    const backup = {
-      metadata: {
-        createdAt: new Date().toISOString(),
-        createdBy: req.admin.username,
-        formatVersion: 1,
-      },
-      invoices,
-      customers,
-      products,
-      salespeople,
-      admins,
-      auditLogs,
-      settings,
-    }
+    const backup = await buildDatabaseBackup({
+      createdBy: req.admin.username,
+      source: 'download',
+    })
 
     await writeAuditLog({
       actor: req.admin,
@@ -361,5 +338,79 @@ export const exportDatabaseBackup = async (req, res) => {
     res.send(JSON.stringify(backup, null, 2))
   } catch (error) {
     res.status(500).json({ message: error.message || 'Unable to create backup' })
+  }
+}
+
+export const listBackupSnapshots = async (req, res) => {
+  try {
+    const items = await listDatabaseBackups({ limit: req.query.limit })
+    res.json({
+      items,
+      automaticEnabled: process.env.AUTO_BACKUP_ENABLED !== 'false',
+      retentionDays: Number(process.env.AUTO_BACKUP_RETENTION_DAYS || 30),
+      backupTimeUtc: process.env.AUTO_BACKUP_TIME || '02:00',
+    })
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Unable to list backups' })
+  }
+}
+
+export const createManualBackupSnapshot = async (req, res) => {
+  try {
+    const snapshot = await createBackupSnapshot({
+      type: 'manual',
+      createdBy: req.admin.username,
+      reason: String(req.body.reason || '').trim(),
+    })
+    res.status(201).json(snapshot)
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Unable to create backup' })
+  }
+}
+
+export const downloadBackupSnapshot = async (req, res) => {
+  try {
+    const result = await getBackupDownloadPayload(req.params.id)
+    if (!result) {
+      return res.status(404).json({ message: 'Backup snapshot not found' })
+    }
+    res.set({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="jotun-billing-snapshot-${dateStamp()}.json"`,
+    })
+    res.send(JSON.stringify(result.payload, null, 2))
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Unable to download backup' })
+  }
+}
+
+export const restoreBackupSnapshot = async (req, res) => {
+  try {
+    const result = await restoreDatabaseBackupSnapshot(req.params.id, {
+      actor: req.admin,
+    })
+    if (!result) {
+      return res.status(404).json({ message: 'Backup snapshot not found' })
+    }
+    res.json({
+      message: 'Database restored from backup snapshot',
+      ...result,
+    })
+  } catch (error) {
+    res.status(400).json({ message: error.message || 'Unable to restore backup' })
+  }
+}
+
+export const restoreUploadedBackup = async (req, res) => {
+  try {
+    const result = await restoreDatabaseBackup(req.body, {
+      actor: req.admin,
+    })
+    res.json({
+      message: 'Database restored from uploaded backup',
+      ...result,
+    })
+  } catch (error) {
+    res.status(400).json({ message: error.message || 'Unable to restore backup' })
   }
 }
