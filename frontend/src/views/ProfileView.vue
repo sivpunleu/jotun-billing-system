@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { authApi } from '../api/invoices'
 import {
+  clearAuthSession,
   currentAdmin,
   updateCurrentAdmin,
 } from '../auth/session'
@@ -10,10 +12,16 @@ import PaginationControls from '../components/PaginationControls.vue'
 import TableSkeleton from '../components/TableSkeleton.vue'
 import {
   requestConfirmation,
+  showSuccessAlert,
   showToast,
   validateForm,
 } from '../ui/feedback'
+import {
+  PASSWORD_MINIMUM_LENGTH,
+  passwordPolicyMessage,
+} from '../utils/passwordPolicy'
 
+const router = useRouter()
 const loading = ref(true)
 const saving = ref(false)
 const changingPassword = ref(false)
@@ -197,7 +205,10 @@ const changePassword = async (event) => {
       ? 'Password ថ្មី និង Confirm Password មិនដូចគ្នាទេ។'
       : passwordForm.currentPassword === passwordForm.newPassword
         ? 'Password ថ្មីត្រូវតែខុសពី Password បច្ចុប្បន្ន។'
-        : ''
+        : passwordPolicyMessage(passwordForm.newPassword, {
+            username: profile.username,
+            displayName: profile.displayName,
+          })
   if (
     !(await validateForm(event?.currentTarget, {
       customMessage,
@@ -215,8 +226,12 @@ const changePassword = async (event) => {
       newPassword: '',
       confirmPassword: '',
     })
-    showSuccess('Password changed successfully')
-    await loadActivity(1)
+    clearAuthSession()
+    await router.replace('/login')
+    await showSuccessAlert(
+      'Password បានប្ដូរដោយជោគជ័យ។ សូម Login ម្ដងទៀត។',
+      'Password Changed',
+    )
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'Unable to change password'
@@ -353,7 +368,7 @@ onMounted(initialize)
               <span class="section-number"><i class="bi bi-key"></i></span>
               <div>
                 <h2>Change Password</h2>
-                <p>ប្រើ password យ៉ាងតិច 10 តួអក្សរ។</p>
+                <p>ប្រើ Password 12+ តួ មានអក្សរធំ អក្សរតូច លេខ និងសញ្ញាពិសេស។</p>
               </div>
             </div>
             <form class="row g-3" novalidate @submit.prevent="changePassword">
@@ -373,7 +388,8 @@ onMounted(initialize)
                   v-model="passwordForm.newPassword"
                   class="form-control"
                   type="password"
-                  minlength="10"
+                  :minlength="PASSWORD_MINIMUM_LENGTH"
+                  maxlength="128"
                   autocomplete="new-password"
                   required
                 />
@@ -384,7 +400,8 @@ onMounted(initialize)
                   v-model="passwordForm.confirmPassword"
                   class="form-control"
                   type="password"
-                  minlength="10"
+                  :minlength="PASSWORD_MINIMUM_LENGTH"
+                  maxlength="128"
                   autocomplete="new-password"
                   required
                 />

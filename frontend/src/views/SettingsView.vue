@@ -8,6 +8,10 @@ import {
   showToast,
   validateForm,
 } from '../ui/feedback'
+import {
+  PASSWORD_MINIMUM_LENGTH,
+  passwordPolicyMessage,
+} from '../utils/passwordPolicy'
 
 const error = ref('')
 const loadingAdmins = ref(false)
@@ -38,7 +42,15 @@ const loadAdmins = async () => {
 }
 
 const createAdmin = async (event) => {
-  if (!(await validateForm(event?.currentTarget))) return
+  const customMessage = passwordPolicyMessage(adminForm.password, {
+    username: adminForm.username,
+    displayName: adminForm.displayName,
+  })
+  if (
+    !(await validateForm(event?.currentTarget, {
+      customMessage,
+    }))
+  ) return
 
   creatingAdmin.value = true
   error.value = ''
@@ -81,8 +93,13 @@ const resetAdminPassword = async (admin) => {
     tone: 'primary',
     inputType: 'password',
     inputLabel: 'New Password',
-    inputPlaceholder: 'Minimum 10 characters',
-    inputMinLength: 10,
+    inputPlaceholder: '12+ characters, uppercase, lowercase, number, symbol',
+    inputMinLength: PASSWORD_MINIMUM_LENGTH,
+    inputValidator: (value) =>
+      passwordPolicyMessage(value, {
+        username: admin.username,
+        displayName: admin.displayName,
+      }) || undefined,
   })
   if (!password) return
   await updateAdmin(admin, { password })
@@ -142,7 +159,18 @@ onMounted(loadAdmins)
           </div>
           <div class="col-md-3">
             <label class="form-label">Password *</label>
-            <input v-model="adminForm.password" class="form-control" type="password" minlength="10" required />
+            <input
+              v-model="adminForm.password"
+              class="form-control"
+              type="password"
+              :minlength="PASSWORD_MINIMUM_LENGTH"
+              maxlength="128"
+              autocomplete="new-password"
+              required
+            />
+            <small class="form-text">
+              12+ characters with uppercase, lowercase, number and symbol.
+            </small>
           </div>
           <div class="col-md-3">
             <label class="form-label">Role *</label>

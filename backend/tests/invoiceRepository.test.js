@@ -36,17 +36,43 @@ test('local repository sequences, paginates, deletes, and restores', async () =>
     assert.equal(active.items[0].invoiceNumber, firstNumber)
     assert.equal(typeof invoice.shareToken, 'string')
     assert.equal(invoice.shareToken.length > 20, true)
+    assert.ok(new Date(invoice.shareTokenExpiresAt) > new Date())
 
     const publicInvoice = await repository.findInvoiceByShareToken(
       invoice.shareToken,
     )
     assert.equal(publicInvoice._id, invoice._id)
 
+    const originalShareToken = invoice.shareToken
+    const revoked = await repository.revokeInvoiceShareLink(
+      invoice._id,
+      'tester',
+    )
+    assert.ok(revoked.shareTokenRevokedAt)
+    assert.equal(
+      await repository.findInvoiceByShareToken(originalShareToken),
+      null,
+    )
+
+    const rotated = await repository.rotateInvoiceShareLink(
+      invoice._id,
+      'tester',
+      7,
+    )
+    assert.notEqual(rotated.shareToken, originalShareToken)
+    assert.equal(rotated.shareTokenRevokedAt, null)
+    assert.equal(
+      (
+        await repository.findInvoiceByShareToken(rotated.shareToken)
+      )._id,
+      invoice._id,
+    )
+
     await repository.softDeleteInvoice(invoice._id, 'tester')
     const afterDelete = await repository.listInvoices({})
     const trash = await repository.listInvoices({ deleted: true })
     const deletedPublicInvoice = await repository.findInvoiceByShareToken(
-      invoice.shareToken,
+      rotated.shareToken,
     )
     assert.equal(afterDelete.total, 0)
     assert.equal(trash.total, 1)

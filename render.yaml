@@ -22,6 +22,8 @@ services:
         sync: false
       - key: JWT_EXPIRES_IN
         value: 8h
+      - key: PUBLIC_INVOICE_LINK_DAYS
+        value: "30"
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
@@ -32,5 +34,3 @@ services:
         value: "02:00"
       - key: AUTO_BACKUP_RETENTION_DAYS
         value: "30"
-      - key: JSON_BODY_LIMIT
-        value: "20mb"

@@ -161,12 +161,14 @@ export const requestConfirmation = async (options = {}) => {
     inputAttributes: options.inputMinLength
       ? { minlength: String(options.inputMinLength) }
       : undefined,
-    inputValidator: options.inputMinLength
-      ? (value = '') =>
-          value.length < options.inputMinLength
-            ? `Minimum ${options.inputMinLength} characters`
-            : undefined
-      : undefined,
+    inputValidator:
+      options.inputValidator ||
+      (options.inputMinLength
+        ? (value = '') =>
+            value.length < options.inputMinLength
+              ? `Minimum ${options.inputMinLength} characters`
+              : undefined
+        : undefined),
     showCancelButton: true,
     confirmButtonText: options.confirmLabel || 'Confirm',
     cancelButtonText: options.cancelLabel || 'Cancel',

@@ -13,6 +13,10 @@ import {
   authorizeRoles,
   requireAdmin,
 } from '../middleware/authMiddleware.js'
+import {
+  backupJsonBody,
+  standardJsonBody,
+} from '../middleware/jsonBody.js'
 
 const router = express.Router()
 
@@ -28,6 +32,7 @@ router.post(
   '/backups',
   requireAdmin,
   authorizeRoles('owner'),
+  standardJsonBody,
   createManualBackupSnapshot,
 )
 router.get(
@@ -46,6 +51,7 @@ router.post(
   '/backup/restore',
   requireAdmin,
   authorizeRoles('owner'),
+  backupJsonBody,
   restoreUploadedBackup,
 )
 router.get(

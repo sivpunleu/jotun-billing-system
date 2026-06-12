@@ -2370,10 +2370,12 @@ textarea {
   min-width: 110px;
 }
 
+.share-link-management,
 .payment-management {
   margin-bottom: 20px;
 }
 
+.share-link-heading,
 .payment-management-heading {
   display: flex;
   align-items: start;
@@ -2381,6 +2383,7 @@ textarea {
   gap: 16px;
 }
 
+.share-link-heading h2,
 .payment-management-heading h2 {
   margin: 10px 0 3px;
   color: var(--navy);
@@ -2388,9 +2391,23 @@ textarea {
   font-weight: 800;
 }
 
+.share-link-heading p,
 .payment-management-heading p {
   margin: 0;
   color: var(--muted);
+}
+
+.share-link-duration {
+  min-width: 130px;
+}
+
+.share-link-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .payment-form {
@@ -3783,6 +3800,22 @@ textarea {
   .preview-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .share-link-heading {
+    flex-direction: column;
+  }
+
+  .share-link-duration {
+    width: 100%;
+  }
+
+  .share-link-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .share-link-controls .form-control {
+    grid-column: 1 / -1;
   }
 
   .page-heading > .d-flex {

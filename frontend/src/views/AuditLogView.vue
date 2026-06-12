@@ -73,7 +73,16 @@ onMounted(loadLogs)
           <option value="stock_out">Stock Out</option>
           <option value="stock_set">Stock Set</option>
           <option value="login">Login</option>
+          <option value="login_failed">Login Failed</option>
           <option value="change_password">Change Password</option>
+          <option value="password_change_failed">Password Change Failed</option>
+          <option value="password_reset">Password Reset</option>
+          <option value="role_change">Role Change</option>
+          <option value="admin_disabled">Admin Disabled</option>
+          <option value="admin_enabled">Admin Enabled</option>
+          <option value="sessions_invalidated">Sessions Invalidated</option>
+          <option value="regenerate_share_link">Regenerate Share Link</option>
+          <option value="revoke_share_link">Revoke Share Link</option>
           <option value="export_csv">Export CSV</option>
           <option value="backup">Backup</option>
           <option value="restore_backup">Restore Backup</option>

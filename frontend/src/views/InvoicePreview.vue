@@ -25,6 +25,8 @@ const loading = ref(true)
 const error = ref('')
 const recordingPayment = ref(false)
 const sendingTelegram = ref('')
+const updatingShareLink = ref(false)
+const shareLinkDays = ref(30)
 const telegramConfigured = ref(false)
 const paymentForm = reactive({
   amount: 0,
@@ -104,6 +106,91 @@ const showAdminControls = computed(
 const showManageControls = computed(
   () => showAdminControls.value && canManageBilling.value,
 )
+const shareLinkActive = computed(() => {
+  if (!invoice.value?.shareToken || invoice.value.shareTokenRevokedAt) {
+    return false
+  }
+  const expiresAt = new Date(invoice.value.shareTokenExpiresAt)
+  return Number.isFinite(expiresAt.getTime()) && expiresAt > new Date()
+})
+const publicInvoiceLink = computed(() =>
+  shareLinkActive.value
+    ? `${window.location.origin}/public/invoices/${encodeURIComponent(
+        invoice.value.shareToken,
+      )}`
+    : '',
+)
+const shareLinkStatus = computed(() => {
+  if (invoice.value?.shareTokenRevokedAt) return 'Revoked'
+  return shareLinkActive.value ? 'Active' : 'Expired'
+})
+
+const copyPublicLink = async () => {
+  if (!publicInvoiceLink.value) return
+  try {
+    await navigator.clipboard.writeText(publicInvoiceLink.value)
+    showToast('Public invoice link copied')
+  } catch {
+    showToast('Unable to copy public invoice link', 'error')
+  }
+}
+
+const regenerateShareLink = async () => {
+  const confirmed = await requestConfirmation({
+    title: 'Regenerate public link?',
+    message: shareLinkActive.value
+      ? 'The current public invoice link will stop working immediately.'
+      : `Create a new public link valid for ${shareLinkDays.value} days?`,
+    confirmLabel: 'Regenerate',
+    cancelLabel: 'Cancel',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+
+  updatingShareLink.value = true
+  try {
+    const { data } = await invoiceApi.regenerateShareLink(
+      invoice.value._id,
+      shareLinkDays.value,
+    )
+    invoice.value = data
+    showToast('Public invoice link regenerated')
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'Unable to regenerate public invoice link',
+      'error',
+    )
+  } finally {
+    updatingShareLink.value = false
+  }
+}
+
+const revokeShareLink = async () => {
+  const confirmed = await requestConfirmation({
+    title: 'Revoke public link?',
+    message: 'Anyone using the current link will no longer see this invoice.',
+    confirmLabel: 'Revoke',
+    cancelLabel: 'Cancel',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+
+  updatingShareLink.value = true
+  try {
+    const { data } = await invoiceApi.revokeShareLink(invoice.value._id)
+    invoice.value = data
+    showToast('Public invoice link revoked')
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message ||
+        'Unable to revoke public invoice link',
+      'error',
+    )
+  } finally {
+    updatingShareLink.value = false
+  }
+}
 
 const loadInvoice = async () => {
   try {
@@ -297,6 +384,89 @@ onMounted(() => {
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <ContentSkeleton v-if="loading" :cards="2" />
+
+    <div
+      v-if="invoice && showAdminControls"
+      class="share-link-management d-print-none"
+    >
+      <div class="content-card form-card">
+        <div class="share-link-heading">
+          <div>
+            <span
+              class="status-pill"
+              :class="shareLinkActive ? 'status-paid' : 'status-cancelled'"
+            >
+              {{ shareLinkStatus }}
+            </span>
+            <h2>Public Invoice Link</h2>
+            <p v-if="shareLinkActive">
+              Expires {{ new Date(invoice.shareTokenExpiresAt).toLocaleString() }}
+            </p>
+            <p v-else>
+              Regenerate a link before sharing this invoice with a customer.
+            </p>
+          </div>
+          <div v-if="showManageControls" class="share-link-duration">
+            <label class="form-label mb-1" for="shareLinkDays">
+              Link duration
+            </label>
+            <select
+              id="shareLinkDays"
+              v-model.number="shareLinkDays"
+              class="form-select form-select-sm"
+              :disabled="updatingShareLink"
+            >
+              <option :value="7">7 days</option>
+              <option :value="30">30 days</option>
+              <option :value="90">90 days</option>
+              <option :value="365">1 year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="share-link-controls">
+          <input
+            class="form-control"
+            type="text"
+            :value="publicInvoiceLink || 'Public link is unavailable'"
+            readonly
+          />
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            :disabled="!shareLinkActive || updatingShareLink"
+            @click="copyPublicLink"
+          >
+            <i class="bi bi-clipboard me-1"></i>
+            Copy
+          </button>
+          <button
+            v-if="showManageControls"
+            class="btn btn-outline-secondary"
+            type="button"
+            :disabled="updatingShareLink"
+            @click="regenerateShareLink"
+          >
+            <span
+              v-if="updatingShareLink"
+              class="spinner-border spinner-border-sm me-1"
+            ></span>
+            <i v-else class="bi bi-arrow-repeat me-1"></i>
+            Regenerate
+          </button>
+          <button
+            v-if="showManageControls && shareLinkActive"
+            class="btn btn-outline-danger"
+            type="button"
+            :disabled="updatingShareLink"
+            @click="revokeShareLink"
+          >
+            <i class="bi bi-link-45deg me-1"></i>
+            Revoke
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div
       v-if="invoice && showAdminControls"

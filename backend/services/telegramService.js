@@ -1,3 +1,5 @@
+import { isShareTokenActive } from '../utils/shareToken.js'
+
 const TELEGRAM_API_URL = 'https://api.telegram.org'
 
 const escapeHtml = (value) =>
@@ -26,7 +28,7 @@ const date = (value) => {
 const invoiceUrl = (config, invoice) => {
   const publicUrl = String(config.publicUrl || '').replace(/\/+$/, '')
   const token = String(invoice?.shareToken || '').trim()
-  return publicUrl && token
+  return publicUrl && token && isShareTokenActive(invoice)
     ? `${publicUrl}/public/invoices/${encodeURIComponent(token)}`
     : ''
 }

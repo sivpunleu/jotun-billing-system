@@ -23,6 +23,10 @@ import Invoice from '../models/Invoice.js'
 import Product from '../models/Product.js'
 import Salesperson from '../models/Salesperson.js'
 import SystemSetting from '../models/SystemSetting.js'
+import {
+  createShareToken,
+  createShareTokenExpiration,
+} from '../utils/shareToken.js'
 
 export const BACKUP_FORMAT_VERSION = 2
 
@@ -105,6 +109,24 @@ const normalizeArray = (payload, key) => {
   return payload[key].map(cleanPlainRecord)
 }
 
+const normalizeInvoiceShareAccess = (invoices) => {
+  const usedTokens = new Set()
+  return invoices.map((invoice) => {
+    let shareToken = String(invoice.shareToken || '').trim()
+    while (!shareToken || usedTokens.has(shareToken)) {
+      shareToken = createShareToken()
+    }
+    usedTokens.add(shareToken)
+    return {
+      ...invoice,
+      shareToken,
+      shareTokenExpiresAt:
+        invoice.shareTokenExpiresAt || createShareTokenExpiration().toISOString(),
+      shareTokenRevokedAt: invoice.shareTokenRevokedAt || null,
+    }
+  })
+}
+
 export const buildDatabaseBackup = async ({
   createdBy = 'system',
   source = 'manual',
@@ -165,7 +187,7 @@ export const normalizeBackupPayload = (payload) => {
       ...backup.metadata,
       formatVersion: version,
     },
-    invoices: normalizeArray(backup, 'invoices'),
+    invoices: normalizeInvoiceShareAccess(normalizeArray(backup, 'invoices')),
     customers: normalizeArray(backup, 'customers'),
     products: normalizeArray(backup, 'products'),
     salespeople: normalizeArray(backup, 'salespeople'),

@@ -60,6 +60,10 @@ JWT_EXPIRES_IN=8h
 Passwords and JWT secrets must only be stored in environment variables. Never
 add them to frontend code or commit them to Git.
 
+New and changed admin passwords must contain 12 or more characters, including
+uppercase and lowercase letters, a number, and a special character. Existing
+passwords keep working until they are changed or reset.
+
 The first successful environment-admin login creates an `owner` account in
 the application database. The owner can then create more accounts:
 
@@ -115,6 +119,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$2b$12$...
 JWT_SECRET=long-random-secret
 JWT_EXPIRES_IN=8h
+PUBLIC_INVOICE_LINK_DAYS=30
 TELEGRAM_BOT_TOKEN=123456789:replace-with-bot-token
 TELEGRAM_CHAT_ID=-1001234567890
 TELEGRAM_PUBLIC_URL=https://your-frontend.vercel.app

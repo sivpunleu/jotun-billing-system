@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { getStorageMode } from '../config/db.js'
 import Counter from '../models/Counter.js'
 import Invoice from '../models/Invoice.js'
-import { createShareToken } from '../utils/shareToken.js'
+import {
+  createShareToken,
+  createShareTokenExpiration,
+  normalizeShareLinkDays,
+} from '../utils/shareToken.js'
 import {
   mutateLocalCollection,
   readLocalCollection,
@@ -162,16 +166,25 @@ export const findInvoiceById = async (id, { includeDeleted = false } = {}) => {
 export const findInvoiceByShareToken = async (shareToken) => {
   const token = String(shareToken || '').trim()
   if (!token) return null
+  const now = new Date()
 
   if (getStorageMode() === 'mongodb') {
-    return Invoice.findOne({ shareToken: token, deletedAt: null })
+    return Invoice.findOne({
+      shareToken: token,
+      deletedAt: null,
+      shareTokenRevokedAt: null,
+      shareTokenExpiresAt: { $gt: now },
+    })
   }
 
   const invoices = await readLocalCollection('invoices')
   return (
     invoices.find(
       (invoice) =>
-        String(invoice.shareToken || '') === token && !invoice.deletedAt,
+        String(invoice.shareToken || '') === token &&
+        !invoice.deletedAt &&
+        !invoice.shareTokenRevokedAt &&
+        new Date(invoice.shareTokenExpiresAt) > now,
     ) || null
   )
 }
@@ -235,6 +248,9 @@ export const insertInvoice = async (payload) => {
     return Invoice.create({
       ...payload,
       shareToken: payload.shareToken || createShareToken(),
+      shareTokenExpiresAt:
+        payload.shareTokenExpiresAt || createShareTokenExpiration(),
+      shareTokenRevokedAt: null,
     })
   }
 
@@ -252,6 +268,10 @@ export const insertInvoice = async (payload) => {
       ...payload,
       invoiceNumber: String(payload.invoiceNumber).toUpperCase(),
       shareToken: payload.shareToken || createUniqueShareToken(usedTokens),
+      shareTokenExpiresAt:
+        payload.shareTokenExpiresAt ||
+        createShareTokenExpiration().toISOString(),
+      shareTokenRevokedAt: null,
       _id: randomUUID(),
       deletedAt: null,
       createdAt: timestamp,
@@ -380,16 +400,94 @@ export const getAllInvoices = async () => {
   return readLocalCollection('invoices')
 }
 
-export const backfillLocalShareTokens = async () => {
+export const rotateInvoiceShareLink = async (
+  id,
+  actor,
+  expiresInDays = normalizeShareLinkDays(),
+) => {
+  const expiresAt = createShareTokenExpiration(new Date(), expiresInDays)
+  if (getStorageMode() === 'mongodb') {
+    while (true) {
+      try {
+        return await Invoice.findOneAndUpdate(
+          { _id: id, deletedAt: null },
+          {
+            shareToken: createShareToken(),
+            shareTokenExpiresAt: expiresAt,
+            shareTokenRevokedAt: null,
+            updatedBy: actor,
+          },
+          { new: true, runValidators: true },
+        )
+      } catch (error) {
+        if (error.code !== 11000) throw error
+      }
+    }
+  }
+
+  return mutateLocalCollection('invoices', (invoices) => {
+    const invoice = invoices.find(
+      (item) => String(item._id) === String(id) && !item.deletedAt,
+    )
+    if (!invoice) return null
+    invoice.shareToken = createUniqueShareToken(existingShareTokens(invoices))
+    invoice.shareTokenExpiresAt = expiresAt.toISOString()
+    invoice.shareTokenRevokedAt = null
+    invoice.updatedBy = actor
+    invoice.updatedAt = new Date().toISOString()
+    return invoice
+  })
+}
+
+export const revokeInvoiceShareLink = async (id, actor) => {
+  const revokedAt = new Date()
+  if (getStorageMode() === 'mongodb') {
+    return Invoice.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      {
+        shareTokenRevokedAt: revokedAt,
+        updatedBy: actor,
+      },
+      { new: true, runValidators: true },
+    )
+  }
+
+  return mutateLocalCollection('invoices', (invoices) => {
+    const invoice = invoices.find(
+      (item) => String(item._id) === String(id) && !item.deletedAt,
+    )
+    if (!invoice) return null
+    invoice.shareTokenRevokedAt = revokedAt.toISOString()
+    invoice.updatedBy = actor
+    invoice.updatedAt = revokedAt.toISOString()
+    return invoice
+  })
+}
+
+export const backfillLocalShareAccess = async () => {
   if (getStorageMode() === 'mongodb') return 0
   return mutateLocalCollection('invoices', (invoices) => {
     const usedTokens = existingShareTokens(invoices)
     let updated = 0
     invoices.forEach((invoice) => {
-      if (invoice.shareToken) return
-      invoice.shareToken = createUniqueShareToken(usedTokens)
-      invoice.updatedAt = new Date().toISOString()
-      updated += 1
+      let changed = false
+      if (!invoice.shareToken) {
+        invoice.shareToken = createUniqueShareToken(usedTokens)
+        changed = true
+      }
+      if (!invoice.shareTokenExpiresAt) {
+        invoice.shareTokenExpiresAt =
+          createShareTokenExpiration().toISOString()
+        changed = true
+      }
+      if (invoice.shareTokenRevokedAt === undefined) {
+        invoice.shareTokenRevokedAt = null
+        changed = true
+      }
+      if (changed) {
+        invoice.updatedAt = new Date().toISOString()
+        updated += 1
+      }
     })
     return updated
   })

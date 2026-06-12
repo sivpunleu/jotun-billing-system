@@ -1,7 +1,10 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
+import helmet from 'helmet'
 import connectDB, { getStorageMode } from './config/db.js'
+import { apiRateLimit } from './middleware/apiRateLimit.js'
+import { standardJsonBody } from './middleware/jsonBody.js'
 import auditRoutes from './routes/auditRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import customerRoutes from './routes/customerRoutes.js'
@@ -24,7 +27,24 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .filter(Boolean)
 
 app.set('trust proxy', 1)
+app.disable('x-powered-by')
 
+const helmetOptions = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}
+if (process.env.NODE_ENV !== 'production') {
+  helmetOptions.strictTransportSecurity = false
+}
+
+app.use(helmet(helmetOptions))
 app.use(
   cors({
     origin(origin, callback) {
@@ -35,7 +55,10 @@ app.use(
     },
   }),
 )
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '20mb' }))
+app.use((_req, res, next) => {
+  res.set('Cache-Control', 'no-store')
+  next()
+})
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -45,15 +68,20 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
+app.use('/api', apiRateLimit)
+
+// These routers authenticate before parsing their intentionally larger payloads.
+app.use('/api/reports', reportRoutes)
+app.use('/api/settings', settingsRoutes)
+
+app.use(standardJsonBody)
 app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/salespeople', salespersonRoutes)
 app.use('/api/audit-logs', auditRoutes)
-app.use('/api/reports', reportRoutes)
 app.use('/api/insights', insightRoutes)
-app.use('/api/settings', settingsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found' })
@@ -61,6 +89,19 @@ app.use((_req, res) => {
 
 app.use((error, _req, res, _next) => {
   console.error(error)
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({
+      message: 'Request data is too large',
+    })
+  }
+  if (error instanceof SyntaxError && error.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      message: 'Request body contains invalid JSON',
+    })
+  }
+  if (error.message === 'Origin is not allowed by CORS') {
+    return res.status(403).json({ message: error.message })
+  }
   res.status(500).json({ message: 'Internal server error' })
 })
 

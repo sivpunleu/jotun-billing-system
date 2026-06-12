@@ -23,8 +23,9 @@ import {
   clearLoginFailures,
   recordLoginFailure,
 } from '../middleware/loginRateLimit.js'
+import { validateStrongPassword } from '../utils/passwordPolicy.js'
+import { requestSecurityMetadata } from '../utils/requestMetadata.js'
 
-const PASSWORD_MINIMUM_LENGTH = 10
 const VALID_ROLES = ['owner', 'admin', 'viewer']
 const AVATAR_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
 const MAX_AVATAR_LENGTH = 350_000
@@ -40,16 +41,13 @@ const publicAdmin = (admin) => ({
   createdAt: admin.createdAt || null,
 })
 
-const validatePassword = (password) => {
-  if (String(password || '').length < PASSWORD_MINIMUM_LENGTH) {
-    throw new Error(
-      `Password must contain at least ${PASSWORD_MINIMUM_LENGTH} characters`,
-    )
-  }
-}
-
 const getStoredAdminWithPassword = async (username) =>
   findAdminByUsername(username, { includePassword: true })
+
+const writeSecurityAudit = (payload) =>
+  writeAuditLog(payload).catch((error) => {
+    console.error(`Unable to write security audit log: ${error.message}`)
+  })
 
 const bootstrapAdmin = async (username, password, authConfig) => {
   if (!authConfig.hasBootstrapAdmin) return null
@@ -92,11 +90,15 @@ export const loginAdmin = async (req, res) => {
     }
 
     let admin = await getStoredAdminWithPassword(username)
+    const attemptedAdmin = admin
+    let failureReason =
+      admin?.active === false ? 'account_disabled' : 'invalid_credentials'
     if (admin) {
       const validPassword = await verifyPasswordHash(
         password,
         admin.passwordHash,
       )
+      if (!validPassword) failureReason = 'invalid_credentials'
       if (!validPassword || !admin.active) admin = null
     } else {
       admin = await bootstrapAdmin(username, password, authConfig)
@@ -104,6 +106,20 @@ export const loginAdmin = async (req, res) => {
 
     if (!admin || !admin.active) {
       recordLoginFailure(req)
+      await writeSecurityAudit({
+        actor: {
+          id: attemptedAdmin?._id || attemptedAdmin?.id || '',
+          username: String(username || '').trim().toLowerCase() || 'unknown',
+        },
+        action: 'login_failed',
+        entityType: 'admin',
+        entityId: attemptedAdmin?._id || attemptedAdmin?.id || '',
+        summary: String(username || '').trim().toLowerCase() || 'unknown',
+        details: {
+          reason: failureReason,
+          ...requestSecurityMetadata(req),
+        },
+      })
       return res.status(401).json({
         message: 'Invalid username or password',
       })
@@ -112,13 +128,20 @@ export const loginAdmin = async (req, res) => {
     clearLoginFailures(req)
     await recordAdminLogin(admin._id || admin.id)
     const safeAdmin = publicAdmin(admin)
-    const token = createAdminToken(safeAdmin, authConfig)
+    const token = createAdminToken(
+      {
+        ...safeAdmin,
+        tokenVersion: admin.tokenVersion,
+      },
+      authConfig,
+    )
     await writeAuditLog({
       actor: safeAdmin,
       action: 'login',
       entityType: 'admin',
       entityId: safeAdmin.id,
       summary: safeAdmin.username,
+      details: requestSecurityMetadata(req),
     })
     return res.json({
       token,
@@ -213,10 +236,13 @@ export const getProfileActivity = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body || {}
-    validatePassword(newPassword)
     const admin = req.admin.id
       ? await findAdminById(req.admin.id)
       : await findAdminByUsername(req.admin.username)
+    validateStrongPassword(newPassword, {
+      username: admin?.username || req.admin.username,
+      displayName: admin?.displayName || req.admin.displayName,
+    })
     const adminWithPassword = await getStoredAdminWithPassword(
       admin?.username || req.admin.username,
     )
@@ -227,7 +253,26 @@ export const changePassword = async (req, res) => {
         adminWithPassword.passwordHash,
       ))
     ) {
+      await writeSecurityAudit({
+        actor: req.admin,
+        action: 'password_change_failed',
+        entityType: 'admin',
+        entityId: req.admin.id,
+        summary: req.admin.username,
+        details: {
+          reason: 'incorrect_current_password',
+          ...requestSecurityMetadata(req),
+        },
+      })
       return res.status(400).json({ message: 'Current password is incorrect' })
+    }
+    if (
+      await verifyPasswordHash(
+        newPassword,
+        adminWithPassword.passwordHash,
+      )
+    ) {
+      throw new Error('New password must be different from current password')
     }
     await updateAdminPassword(
       adminWithPassword._id || adminWithPassword.id,
@@ -239,6 +284,21 @@ export const changePassword = async (req, res) => {
       entityType: 'admin',
       entityId: req.admin.id,
       summary: req.admin.username,
+      details: {
+        sessionsInvalidated: true,
+        ...requestSecurityMetadata(req),
+      },
+    })
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'sessions_invalidated',
+      entityType: 'admin',
+      entityId: req.admin.id,
+      summary: req.admin.username,
+      details: {
+        reason: 'password_change',
+        ...requestSecurityMetadata(req),
+      },
     })
     res.json({ message: 'Password changed successfully' })
   } catch (error) {
@@ -259,8 +319,8 @@ export const addAdmin = async (req, res) => {
     const username = String(req.body.username || '').trim().toLowerCase()
     const displayName = String(req.body.displayName || '').trim()
     const role = VALID_ROLES.includes(req.body.role) ? req.body.role : 'admin'
-    validatePassword(req.body.password)
     if (!username) throw new Error('Username is required')
+    validateStrongPassword(req.body.password, { username, displayName })
 
     const admin = await createAdmin({
       username,
@@ -304,7 +364,10 @@ export const editAdmin = async (req, res) => {
       payload.active = Boolean(req.body.active)
     }
     if (req.body.password) {
-      validatePassword(req.body.password)
+      validateStrongPassword(req.body.password, {
+        username: existing.username,
+        displayName: existing.displayName,
+      })
       payload.passwordHash = await hashPassword(req.body.password)
     }
     if (
@@ -314,7 +377,13 @@ export const editAdmin = async (req, res) => {
       throw new Error('You cannot disable or change your own role')
     }
 
-    const admin = await updateAdmin(req.params.id, payload)
+    const invalidateSessions =
+      Boolean(payload.passwordHash) ||
+      (payload.role !== undefined && payload.role !== existing.role) ||
+      (payload.active !== undefined && payload.active !== existing.active)
+    const admin = await updateAdmin(req.params.id, payload, {
+      invalidateSessions,
+    })
     await writeAuditLog({
       actor: req.admin,
       action: 'update',
@@ -325,8 +394,59 @@ export const editAdmin = async (req, res) => {
         role: payload.role,
         active: payload.active,
         passwordReset: Boolean(payload.passwordHash),
+        sessionsInvalidated: invalidateSessions,
       },
     })
+    const securityEvents = []
+    if (payload.passwordHash) {
+      securityEvents.push({
+        action: 'password_reset',
+        details: { sessionsInvalidated: true },
+      })
+    }
+    if (payload.role !== undefined && payload.role !== existing.role) {
+      securityEvents.push({
+        action: 'role_change',
+        details: {
+          previousRole: existing.role,
+          newRole: payload.role,
+          sessionsInvalidated: true,
+        },
+      })
+    }
+    if (payload.active !== undefined && payload.active !== existing.active) {
+      securityEvents.push({
+        action: payload.active ? 'admin_enabled' : 'admin_disabled',
+        details: { sessionsInvalidated: true },
+      })
+    }
+    if (invalidateSessions) {
+      securityEvents.push({
+        action: 'sessions_invalidated',
+        details: {
+          reason: payload.passwordHash
+            ? 'password_reset'
+            : payload.role !== undefined
+              ? 'role_change'
+              : 'account_status_change',
+        },
+      })
+    }
+    await Promise.all(
+      securityEvents.map((event) =>
+        writeAuditLog({
+          actor: req.admin,
+          action: event.action,
+          entityType: 'admin',
+          entityId: req.params.id,
+          summary: existing.username,
+          details: {
+            ...event.details,
+            ...requestSecurityMetadata(req),
+          },
+        }),
+      ),
+    )
     res.json(admin)
   } catch (error) {
     res.status(400).json({ message: error.message || 'Unable to update admin' })

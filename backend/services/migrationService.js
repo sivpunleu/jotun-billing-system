@@ -1,13 +1,18 @@
 import { getStorageMode } from '../config/db.js'
 import Invoice from '../models/Invoice.js'
-import { backfillLocalShareTokens } from '../repositories/invoiceRepository.js'
-import { createShareToken } from '../utils/shareToken.js'
+import { backfillLocalShareAccess } from '../repositories/invoiceRepository.js'
+import {
+  createShareToken,
+  createShareTokenExpiration,
+} from '../utils/shareToken.js'
 
 export const migrateExistingData = async () => {
   if (getStorageMode() !== 'mongodb') {
-    const tokenCount = await backfillLocalShareTokens()
-    if (tokenCount > 0) {
-      console.log(`Generated share tokens for ${tokenCount} local invoice records`)
+    const shareAccessCount = await backfillLocalShareAccess()
+    if (shareAccessCount > 0) {
+      console.log(
+        `Updated public share access for ${shareAccessCount} local invoice records`,
+      )
     }
     return
   }
@@ -119,5 +124,28 @@ export const migrateExistingData = async () => {
 
   if (tokenCount > 0) {
     console.log(`Generated share tokens for ${tokenCount} invoice records`)
+  }
+
+  const expirationResult = await Invoice.updateMany(
+    {
+      $or: [
+        { shareTokenExpiresAt: { $exists: false } },
+        { shareTokenExpiresAt: null },
+      ],
+    },
+    {
+      $set: {
+        shareTokenExpiresAt: createShareTokenExpiration(),
+      },
+    },
+  )
+  await Invoice.updateMany(
+    { shareTokenRevokedAt: { $exists: false } },
+    { $set: { shareTokenRevokedAt: null } },
+  )
+  if (expirationResult.modifiedCount > 0) {
+    console.log(
+      `Added public link expiration to ${expirationResult.modifiedCount} invoice records`,
+    )
   }
 }

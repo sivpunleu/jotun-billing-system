@@ -7,6 +7,8 @@ import {
   getInvoiceById,
   getInvoices,
   getPublicInvoiceByToken,
+  regenerateInvoiceShareLink,
+  revokeInvoicePublicLink,
   restoreDeletedInvoice,
   updateInvoice,
 } from '../controllers/invoiceController.js'
@@ -47,6 +49,10 @@ router.post(
   canManage,
   sendInvoiceToTelegram,
 )
+router
+  .route('/:id/share-link')
+  .post(requireAdmin, canManage, regenerateInvoiceShareLink)
+  .delete(requireAdmin, canManage, revokeInvoicePublicLink)
 router.post('/:id/restore', requireAdmin, canManage, restoreDeletedInvoice)
 router
   .route('/:id')

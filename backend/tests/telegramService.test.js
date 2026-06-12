@@ -17,6 +17,8 @@ const config = {
 const invoice = {
   _id: 'invoice-1',
   shareToken: 'public-share-token',
+  shareTokenExpiresAt: '2099-01-01T00:00:00.000Z',
+  shareTokenRevokedAt: null,
   invoiceNumber: 'INV-2026-00001',
   invoiceDate: '2026-06-10T00:00:00.000Z',
   dueDate: '2999-06-17T00:00:00.000Z',
@@ -62,6 +64,28 @@ test('invoice and receipt Telegram messages escape HTML and include links', () =
   )
   assert.match(receiptMessage.text, /RCPT-12345678/)
   assert.match(receiptMessage.text, /\$10\.00/)
+})
+
+test('expired or revoked invoice links are omitted from Telegram', () => {
+  const expiredMessage = buildInvoiceTelegram(
+    {
+      ...invoice,
+      shareTokenExpiresAt: '2020-01-01T00:00:00.000Z',
+    },
+    { companyName: 'Marvel Decor' },
+    config,
+  )
+  const revokedMessage = buildInvoiceTelegram(
+    {
+      ...invoice,
+      shareTokenRevokedAt: '2026-06-13T00:00:00.000Z',
+    },
+    { companyName: 'Marvel Decor' },
+    config,
+  )
+
+  assert.equal(expiredMessage.replyMarkup, undefined)
+  assert.equal(revokedMessage.replyMarkup, undefined)
 })
 
 test('debt Telegram message reports outstanding and overdue totals', () => {

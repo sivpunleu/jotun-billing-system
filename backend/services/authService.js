@@ -41,6 +41,7 @@ export const createAdminToken = (adminOrUsername, authConfig) => {
       username: admin.username,
       displayName: admin.displayName || '',
       role: admin.role || 'admin',
+      tokenVersion: Number(admin.tokenVersion || 0),
     },
     authConfig.jwtSecret,
     {
@@ -57,6 +58,9 @@ export const verifyAdminToken = (token, authConfig) =>
     issuer: TOKEN_ISSUER,
     audience: TOKEN_AUDIENCE,
   })
+
+export const tokenVersionMatches = (payload, admin) =>
+  Number(payload?.tokenVersion || 0) === Number(admin?.tokenVersion || 0)
 
 export const decodeTokenExpiration = (token) => {
   const payload = jwt.decode(token)

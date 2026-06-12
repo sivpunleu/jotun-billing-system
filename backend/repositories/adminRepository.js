@@ -6,10 +6,14 @@ import {
   readLocalCollection,
 } from './localStore.js'
 
-const withoutPassword = (admin) => {
+const withoutPassword = (
+  admin,
+  { includeTokenVersion = false } = {},
+) => {
   if (!admin) return null
   const plain = typeof admin.toObject === 'function' ? admin.toObject() : admin
   const { passwordHash: _passwordHash, ...safeAdmin } = plain
+  if (!includeTokenVersion) delete safeAdmin.tokenVersion
   return safeAdmin
 }
 
@@ -20,22 +24,31 @@ export const findAdminByUsername = async (
   const normalized = String(username || '').trim().toLowerCase()
   if (getStorageMode() === 'mongodb') {
     const query = Admin.findOne({ username: normalized })
+    query.select('+tokenVersion')
     if (includePassword) query.select('+passwordHash')
     return query
   }
   const admins = await readLocalCollection('admins')
   const admin =
     admins.find((item) => item.username.toLowerCase() === normalized) || null
-  return includePassword ? admin : withoutPassword(admin)
+  return includePassword
+    ? admin
+    : withoutPassword(admin, { includeTokenVersion: true })
 }
 
-export const findAdminById = async (id) => {
+export const findAdminById = async (
+  id,
+  { includeTokenVersion = true } = {},
+) => {
   if (getStorageMode() === 'mongodb') {
-    return Admin.findById(id)
+    const query = Admin.findById(id)
+    if (includeTokenVersion) query.select('+tokenVersion')
+    return query
   }
   const admins = await readLocalCollection('admins')
   return withoutPassword(
     admins.find((item) => String(item._id) === String(id)) || null,
+    { includeTokenVersion },
   )
 }
 
@@ -61,6 +74,7 @@ export const createAdmin = async (payload) => {
       username: payload.username.toLowerCase(),
       _id: randomUUID(),
       active: payload.active ?? true,
+      tokenVersion: payload.tokenVersion ?? 0,
       createdAt: timestamp,
       updatedAt: timestamp,
     }
@@ -79,9 +93,16 @@ export const listAdmins = async () => {
     .sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt))
 }
 
-export const updateAdmin = async (id, payload) => {
+export const updateAdmin = async (
+  id,
+  payload,
+  { invalidateSessions = false } = {},
+) => {
   if (getStorageMode() === 'mongodb') {
-    return Admin.findByIdAndUpdate(id, payload, {
+    const update = invalidateSessions
+      ? { $set: payload, $inc: { tokenVersion: 1 } }
+      : payload
+    return Admin.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
     })
@@ -89,9 +110,13 @@ export const updateAdmin = async (id, payload) => {
   return mutateLocalCollection('admins', (admins) => {
     const index = admins.findIndex((item) => String(item._id) === String(id))
     if (index === -1) return null
+    const currentTokenVersion = Number(admins[index].tokenVersion || 0)
     admins[index] = {
       ...admins[index],
       ...payload,
+      tokenVersion: invalidateSessions
+        ? currentTokenVersion + 1
+        : currentTokenVersion,
       updatedAt: new Date().toISOString(),
     }
     return withoutPassword(admins[index])
@@ -99,14 +124,11 @@ export const updateAdmin = async (id, payload) => {
 }
 
 export const updateAdminPassword = async (id, passwordHash) => {
-  if (getStorageMode() === 'mongodb') {
-    return Admin.findByIdAndUpdate(
-      id,
-      { passwordHash },
-      { new: true, runValidators: true },
-    )
-  }
-  return updateAdmin(id, { passwordHash })
+  return updateAdmin(
+    id,
+    { passwordHash },
+    { invalidateSessions: true },
+  )
 }
 
 export const recordAdminLogin = async (id) => {

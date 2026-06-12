@@ -1,13 +1,16 @@
 import bcrypt from 'bcryptjs'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
+import { validateStrongPassword } from '../utils/passwordPolicy.js'
 
 const readline = createInterface({ input, output })
 const password = await readline.question('Admin password to hash: ')
 readline.close()
 
-if (password.length < 10) {
-  console.error('Use a password with at least 10 characters.')
+try {
+  validateStrongPassword(password)
+} catch (error) {
+  console.error(error.message)
   process.exit(1)
 }
 

@@ -8,10 +8,13 @@ import {
   insertInvoice,
   listInvoices,
   reserveInvoiceNumber,
+  revokeInvoiceShareLink,
   restoreInvoice,
   replaceInvoice,
+  rotateInvoiceShareLink,
   softDeleteInvoice,
 } from '../repositories/invoiceRepository.js'
+import { normalizeShareLinkDays } from '../utils/shareToken.js'
 
 const VALID_STATUSES = [
   'draft',
@@ -254,6 +257,8 @@ const toPublicInvoice = (invoice) => {
     _id,
     id,
     shareToken,
+    shareTokenExpiresAt,
+    shareTokenRevokedAt,
     payments,
     createdBy,
     updatedBy,
@@ -301,6 +306,56 @@ export const getPublicInvoiceByToken = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' })
     }
     res.json(toPublicInvoice(invoice))
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const regenerateInvoiceShareLink = async (req, res) => {
+  try {
+    const expiresInDays = normalizeShareLinkDays(req.body?.expiresInDays)
+    const invoice = await rotateInvoiceShareLink(
+      req.params.id,
+      req.admin.username,
+      expiresInDays,
+    )
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' })
+    }
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'regenerate_share_link',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+      details: {
+        expiresAt: invoice.shareTokenExpiresAt,
+        expiresInDays,
+      },
+    })
+    res.json(invoice)
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+
+export const revokeInvoicePublicLink = async (req, res) => {
+  try {
+    const invoice = await revokeInvoiceShareLink(
+      req.params.id,
+      req.admin.username,
+    )
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' })
+    }
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'revoke_share_link',
+      entityType: 'invoice',
+      entityId: invoice._id,
+      summary: invoice.invoiceNumber,
+    })
+    res.json(invoice)
   } catch (error) {
     sendError(res, error)
   }

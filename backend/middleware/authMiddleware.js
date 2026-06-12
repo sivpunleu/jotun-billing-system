@@ -3,7 +3,10 @@ import {
   findAdminById,
   findAdminByUsername,
 } from '../repositories/adminRepository.js'
-import { verifyAdminToken } from '../services/authService.js'
+import {
+  tokenVersionMatches,
+  verifyAdminToken,
+} from '../services/authService.js'
 
 export const requireAdmin = async (req, res, next) => {
   const authConfig = getAuthConfig()
@@ -26,15 +29,27 @@ export const requireAdmin = async (req, res, next) => {
       ? await findAdminById(payload.adminId)
       : await findAdminByUsername(payload.username)
 
-    if (storedAdmin && !storedAdmin.active) {
-      return res.status(403).json({ message: 'This admin account is disabled' })
+    if (!storedAdmin) {
+      return res.status(401).json({
+        message: 'This admin account no longer exists',
+      })
+    }
+
+    if (!storedAdmin.active) {
+      return res.status(401).json({ message: 'This admin account is disabled' })
+    }
+
+    if (!tokenVersionMatches(payload, storedAdmin)) {
+      return res.status(401).json({
+        message: 'Your session is no longer valid. Please sign in again',
+      })
     }
 
     req.admin = {
-      id: String(storedAdmin?._id || payload.adminId || ''),
-      username: storedAdmin?.username || payload.username,
-      displayName: storedAdmin?.displayName || payload.displayName || '',
-      role: storedAdmin?.role || payload.role || 'viewer',
+      id: String(storedAdmin._id || payload.adminId || ''),
+      username: storedAdmin.username || payload.username,
+      displayName: storedAdmin.displayName || payload.displayName || '',
+      role: storedAdmin.role || payload.role || 'viewer',
     }
     return next()
   } catch (error) {

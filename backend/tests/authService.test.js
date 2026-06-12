@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import {
   createAdminToken,
   decodeTokenExpiration,
+  tokenVersionMatches,
   verifyAdminCredentials,
   verifyAdminToken,
 } from '../services/authService.js'
@@ -51,6 +52,7 @@ test('admin JWT preserves database identity and role', async () => {
       username: 'owner',
       displayName: 'Billing Owner',
       role: 'owner',
+      tokenVersion: 4,
     },
     config,
   )
@@ -60,4 +62,17 @@ test('admin JWT preserves database identity and role', async () => {
   assert.equal(payload.adminId, 'admin-id-1')
   assert.equal(payload.username, 'owner')
   assert.equal(payload.role, 'owner')
+  assert.equal(payload.tokenVersion, 4)
+})
+
+test('token version invalidates older admin sessions', () => {
+  assert.equal(
+    tokenVersionMatches({ tokenVersion: 2 }, { tokenVersion: 2 }),
+    true,
+  )
+  assert.equal(
+    tokenVersionMatches({ tokenVersion: 1 }, { tokenVersion: 2 }),
+    false,
+  )
+  assert.equal(tokenVersionMatches({}, {}), true)
 })

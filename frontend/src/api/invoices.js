@@ -125,6 +125,12 @@ export const invoiceApi = {
   sendPaymentTelegram(id, paymentId) {
     return api.post(`/invoices/${id}/payments/${paymentId}/telegram`)
   },
+  regenerateShareLink(id, expiresInDays = 30) {
+    return api.post(`/invoices/${id}/share-link`, { expiresInDays })
+  },
+  revokeShareLink(id) {
+    return api.delete(`/invoices/${id}/share-link`)
+  },
 }
 
 export const customerApi = {
