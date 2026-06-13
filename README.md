@@ -78,6 +78,9 @@ the application database. The owner can then create more accounts:
 - Payment history with amount, date, receiver, note, and recording admin
 - Dashboard revenue, outstanding balance, paid invoice, and status metrics
 - Customer and product catalogues that populate the invoice form
+- Supplier catalogue and purchase drafts with controlled stock receiving
+- Weighted product cost prices and historical invoice cost snapshots
+- Cost of goods, gross profit, and gross margin reporting
 - Audit logging for management and security actions
 - Recoverable trash and restore for invoices, customers, and products
 - Server-side pagination and filters
@@ -92,8 +95,8 @@ Downloaded backups contain private customer and business data. Store them in a
 secure location.
 
 Backup restore replaces business data such as invoices, customers, products,
-salespeople, settings, audit logs, and invoice counters. Admin accounts are not
-restored from uploaded backup files.
+suppliers, purchases, salespeople, settings, audit logs, and counters. Admin
+accounts are not restored from uploaded backup files.
 
 ## Deploy
 

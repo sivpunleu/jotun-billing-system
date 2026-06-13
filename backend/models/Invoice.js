@@ -41,6 +41,11 @@ const itemSchema = new mongoose.Schema(
       required: true,
       min: [0, 'Unit price cannot be negative'],
     },
+    costPrice: {
+      type: Number,
+      default: 0,
+      min: [0, 'Item cost price cannot be negative'],
+    },
     discount: {
       type: Number,
       default: 0,

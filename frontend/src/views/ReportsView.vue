@@ -100,12 +100,14 @@ const snapshotCounts = (item = {}) =>
     customers: item.customers?.length || 0,
     products: item.products?.length || 0,
     salespeople: item.salespeople?.length || 0,
+    suppliers: item.suppliers?.length || 0,
+    purchases: item.purchases?.length || 0,
     auditLogs: item.auditLogs?.length || 0,
   }
 
 const backupCountLabel = (item) => {
   const counts = snapshotCounts(item)
-  return `${counts.invoices || 0} invoices · ${counts.customers || 0} customers · ${counts.products || 0} products`
+  return `${counts.invoices || 0} invoices · ${counts.products || 0} products · ${counts.purchases || 0} purchases`
 }
 
 const loadBackups = async () => {
@@ -219,7 +221,7 @@ const restoreUploaded = async () => {
   }
   const counts = snapshotCounts(uploadedBackup.value)
   const confirmed = await confirmRestore(
-    `This will restore ${counts.invoices || 0} invoices, ${counts.customers || 0} customers, and ${counts.products || 0} products from ${uploadedBackupName.value}.`,
+    `This will restore ${counts.invoices || 0} invoices, ${counts.products || 0} products, and ${counts.purchases || 0} purchases from ${uploadedBackupName.value}.`,
   )
   if (!confirmed) return
 
@@ -512,6 +514,48 @@ onMounted(initialize)
             </div>
           </div>
         </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="summary-card">
+            <div class="summary-icon bg-blue-soft">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div>
+              <span>Cost of Goods</span>
+              <strong>{{ formatMoney(report.summary.costOfGoods) }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="summary-card">
+            <div class="summary-icon bg-green-soft">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div>
+              <span>Gross Profit</span>
+              <strong>{{ formatMoney(report.summary.grossProfit) }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="summary-card">
+            <div class="summary-icon bg-yellow-soft">
+              <i class="bi bi-percent"></i>
+            </div>
+            <div>
+              <span>Gross Margin</span>
+              <strong>{{ report.summary.grossMargin || 0 }}%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="report.summary.estimatedCostItems"
+        class="alert alert-warning"
+      >
+        <i class="bi bi-info-circle me-1"></i>
+        {{ report.summary.estimatedCostItems }} old invoice item(s) use the
+        current product cost because no historical cost snapshot exists.
       </div>
 
       <div class="content-card form-card mb-4">
@@ -638,6 +682,8 @@ onMounted(initialize)
                 <th>Color Code</th>
                 <th class="text-end">Quantity</th>
                 <th class="text-end">Amount</th>
+                <th class="text-end">Cost</th>
+                <th class="text-end">Profit</th>
               </tr>
             </thead>
             <tbody>
@@ -653,9 +699,15 @@ onMounted(initialize)
                 <td class="text-end fw-bold" data-label="Amount">
                   {{ formatMoney(item.amount) }}
                 </td>
+                <td class="text-end" data-label="Cost">
+                  {{ formatMoney(item.cost) }}
+                </td>
+                <td class="text-end fw-bold" data-label="Profit">
+                  {{ formatMoney(item.profit) }}
+                </td>
               </tr>
               <tr v-if="!report.salesItems?.length">
-                <td colspan="5" class="text-center text-secondary py-4">
+                <td colspan="7" class="text-center text-secondary py-4">
                   No product sales in this period
                 </td>
               </tr>

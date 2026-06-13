@@ -7,6 +7,7 @@ import InvoiceList from '../views/InvoiceList.vue'
 import InvoicePreview from '../views/InvoicePreview.vue'
 import LoginView from '../views/LoginView.vue'
 import ProductList from '../views/ProductList.vue'
+import PurchaseList from '../views/PurchaseList.vue'
 import ProfileView from '../views/ProfileView.vue'
 import PaymentReceiptView from '../views/PaymentReceiptView.vue'
 import ReportsView from '../views/ReportsView.vue'
@@ -14,6 +15,7 @@ import SalespersonList from '../views/SalespersonList.vue'
 import SettingsView from '../views/SettingsView.vue'
 import CustomerStatementView from '../views/CustomerStatementView.vue'
 import SystemSettingsView from '../views/SystemSettingsView.vue'
+import SupplierList from '../views/SupplierList.vue'
 import {
   currentAdmin,
   hasValidSession,
@@ -83,6 +85,18 @@ const router = createRouter({
       path: '/products',
       name: 'products',
       component: ProductList,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/suppliers',
+      name: 'suppliers',
+      component: SupplierList,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/purchases',
+      name: 'purchases',
+      component: PurchaseList,
       meta: { requiresAuth: true },
     },
     {

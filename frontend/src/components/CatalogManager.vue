@@ -33,9 +33,11 @@ const route = useRoute()
 const isProduct = computed(() => props.kind === 'product')
 const isCustomer = computed(() => props.kind === 'customer')
 const isSalesperson = computed(() => props.kind === 'salesperson')
+const isSupplier = computed(() => props.kind === 'supplier')
 const pageEyebrow = computed(() => {
   if (isProduct.value) return 'PRODUCT CATALOGUE'
   if (isSalesperson.value) return 'SALES TEAM'
+  if (isSupplier.value) return 'SUPPLIER MANAGEMENT'
   return 'CUSTOMER MANAGEMENT'
 })
 const pageDescription = computed(() => {
@@ -44,6 +46,9 @@ const pageDescription = computed(() => {
   }
   if (isSalesperson.value) {
     return 'គ្រប់គ្រងឈ្មោះ Sale សម្រាប់កត់ត្រាប្រភពការលក់លើវិក្កយបត្រ។'
+  }
+  if (isSupplier.value) {
+    return 'រក្សាទុកអ្នកផ្គត់ផ្គង់ លេខទូរស័ព្ទ និងអាសយដ្ឋានសម្រាប់ការទិញចូល។'
   }
   return 'រក្សាទុកព័ត៌មានអតិថិជនសម្រាប់ប្រើឡើងវិញ។'
 })
@@ -64,12 +69,14 @@ const pagination = reactive({ page: 1, limit: 10, total: 0, pages: 1 })
 const form = reactive({
   name: '',
   phone: '',
+  email: '',
   address: '',
   notes: '',
   itemCode: '',
   colorCode: '',
   unit: 'ធុង',
   unitPrice: 0,
+  costPrice: 0,
   stockQuantity: 0,
   lowStockThreshold: 5,
 })
@@ -79,12 +86,14 @@ const resetForm = () => {
   Object.assign(form, {
     name: '',
     phone: '',
+    email: '',
     address: '',
     notes: '',
     itemCode: '',
     colorCode: '',
     unit: 'ធុង',
     unitPrice: 0,
+    costPrice: 0,
     stockQuantity: 0,
     lowStockThreshold: 5,
   })
@@ -127,6 +136,15 @@ const csvRecord = (row) => {
       notes: field(row, 'notes', 'note'),
     }
   }
+  if (isSupplier.value) {
+    return {
+      name,
+      phone: field(row, 'phone', 'telephone'),
+      email: field(row, 'email'),
+      address: field(row, 'address'),
+      notes: field(row, 'notes', 'note'),
+    }
+  }
 
   const unit = field(row, 'unit')
   if (!unit) throw new Error(`Row ${row.__row}: unit is required`)
@@ -136,6 +154,7 @@ const csvRecord = (row) => {
     colorCode: field(row, 'colorcode', 'color'),
     unit,
     unitPrice: numberField(row, 0, 'unitprice', 'price'),
+    costPrice: numberField(row, 0, 'costprice', 'cost'),
     stockQuantity: numberField(row, 0, 'stockquantity', 'stock'),
     lowStockThreshold: numberField(
       row,
@@ -157,6 +176,14 @@ const downloadTemplate = () => {
     )
     return
   }
+  if (isSupplier.value) {
+    downloadCsvTemplate(
+      'supplier-import-template.csv',
+      ['name', 'phone', 'email', 'address', 'notes'],
+      ['Jotun Cambodia', '012345678', 'sales@example.com', 'Phnom Penh', ''],
+    )
+    return
+  }
   downloadCsvTemplate(
     'product-import-template.csv',
     [
@@ -165,11 +192,12 @@ const downloadTemplate = () => {
       'colorCode',
       'unit',
       'unitPrice',
+      'costPrice',
       'stockQuantity',
       'lowStockThreshold',
       'notes',
     ],
-    ['Jotun Majestic 5L', 'MJ-5L', '9918', 'ធុង', '35', '20', '5', ''],
+    ['Jotun Majestic 5L', 'MJ-5L', '9918', 'ធុង', '35', '25', '20', '5', ''],
   )
 }
 
@@ -273,12 +301,14 @@ const editRecord = (record) => {
   Object.assign(form, {
     name: record.name || '',
     phone: record.phone || '',
+    email: record.email || '',
     address: record.address || '',
     notes: record.notes || '',
     itemCode: record.itemCode || '',
     colorCode: record.colorCode || '',
     unit: record.unit || 'ធុង',
     unitPrice: record.unitPrice || 0,
+    costPrice: record.costPrice || 0,
     stockQuantity: record.stockQuantity || 0,
     lowStockThreshold: record.lowStockThreshold ?? 5,
   })
@@ -467,7 +497,7 @@ onMounted(() => {
       </div>
       <form novalidate @submit.prevent="saveRecord">
         <div class="row g-3">
-          <div class="col-md-4">
+          <div :class="isSupplier ? 'col-md-3' : isProduct ? 'col-md-3' : 'col-md-4'">
             <label class="form-label">ឈ្មោះ *</label>
             <input
               v-model.trim="form.name"
@@ -486,13 +516,17 @@ onMounted(() => {
               <label class="form-label">Color Code</label>
               <input v-model.trim="form.colorCode" class="form-control" />
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
               <label class="form-label">ឯកតា *</label>
               <input v-model.trim="form.unit" class="form-control" required />
             </div>
             <div class="col-md-2">
-              <label class="form-label">តម្លៃ *</label>
+              <label class="form-label">Selling Price *</label>
               <input v-model.number="form.unitPrice" class="form-control" type="number" min="0" step="0.01" required />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Cost Price</label>
+              <input v-model.number="form.costPrice" class="form-control" type="number" min="0" step="0.01" />
             </div>
             <div class="col-md-3">
               <label class="form-label">Stock Quantity</label>
@@ -520,7 +554,7 @@ onMounted(() => {
             </div>
           </template>
           <template v-else>
-            <div class="col-md-3">
+            <div :class="isSupplier ? 'col-md-2' : 'col-md-3'">
               <label class="form-label">លេខទូរស័ព្ទ</label>
               <input
                 v-model.trim="form.phone"
@@ -530,7 +564,19 @@ onMounted(() => {
                 title="សូមបញ្ចូលលេខទូរស័ព្ទត្រឹមត្រូវ"
               />
             </div>
-            <div v-if="isCustomer" class="col-md-5">
+            <div v-if="isSupplier" class="col-md-3">
+              <label class="form-label">Email</label>
+              <input
+                v-model.trim="form.email"
+                class="form-control"
+                type="email"
+                maxlength="160"
+              />
+            </div>
+            <div
+              v-if="isCustomer || isSupplier"
+              :class="isSupplier ? 'col-md-4' : 'col-md-5'"
+            >
               <label class="form-label">អាសយដ្ឋាន</label>
               <input v-model.trim="form.address" class="form-control" />
             </div>
@@ -581,9 +627,11 @@ onMounted(() => {
               <th v-if="isProduct">Code / Color</th>
               <th v-if="isProduct">ឯកតា</th>
               <th v-if="isProduct">Stock</th>
-              <th v-if="isProduct" class="text-end">តម្លៃ</th>
+              <th v-if="isProduct" class="text-end">Cost</th>
+              <th v-if="isProduct" class="text-end">Selling</th>
               <th v-if="!isProduct">ទូរស័ព្ទ</th>
-              <th v-if="isCustomer">អាសយដ្ឋាន</th>
+              <th v-if="isSupplier">Email</th>
+              <th v-if="isCustomer || isSupplier">អាសយដ្ឋាន</th>
               <th v-if="isSalesperson">កំណត់ចំណាំ</th>
               <th class="text-end">សកម្មភាព</th>
             </tr>
@@ -608,9 +656,11 @@ onMounted(() => {
                   Alert at {{ record.lowStockThreshold ?? 5 }}
                 </small>
               </td>
-              <td v-if="isProduct" class="text-end fw-bold" data-label="តម្លៃ">{{ formatMoney(record.unitPrice) }}</td>
+              <td v-if="isProduct" class="text-end" data-label="Cost">{{ formatMoney(record.costPrice) }}</td>
+              <td v-if="isProduct" class="text-end fw-bold" data-label="Selling">{{ formatMoney(record.unitPrice) }}</td>
               <td v-if="!isProduct" data-label="ទូរស័ព្ទ">{{ record.phone || '-' }}</td>
-              <td v-if="isCustomer" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
+              <td v-if="isSupplier" data-label="Email">{{ record.email || '-' }}</td>
+              <td v-if="isCustomer || isSupplier" data-label="អាសយដ្ឋាន">{{ record.address || '-' }}</td>
               <td v-if="isSalesperson" data-label="កំណត់ចំណាំ">{{ record.notes || '-' }}</td>
               <td class="text-end text-nowrap mobile-card-actions" data-label="សកម្មភាព">
                 <button v-if="showTrash && canManageBilling" class="btn btn-sm btn-outline-success" type="button" @click="restoreRecord(record)">

@@ -3,6 +3,7 @@ import { getStorageMode } from '../config/db.js'
 import Customer from '../models/Customer.js'
 import Product from '../models/Product.js'
 import Salesperson from '../models/Salesperson.js'
+import Supplier from '../models/Supplier.js'
 import {
   mutateLocalCollection,
   readLocalCollection,
@@ -19,6 +20,10 @@ const catalogConfig = {
   },
   salespeople: {
     Model: Salesperson,
+    duplicateField: null,
+  },
+  suppliers: {
+    Model: Supplier,
     duplicateField: null,
   },
 }
@@ -50,8 +55,8 @@ export const listCatalogRecords = async (
     const searchFields =
       type === 'products'
         ? ['name', 'itemCode', 'colorCode']
-        : type === 'customers'
-          ? ['name', 'phone', 'address']
+        : type === 'customers' || type === 'suppliers'
+          ? ['name', 'phone', 'address', 'email']
           : ['name', 'phone', 'notes']
     const filter = {
       deletedAt: deleted ? { $ne: null } : null,
@@ -75,8 +80,8 @@ export const listCatalogRecords = async (
   const fields =
     type === 'products'
       ? ['name', 'itemCode', 'colorCode']
-      : type === 'customers'
-        ? ['name', 'phone', 'address']
+      : type === 'customers' || type === 'suppliers'
+        ? ['name', 'phone', 'address', 'email']
         : ['name', 'phone', 'notes']
   const records = (await readLocalCollection(type))
     .filter((record) =>

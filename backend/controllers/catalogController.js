@@ -42,12 +42,16 @@ const cleanProduct = (body, actor) => {
   const name = String(body.name || '').trim()
   const unit = String(body.unit || '').trim()
   const unitPrice = Number(body.unitPrice)
+  const costPrice = Number(body.costPrice ?? 0)
   const stockQuantity = Number(body.stockQuantity ?? 0)
   const lowStockThreshold = Number(body.lowStockThreshold ?? 5)
   if (!name) throw new Error('Product name is required')
   if (!unit) throw new Error('Product unit is required')
   if (!Number.isFinite(unitPrice) || unitPrice < 0) {
     throw new Error('Unit price must be zero or greater')
+  }
+  if (!Number.isFinite(costPrice) || costPrice < 0) {
+    throw new Error('Cost price must be zero or greater')
   }
   if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
     throw new Error('Stock quantity must be zero or greater')
@@ -61,8 +65,22 @@ const cleanProduct = (body, actor) => {
     colorCode: String(body.colorCode || '').trim(),
     unit,
     unitPrice: Math.round(unitPrice * 100) / 100,
+    costPrice: Math.round(costPrice * 100) / 100,
     stockQuantity: Math.round(stockQuantity * 100) / 100,
     lowStockThreshold: Math.round(lowStockThreshold * 100) / 100,
+    notes: String(body.notes || '').trim(),
+    updatedBy: actor,
+  }
+}
+
+const cleanSupplier = (body, actor) => {
+  const name = String(body.name || '').trim()
+  if (!name) throw new Error('Supplier name is required')
+  return {
+    name,
+    phone: String(body.phone || '').trim(),
+    email: String(body.email || '').trim().toLowerCase(),
+    address: String(body.address || '').trim(),
     notes: String(body.notes || '').trim(),
     updatedBy: actor,
   }
@@ -82,6 +100,7 @@ const cleanSalesperson = (body, actor) => {
 const normalize = (type, body, actor) => {
   if (type === 'customers') return cleanCustomer(body, actor)
   if (type === 'products') return cleanProduct(body, actor)
+  if (type === 'suppliers') return cleanSupplier(body, actor)
   return cleanSalesperson(body, actor)
 }
 
@@ -190,6 +209,7 @@ const buildController = (type, entityType) => ({
 
 export const customerController = buildController('customers', 'customer')
 export const productController = buildController('products', 'product')
+export const supplierController = buildController('suppliers', 'supplier')
 export const salespersonController = buildController(
   'salespeople',
   'salesperson',

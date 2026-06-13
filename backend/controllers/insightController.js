@@ -9,6 +9,7 @@ import {
   getAllInvoices,
   listInvoices,
 } from '../repositories/invoiceRepository.js'
+import { listPurchases } from '../repositories/purchaseRepository.js'
 import { getSystemSettings } from '../repositories/settingsRepository.js'
 
 const resolvedStatus = (invoice) => {
@@ -30,27 +31,42 @@ export const globalSearch = async (req, res) => {
   try {
     const query = String(req.query.q || '').trim()
     if (query.length < 2) {
-      return res.json({ invoices: [], customers: [], products: [] })
+      return res.json({
+        invoices: [],
+        customers: [],
+        products: [],
+        suppliers: [],
+        purchases: [],
+      })
     }
 
-    const [invoices, customers, products] = await Promise.all([
-      listInvoices({ search: query, page: 1, limit: 6 }),
-      listCatalogRecords('customers', {
-        search: query,
-        page: 1,
-        limit: 6,
-      }),
-      listCatalogRecords('products', {
-        search: query,
-        page: 1,
-        limit: 6,
-      }),
-    ])
+    const [invoices, customers, products, suppliers, purchases] =
+      await Promise.all([
+        listInvoices({ search: query, page: 1, limit: 6 }),
+        listCatalogRecords('customers', {
+          search: query,
+          page: 1,
+          limit: 6,
+        }),
+        listCatalogRecords('products', {
+          search: query,
+          page: 1,
+          limit: 6,
+        }),
+        listCatalogRecords('suppliers', {
+          search: query,
+          page: 1,
+          limit: 6,
+        }),
+        listPurchases({ search: query, page: 1, limit: 6 }),
+      ])
 
     res.json({
       invoices: invoices.items,
       customers: customers.items,
       products: products.items,
+      suppliers: suppliers.items,
+      purchases: purchases.items,
     })
   } catch (error) {
     res.status(400).json({ message: error.message || 'Search failed' })

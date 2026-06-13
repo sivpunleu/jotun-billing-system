@@ -2375,6 +2375,57 @@ textarea {
   margin-bottom: 20px;
 }
 
+.purchase-total-field,
+.purchase-line-total {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border: 1px solid #dce3ec;
+  border-radius: 10px;
+  color: var(--navy);
+  background: #f7f9fb;
+  font-weight: 800;
+}
+
+.purchase-items {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.purchase-item-row {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfcfe;
+}
+
+.purchase-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--navy);
+}
+
+.purchase-status-filter {
+  width: min(100%, 210px);
+}
+
+.purchase-status-draft {
+  --status-color: #68778c;
+}
+
+.purchase-status-received {
+  --status-color: #08734e;
+}
+
+.purchase-status-cancelled {
+  --status-color: #dc2635;
+}
+
 .share-link-heading,
 .payment-management-heading {
   display: flex;
@@ -3872,6 +3923,10 @@ textarea {
   }
 
   .filter-select {
+    width: 100%;
+  }
+
+  .purchase-status-filter {
     width: 100%;
   }
 

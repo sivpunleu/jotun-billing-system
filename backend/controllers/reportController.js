@@ -135,6 +135,38 @@ export const getRevenueReport = async (req, res) => {
       const date = new Date(invoice.invoiceDate)
       return date >= from && date <= to
     })
+    const products = await getAllCatalogRecords('products')
+    const productCostMap = new Map(
+      products.map((product) => [
+        String(product._id),
+        Number(product.costPrice || 0),
+      ]),
+    )
+    let costOfGoods = 0
+    let itemSalesRevenue = 0
+    let estimatedCostItems = 0
+    for (const invoice of periodInvoices) {
+      for (const item of invoice.items || []) {
+        const hasSnapshot =
+          item.costPrice !== undefined &&
+          item.costPrice !== null &&
+          Number.isFinite(Number(item.costPrice))
+        const costPrice = hasSnapshot
+          ? Number(item.costPrice)
+          : Number(productCostMap.get(String(item.productId || '')) || 0)
+        if (!hasSnapshot) estimatedCostItems += 1
+        costOfGoods += Number(item.quantity || 0) * costPrice
+        itemSalesRevenue += Number(item.total || 0)
+      }
+      itemSalesRevenue -= Number(invoice.discount || 0)
+    }
+    costOfGoods = roundMoney(costOfGoods)
+    itemSalesRevenue = roundMoney(itemSalesRevenue)
+    const grossProfit = roundMoney(itemSalesRevenue - costOfGoods)
+    const grossMargin =
+      itemSalesRevenue > 0
+        ? roundMoney((grossProfit / itemSalesRevenue) * 100)
+        : 0
     const trend = Array.from(trendMap.entries())
       .map(([label, revenue]) => ({ label, revenue }))
       .sort((left, right) => left.label.localeCompare(right.label))
@@ -206,9 +238,20 @@ export const getRevenueReport = async (req, res) => {
           unit: item.unit || '',
           quantity: 0,
           amount: 0,
+          cost: 0,
+          profit: 0,
         }
+        const hasSnapshot =
+          item.costPrice !== undefined &&
+          item.costPrice !== null &&
+          Number.isFinite(Number(item.costPrice))
+        const costPrice = hasSnapshot
+          ? Number(item.costPrice)
+          : Number(productCostMap.get(String(item.productId || '')) || 0)
         current.quantity += Number(item.quantity || 0)
         current.amount += Number(item.total || 0)
+        current.cost += Number(item.quantity || 0) * costPrice
+        current.profit = current.amount - current.cost
         salesItemMap.set(itemKey, current)
       }
     }
@@ -217,6 +260,8 @@ export const getRevenueReport = async (req, res) => {
         ...item,
         quantity: roundMoney(item.quantity),
         amount: roundMoney(item.amount),
+        cost: roundMoney(item.cost),
+        profit: roundMoney(item.profit),
       }))
       .sort((left, right) => right.amount - left.amount)
 
@@ -245,6 +290,10 @@ export const getRevenueReport = async (req, res) => {
           ),
         ),
         invoiceCount: periodInvoices.length,
+        costOfGoods,
+        grossProfit,
+        grossMargin,
+        estimatedCostItems,
       },
       trend,
       salesPerformance,

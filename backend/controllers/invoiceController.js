@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { writeAuditLog } from '../repositories/auditRepository.js'
+import { getAllCatalogRecords } from '../repositories/catalogRepository.js'
 import {
   appendInvoicePayment,
   findInvoiceById,
@@ -35,6 +36,7 @@ export const calculateTotals = (payload) => {
     const quantity = Number(item.quantity)
     const unitPrice = Number(item.unitPrice)
     const discount = Number(item.discount || 0)
+    const costPrice = Number(item.costPrice || 0)
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       throw new Error('Each item quantity must be greater than zero')
@@ -44,6 +46,9 @@ export const calculateTotals = (payload) => {
     }
     if (!Number.isFinite(discount) || discount < 0) {
       throw new Error('Each item discount must be zero or greater')
+    }
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      throw new Error('Each item cost price must be zero or greater')
     }
 
     const baseTotal = quantity * unitPrice
@@ -59,6 +64,7 @@ export const calculateTotals = (payload) => {
       quantity,
       unit: String(item.unit || '').trim(),
       unitPrice: roundMoney(unitPrice),
+      costPrice: roundMoney(costPrice),
       discount: roundMoney(discount),
       total: roundMoney(baseTotal - discount),
     }
@@ -267,7 +273,52 @@ const toPublicInvoice = (invoice) => {
     __v,
     ...publicInvoice
   } = data
-  return publicInvoice
+  return {
+    ...publicInvoice,
+    items: (publicInvoice.items || []).map((item) => {
+      const { costPrice, ...publicItem } = item
+      return publicItem
+    }),
+  }
+}
+
+const snapshotItemCosts = async (body, existingItems = []) => {
+  const products = await getAllCatalogRecords('products')
+  const productMap = new Map(
+    products.map((product) => [String(product._id), product]),
+  )
+  const existingById = new Map(
+    existingItems
+      .filter((item) => item._id)
+      .map((item) => [String(item._id), item]),
+  )
+
+  return {
+    ...body,
+    items: (body.items || []).map((item, index) => {
+      const existing =
+        existingById.get(String(item._id || '')) ||
+        existingItems.find(
+          (candidate) =>
+            String(candidate.productId || '') ===
+              String(item.productId || '') &&
+            String(candidate.description || '') ===
+              String(item.description || ''),
+        ) ||
+        existingItems[index]
+      const sameProduct =
+        existing &&
+        String(existing.productId || '') === String(item.productId || '')
+      const product = productMap.get(String(item.productId || ''))
+      const costPrice = sameProduct
+        ? Number(existing.costPrice || 0)
+        : Number(product?.costPrice || 0)
+      return {
+        ...item,
+        costPrice: Number.isFinite(costPrice) ? costPrice : 0,
+      }
+    }),
+  }
 }
 
 export const getInvoices = async (req, res) => {
@@ -364,7 +415,8 @@ export const revokeInvoicePublicLink = async (req, res) => {
 export const createInvoice = async (req, res) => {
   try {
     const invoiceNumber = await reserveInvoiceNumber(req.body.invoiceDate)
-    const payload = normalizeInvoice(req.body, {
+    const body = await snapshotItemCosts(req.body)
+    const payload = normalizeInvoice(body, {
       invoiceNumber,
       actor: req.admin.username,
     })
@@ -391,7 +443,7 @@ export const updateInvoice = async (req, res) => {
     }
     const invoice = await replaceInvoice(
       req.params.id,
-      normalizeInvoice(req.body, {
+      normalizeInvoice(await snapshotItemCosts(req.body, existing.items), {
         invoiceNumber: existing.invoiceNumber,
         actor: req.admin.username,
         existingPayments: existing.payments,

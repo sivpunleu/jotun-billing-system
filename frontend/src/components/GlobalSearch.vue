@@ -13,13 +13,17 @@ const results = ref({
   invoices: [],
   customers: [],
   products: [],
+  suppliers: [],
+  purchases: [],
 })
 
 const resultCount = computed(
   () =>
     results.value.invoices.length +
     results.value.customers.length +
-    results.value.products.length,
+    results.value.products.length +
+    results.value.suppliers.length +
+    results.value.purchases.length,
 )
 
 let searchTimer
@@ -28,7 +32,13 @@ const search = () => {
   const value = query.value.trim()
   if (value.length < 2) {
     open.value = false
-    results.value = { invoices: [], customers: [], products: [] }
+    results.value = {
+      invoices: [],
+      customers: [],
+      products: [],
+      suppliers: [],
+      purchases: [],
+    }
     return
   }
 
@@ -68,7 +78,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
     <input
       v-model="query"
       type="search"
-      placeholder="ស្វែងរក Invoice, Customer, Product..."
+      placeholder="ស្វែងរក Invoice, Customer, Product, Purchase..."
       aria-label="Global search"
       @input="search"
       @focus="query.trim().length >= 2 && (open = true)"
@@ -137,6 +147,49 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
               <small>{{ product.itemCode || product.colorCode || '-' }}</small>
             </span>
             <b>{{ formatMoney(product.unitPrice) }}</b>
+          </button>
+        </div>
+
+        <div v-if="results.suppliers.length" class="search-group">
+          <span>SUPPLIERS</span>
+          <button
+            v-for="supplier in results.suppliers"
+            :key="supplier._id"
+            type="button"
+            @mousedown.prevent="
+              navigate({
+                path: '/suppliers',
+                query: { search: supplier.name },
+              })
+            "
+          >
+            <i class="bi bi-truck"></i>
+            <span>
+              <strong>{{ supplier.name }}</strong>
+              <small>{{ supplier.phone || supplier.email || '-' }}</small>
+            </span>
+          </button>
+        </div>
+
+        <div v-if="results.purchases.length" class="search-group">
+          <span>PURCHASES</span>
+          <button
+            v-for="purchase in results.purchases"
+            :key="purchase._id"
+            type="button"
+            @mousedown.prevent="
+              navigate({
+                path: '/purchases',
+                query: { search: purchase.purchaseNumber },
+              })
+            "
+          >
+            <i class="bi bi-cart-plus"></i>
+            <span>
+              <strong>{{ purchase.purchaseNumber }}</strong>
+              <small>{{ purchase.supplier?.name }}</small>
+            </span>
+            <b>{{ formatMoney(purchase.subtotal) }}</b>
           </button>
         </div>
       </template>

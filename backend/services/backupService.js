@@ -21,20 +21,25 @@ import Counter from '../models/Counter.js'
 import Customer from '../models/Customer.js'
 import Invoice from '../models/Invoice.js'
 import Product from '../models/Product.js'
+import Purchase from '../models/Purchase.js'
 import Salesperson from '../models/Salesperson.js'
+import Supplier from '../models/Supplier.js'
 import SystemSetting from '../models/SystemSetting.js'
 import {
   createShareToken,
   createShareTokenExpiration,
 } from '../utils/shareToken.js'
+import { getAllPurchases } from '../repositories/purchaseRepository.js'
 
-export const BACKUP_FORMAT_VERSION = 2
+export const BACKUP_FORMAT_VERSION = 3
 
 const backupCollectionNames = [
   'invoices',
   'customers',
   'products',
   'salespeople',
+  'suppliers',
+  'purchases',
   'auditLogs',
   'counters',
 ]
@@ -71,6 +76,8 @@ const countsForPayload = (payload) => ({
   customers: payload.customers.length,
   products: payload.products.length,
   salespeople: payload.salespeople.length,
+  suppliers: payload.suppliers.length,
+  purchases: payload.purchases.length,
   auditLogs: payload.auditLogs.length,
   counters: payload.counters.length,
   admins: payload.admins.length,
@@ -84,7 +91,7 @@ const readCounters = async () => {
   return readLocalCollection('counters')
 }
 
-const deriveCountersFromInvoices = (invoices = []) => {
+const deriveCountersFromRecords = (invoices = [], purchases = []) => {
   const counters = new Map()
   for (const invoice of invoices) {
     const match = String(invoice.invoiceNumber || '').match(
@@ -94,6 +101,16 @@ const deriveCountersFromInvoices = (invoices = []) => {
     const year = match[1]
     const sequence = Number(match[2])
     const counterId = `invoice-${year}`
+    counters.set(counterId, Math.max(counters.get(counterId) || 0, sequence))
+  }
+  for (const purchase of purchases) {
+    const match = String(purchase.purchaseNumber || '').match(
+      /^PO-(\d{4})-(\d{5})$/,
+    )
+    if (!match) continue
+    const year = match[1]
+    const sequence = Number(match[2])
+    const counterId = `purchase-${year}`
     counters.set(counterId, Math.max(counters.get(counterId) || 0, sequence))
   }
   return Array.from(counters.entries()).map(([_id, sequence]) => ({
@@ -136,6 +153,8 @@ export const buildDatabaseBackup = async ({
     customers,
     products,
     salespeople,
+    suppliers,
+    purchases,
     admins,
     auditLogs,
     settings,
@@ -145,6 +164,8 @@ export const buildDatabaseBackup = async ({
     getAllCatalogRecords('customers'),
     getAllCatalogRecords('products'),
     getAllCatalogRecords('salespeople'),
+    getAllCatalogRecords('suppliers'),
+    getAllPurchases(),
     getAllAdminsForBackup(),
     getAllAuditLogs(),
     getSystemSettings(),
@@ -162,6 +183,8 @@ export const buildDatabaseBackup = async ({
     customers: clone(customers) || [],
     products: clone(products) || [],
     salespeople: clone(salespeople) || [],
+    suppliers: clone(suppliers) || [],
+    purchases: clone(purchases) || [],
     admins: clone(admins) || [],
     auditLogs: clone(auditLogs) || [],
     counters: clone(counters) || [],
@@ -191,13 +214,19 @@ export const normalizeBackupPayload = (payload) => {
     customers: normalizeArray(backup, 'customers'),
     products: normalizeArray(backup, 'products'),
     salespeople: normalizeArray(backup, 'salespeople'),
+    suppliers: Array.isArray(backup.suppliers)
+      ? backup.suppliers.map(cleanPlainRecord)
+      : [],
+    purchases: Array.isArray(backup.purchases)
+      ? backup.purchases.map(cleanPlainRecord)
+      : [],
     auditLogs: Array.isArray(backup.auditLogs)
       ? backup.auditLogs.map(cleanPlainRecord)
       : [],
     admins: Array.isArray(backup.admins) ? backup.admins.map(cleanPlainRecord) : [],
     counters: Array.isArray(backup.counters)
       ? backup.counters.map(cleanPlainRecord)
-      : deriveCountersFromInvoices(backup.invoices),
+      : deriveCountersFromRecords(backup.invoices, backup.purchases),
     settings: cleanPlainRecord({
       ...defaultSystemSettings,
       ...(Array.isArray(backup.settings) ? backup.settings[0] : backup.settings),
@@ -234,6 +263,8 @@ const restoreMongo = async (backup) => {
   await replaceMongoCollection(Customer, backup.customers)
   await replaceMongoCollection(Product, backup.products)
   await replaceMongoCollection(Salesperson, backup.salespeople)
+  await replaceMongoCollection(Supplier, backup.suppliers)
+  await replaceMongoCollection(Purchase, backup.purchases)
   await replaceMongoCollection(AuditLog, backup.auditLogs)
   await replaceMongoCollection(Counter, backup.counters, {
     preserveStringIds: true,
@@ -248,6 +279,8 @@ const restoreLocal = async (backup) => {
   await replaceLocalCollection('customers', backup.customers)
   await replaceLocalCollection('products', backup.products)
   await replaceLocalCollection('salespeople', backup.salespeople)
+  await replaceLocalCollection('suppliers', backup.suppliers)
+  await replaceLocalCollection('purchases', backup.purchases)
   await replaceLocalCollection('audit-logs', backup.auditLogs)
   await replaceLocalCollection('counters', backup.counters)
   await replaceLocalCollection('system-settings', [backup.settings])

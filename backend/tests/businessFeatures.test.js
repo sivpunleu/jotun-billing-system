@@ -17,12 +17,16 @@ test('local stock movements and system settings persist correctly', async () => 
     const settings = await import(
       `../repositories/settingsRepository.js?business=${Date.now()}`
     )
+    const purchases = await import(
+      `../repositories/purchaseRepository.js?business=${Date.now()}`
+    )
 
     const product = await catalog.createCatalogRecord('products', {
       name: 'Jotun Test Paint',
       itemCode: 'TEST-001',
       unit: 'can',
       unitPrice: 25,
+      costPrice: 20,
       stockQuantity: 10,
       lowStockThreshold: 3,
     })
@@ -43,6 +47,56 @@ test('local stock movements and system settings persist correctly', async () => 
     assert.equal(stockedOut.stockQuantity, 11)
     assert.equal(stockedOut.stockMovements.length, 2)
     assert.equal(stockedOut.stockMovements[1].resultingStock, 11)
+
+    const supplier = await catalog.createCatalogRecord('suppliers', {
+      name: 'Jotun Cambodia',
+      phone: '012 000 111',
+      email: 'supplier@example.com',
+      address: 'Phnom Penh',
+    })
+    const purchaseNumber = await purchases.reservePurchaseNumber(
+      '2026-06-08',
+    )
+    const purchase = await purchases.insertPurchase({
+      purchaseNumber,
+      purchaseDate: '2026-06-08T00:00:00.000Z',
+      supplierId: supplier._id,
+      supplier: { name: supplier.name, phone: supplier.phone },
+      items: [
+        {
+          productId: product._id,
+          name: product.name,
+          unit: product.unit,
+          quantity: 9,
+          unitCost: 10,
+          total: 90,
+        },
+      ],
+      subtotal: 90,
+      notes: '',
+      createdBy: 'owner',
+      updatedBy: 'owner',
+    })
+    assert.equal(purchase.status, 'draft')
+
+    const receiveResults = await Promise.all([
+      purchases.receiveDraftPurchase(purchase._id, 'owner'),
+      purchases.receiveDraftPurchase(purchase._id, 'owner'),
+    ])
+    const receivedPurchase = receiveResults.find(Boolean)
+    const purchasedProduct = await catalog.findCatalogRecord(
+      'products',
+      product._id,
+    )
+    assert.equal(receivedPurchase.status, 'received')
+    assert.equal(receiveResults.filter(Boolean).length, 1)
+    assert.equal(purchasedProduct.stockQuantity, 20)
+    assert.equal(purchasedProduct.costPrice, 15.5)
+    assert.equal(purchasedProduct.stockMovements.length, 3)
+    assert.equal(
+      purchasedProduct.stockMovements[2].referenceType,
+      'purchase',
+    )
 
     const salesperson = await catalog.createCatalogRecord('salespeople', {
       name: 'Sokha Sale',

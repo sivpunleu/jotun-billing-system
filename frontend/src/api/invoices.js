@@ -148,6 +148,28 @@ export const productApi = {
 }
 
 export const salespersonApi = createCatalogApi('/salespeople')
+export const supplierApi = createCatalogApi('/suppliers')
+
+export const purchaseApi = {
+  list(params = {}) {
+    return api.get('/purchases', { params })
+  },
+  get(id) {
+    return api.get(`/purchases/${id}`)
+  },
+  create(payload) {
+    return api.post('/purchases', payload)
+  },
+  update(id, payload) {
+    return api.put(`/purchases/${id}`, payload)
+  },
+  receive(id) {
+    return api.post(`/purchases/${id}/receive`)
+  },
+  cancel(id) {
+    return api.post(`/purchases/${id}/cancel`)
+  },
+}
 
 export const auditApi = {
   list(params = {}) {

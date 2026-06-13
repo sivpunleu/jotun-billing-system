@@ -36,6 +36,21 @@ const stockMovementSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    referenceType: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    referenceId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    unitCost: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
   },
   { _id: true },
 )
@@ -67,6 +82,11 @@ const productSchema = new mongoose.Schema(
       type: Number,
       min: [0, 'Unit price cannot be negative'],
       required: true,
+    },
+    costPrice: {
+      type: Number,
+      min: [0, 'Cost price cannot be negative'],
+      default: 0,
     },
     stockQuantity: {
       type: Number,

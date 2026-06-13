@@ -11,9 +11,11 @@ import customerRoutes from './routes/customerRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
 import insightRoutes from './routes/insightRoutes.js'
 import productRoutes from './routes/productRoutes.js'
+import purchaseRoutes from './routes/purchaseRoutes.js'
 import reportRoutes from './routes/reportRoutes.js'
 import salespersonRoutes from './routes/salespersonRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
+import supplierRoutes from './routes/supplierRoutes.js'
 import { startAutomatedBackupScheduler } from './services/backupScheduler.js'
 import { migrateExistingData } from './services/migrationService.js'
 
@@ -79,7 +81,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/purchases', purchaseRoutes)
 app.use('/api/salespeople', salespersonRoutes)
+app.use('/api/suppliers', supplierRoutes)
 app.use('/api/audit-logs', auditRoutes)
 app.use('/api/insights', insightRoutes)
 
