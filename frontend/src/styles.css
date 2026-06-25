@@ -4094,6 +4094,11 @@ textarea {
     margin: 0;
   }
 
+  @page invoice-a5 {
+    size: A5 portrait;
+    margin: 0;
+  }
+
   body {
     background: #fff;
   }
@@ -4110,22 +4115,23 @@ textarea {
   }
 
   .invoice-paper {
-    width: 210mm;
+    width: 148mm;
     max-width: none;
-    min-height: 297mm;
-    padding: 7mm 10mm 6mm;
+    min-height: 210mm;
+    padding: 5mm 6mm;
     border-radius: 0;
     box-shadow: none;
   }
 
   .classic-invoice {
-    font-size: var(--invoice-font-size, 13px);
+    page: invoice-a5;
+    font-size: var(--invoice-a5-font-size, 9.6px);
   }
 
   .classic-header {
-    grid-template-columns: 205px minmax(0, 1fr) 205px;
-    column-gap: 20px;
-    min-height: 43mm;
+    grid-template-columns: 32mm minmax(0, 1fr) 32mm;
+    column-gap: 5mm;
+    min-height: 29mm;
   }
 
   .statement-page,
@@ -4153,79 +4159,158 @@ textarea {
   }
 
   .classic-logo {
-    width: 28mm;
-    height: 28mm;
-    flex-basis: 28mm;
+    width: 22mm;
+    height: 22mm;
+    flex-basis: 22mm;
   }
 
   .classic-jotun-logo {
-    width: 25mm;
+    width: 33mm !important;
+    height: 11mm !important;
     display: block !important;
+    object-fit: contain;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
   .classic-brand-title {
-    font-size: var(--invoice-brand-title-size, 12px);
+    font-size: var(--invoice-a5-brand-title-size, 8px);
   }
 
   .classic-subtitle {
-    font-size: var(--invoice-brand-subtitle-size, 11px);
+    font-size: var(--invoice-a5-brand-subtitle-size, 7.5px);
   }
 
   .company-copy h1 {
-    font-size: var(--invoice-company-title-size, 20px);
+    margin-bottom: 1mm;
+    font-size: var(--invoice-a5-company-title-size, 13px);
   }
 
   .company-copy p {
-    font-size: var(--invoice-company-line-size, 11px);
+    font-size: var(--invoice-a5-company-line-size, 7.4px);
+    line-height: 1.25;
+  }
+
+  .invoice-heading {
+    margin: -1mm 0 2mm;
   }
 
   .invoice-heading h2 {
-    font-size: var(--invoice-heading-size, 19px);
+    font-size: var(--invoice-a5-heading-size, 13.7px);
   }
 
   .classic-customer {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
-    gap: 9mm;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5mm;
+    padding: 0 1mm 2mm;
+  }
+
+  .invoice-info-row {
+    gap: 3px;
+    min-height: 4.4mm;
+    line-height: 1.25;
   }
 
   .classic-meta {
     justify-self: end;
-    min-width: 76mm;
+    min-width: 0;
   }
 
   .classic-meta .invoice-info-row {
-    grid-template-columns: max-content minmax(28mm, max-content);
+    grid-template-columns: max-content minmax(18mm, 1fr);
     justify-content: end;
   }
 
   .classic-table th {
+    padding: 1.2mm 1.3mm;
+    font-size: var(--invoice-a5-table-header-size, 8.8px);
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
   .classic-table td {
-    height: 10mm;
+    height: 7.2mm;
+    padding: 1.4mm 1.6mm;
+  }
+
+  .classic-table .number-column {
+    width: 6%;
+  }
+
+  .classic-table .code-column {
+    width: 13%;
+  }
+
+  .classic-table .qty-column {
+    width: 8%;
+  }
+
+  .classic-table .money-column {
+    width: 16%;
   }
 
   .classic-settlement {
-    min-height: 58mm;
+    grid-template-columns: 59% 41%;
+    min-height: 39mm;
+  }
+
+  .classic-payment {
+    padding: 2.4mm 2.5mm 0 1.5mm;
+  }
+
+  .payment-notes {
+    min-height: 12mm;
+  }
+
+  .qr-block {
+    width: 38mm;
+  }
+
+  .qr-block p {
+    margin-top: 1mm;
+  }
+
+  .qr-block img {
+    width: 22mm;
+    height: 22mm;
+    margin-left: 1.5mm;
+  }
+
+  .classic-totals th,
+  .classic-totals td {
+    height: 7.6mm;
+    padding: 1mm 1.6mm;
+  }
+
+  .classic-totals th {
+    font-size: var(--invoice-a5-total-title-size, 8.2px);
+  }
+
+  .classic-totals th span,
+  .signature-box span {
+    font-size: var(--invoice-a5-small-size, 7.5px);
+  }
+
+  .signature-section {
+    gap: 12mm;
+    margin: 2mm 8mm 0;
   }
 
   .signature-space {
-    height: 27mm;
+    height: 20mm;
   }
 
   .seller-signature-image {
     display: block !important;
     max-width: 82%;
-    max-height: 24mm;
+    max-height: 18mm;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
   .classic-footer {
-    margin-top: 7mm;
+    margin-top: 3mm;
+    padding-top: 2mm;
+    font-size: var(--invoice-a5-footer-size, 8.3px);
   }
 }

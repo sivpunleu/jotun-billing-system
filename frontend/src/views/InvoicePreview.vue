@@ -73,6 +73,16 @@ const invoiceTypographyStyle = computed(() => {
     '--invoice-total-title-size': size(0.92),
     '--invoice-small-size': size(0.85),
     '--invoice-footer-size': size(1),
+    '--invoice-a5-font-size': size(0.74),
+    '--invoice-a5-brand-title-size': size(0.62),
+    '--invoice-a5-brand-subtitle-size': size(0.58),
+    '--invoice-a5-company-title-size': size(1),
+    '--invoice-a5-company-line-size': size(0.57),
+    '--invoice-a5-heading-size': size(1.05),
+    '--invoice-a5-table-header-size': size(0.68),
+    '--invoice-a5-total-title-size': size(0.63),
+    '--invoice-a5-small-size': size(0.58),
+    '--invoice-a5-footer-size': size(0.64),
   }
 })
 
