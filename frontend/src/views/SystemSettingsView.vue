@@ -19,6 +19,7 @@ const form = reactive({
   phones: [],
   paymentAccount: '',
   invoiceNotes: '',
+  invoiceFontSize: 13,
   footerKh: '',
   footerEn: '',
   logo: '',
@@ -27,12 +28,21 @@ const form = reactive({
   sellerSignature: '',
 })
 const phoneText = ref('')
+const fontSizeMin = 9
+const fontSizeMax = 18
+
+const normalizeInvoiceFontSize = (value) => {
+  const size = Number(value)
+  if (!Number.isFinite(size)) return 13
+  return Math.min(fontSizeMax, Math.max(fontSizeMin, Math.round(size * 10) / 10))
+}
 
 const load = async () => {
   loading.value = true
   try {
     const { data } = await settingsApi.get()
     Object.assign(form, data)
+    form.invoiceFontSize = normalizeInvoiceFontSize(data.invoiceFontSize)
     phoneText.value = (data.phones || []).join(', ')
   } catch (requestError) {
     error.value =
@@ -128,6 +138,7 @@ const save = async (event) => {
       .split(',')
       .map((phone) => phone.trim())
       .filter(Boolean)
+    form.invoiceFontSize = normalizeInvoiceFontSize(form.invoiceFontSize)
     Object.assign(form, (await settingsApi.update(form)).data)
     showToast('System settings saved')
   } catch (requestError) {
@@ -208,6 +219,40 @@ onMounted(load)
             </div>
           </div>
           <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label d-flex align-items-center justify-content-between gap-3">
+                <span>Invoice Font Size</span>
+                <strong>{{ form.invoiceFontSize }}px</strong>
+              </label>
+              <input
+                v-model.number="form.invoiceFontSize"
+                class="form-range invoice-font-range"
+                type="range"
+                :min="fontSizeMin"
+                :max="fontSizeMax"
+                step="0.5"
+              />
+              <div class="font-size-helper">
+                <span>Small</span>
+                <span>Large</span>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Font Size Number</label>
+              <div class="input-group">
+                <input
+                  v-model.number="form.invoiceFontSize"
+                  class="form-control"
+                  type="number"
+                  :min="fontSizeMin"
+                  :max="fontSizeMax"
+                  step="0.5"
+                  required
+                />
+                <span class="input-group-text">px</span>
+              </div>
+              <div class="form-text">Use 13px as the normal invoice size.</div>
+            </div>
             <div class="col-12">
               <label class="form-label">Default Invoice Notes</label>
               <textarea v-model="form.invoiceNotes" class="form-control" rows="4"></textarea>

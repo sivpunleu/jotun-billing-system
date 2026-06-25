@@ -1820,7 +1820,7 @@ textarea {
 .classic-invoice {
   color: #111;
   font-family: 'Battambang', Arial, sans-serif;
-  font-size: 13px;
+  font-size: var(--invoice-font-size, 13px);
 }
 
 .classic-header {
@@ -1999,7 +1999,7 @@ textarea {
 
 .classic-brand-title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--invoice-brand-title-size, 12px);
   font-weight: 700;
   line-height: 1.35;
   white-space: nowrap;
@@ -2008,7 +2008,7 @@ textarea {
 .classic-subtitle {
   margin: 0;
   font-family: Arial, sans-serif;
-  font-size: 11px;
+  font-size: var(--invoice-brand-subtitle-size, 11px);
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -2027,13 +2027,13 @@ textarea {
 
 .company-copy h1 {
   margin: 0 0 3px;
-  font-size: 20px;
+  font-size: var(--invoice-company-title-size, 20px);
   font-weight: 700;
 }
 
 .company-copy p {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--invoice-company-line-size, 11px);
   line-height: 1.4;
 }
 
@@ -2044,7 +2044,7 @@ textarea {
 
 .invoice-heading h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--invoice-heading-size, 19px);
   font-weight: 700;
 }
 
@@ -2106,7 +2106,7 @@ textarea {
   padding: 5px 7px;
   border: 1px solid #333;
   background: #e8e8e8;
-  font-size: 13px;
+  font-size: var(--invoice-table-header-size, 13px);
   line-height: 1.35;
   text-align: center;
   print-color-adjust: exact;
@@ -2224,7 +2224,7 @@ textarea {
 
 .classic-totals th {
   width: 59%;
-  font-size: 12px;
+  font-size: var(--invoice-total-title-size, 12px);
   font-weight: 500;
   line-height: 1.25;
   text-align: left;
@@ -2232,7 +2232,7 @@ textarea {
 
 .classic-totals th span {
   font-family: Arial, sans-serif;
-  font-size: 11px;
+  font-size: var(--invoice-small-size, 11px);
 }
 
 .classic-totals td {
@@ -2289,7 +2289,7 @@ textarea {
 
 .signature-box span {
   font-family: Arial, sans-serif;
-  font-size: 12px;
+  font-size: var(--invoice-total-title-size, 12px);
 }
 
 .classic-footer {
@@ -2299,7 +2299,7 @@ textarea {
   padding-top: 10px;
   border-top: 1px solid #333;
   font-family: Arial, 'Battambang', sans-serif;
-  font-size: 13px;
+  font-size: var(--invoice-footer-size, 13px);
 }
 
 .panel-title {
@@ -3330,6 +3330,19 @@ textarea {
   padding-bottom: 118px !important;
 }
 
+.invoice-font-range {
+  accent-color: var(--danger);
+}
+
+.font-size-helper {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .settings-asset {
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
@@ -4106,7 +4119,7 @@ textarea {
   }
 
   .classic-invoice {
-    font-size: 10pt;
+    font-size: var(--invoice-font-size, 13px);
   }
 
   .classic-header {
@@ -4153,23 +4166,23 @@ textarea {
   }
 
   .classic-brand-title {
-    font-size: 9pt;
+    font-size: var(--invoice-brand-title-size, 12px);
   }
 
   .classic-subtitle {
-    font-size: 8pt;
+    font-size: var(--invoice-brand-subtitle-size, 11px);
   }
 
   .company-copy h1 {
-    font-size: 15pt;
+    font-size: var(--invoice-company-title-size, 20px);
   }
 
   .company-copy p {
-    font-size: 8pt;
+    font-size: var(--invoice-company-line-size, 11px);
   }
 
   .invoice-heading h2 {
-    font-size: 14pt;
+    font-size: var(--invoice-heading-size, 19px);
   }
 
   .classic-customer {

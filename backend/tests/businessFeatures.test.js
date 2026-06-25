@@ -113,6 +113,7 @@ test('local stock movements and system settings persist correctly', async () => 
       companyName: 'Updated Company',
       phones: ['012 345 678'],
       sellerSignature: 'data:image/png;base64,c2lnbmF0dXJl',
+      invoiceFontSize: 14.5,
       updatedBy: 'owner',
     })
     const savedSettings = await settings.getSystemSettings()
@@ -122,6 +123,7 @@ test('local stock movements and system settings persist correctly', async () => 
       savedSettings.sellerSignature,
       'data:image/png;base64,c2lnbmF0dXJl',
     )
+    assert.equal(savedSettings.invoiceFontSize, 14.5)
   } finally {
     delete process.env.LOCAL_DATA_DIR
     await rm(dataDirectory, { recursive: true, force: true })

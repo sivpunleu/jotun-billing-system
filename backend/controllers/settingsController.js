@@ -16,6 +16,17 @@ const cleanImage = (value) => {
   return image
 }
 
+const cleanInvoiceFontSize = (value) => {
+  const size = Number(value || 13)
+  if (!Number.isFinite(size)) {
+    throw new Error('Invoice font size is invalid')
+  }
+  if (size < 9 || size > 18) {
+    throw new Error('Invoice font size must be between 9 and 18')
+  }
+  return Math.round(size * 10) / 10
+}
+
 export const readSystemSettings = async (_req, res) => {
   try {
     res.json(await getSystemSettings())
@@ -39,6 +50,7 @@ export const updateSystemSettings = async (req, res) => {
       phones: phones.map((phone) => String(phone).trim()).filter(Boolean),
       paymentAccount: String(req.body.paymentAccount || '').trim(),
       invoiceNotes: String(req.body.invoiceNotes || '').trim(),
+      invoiceFontSize: cleanInvoiceFontSize(req.body.invoiceFontSize),
       footerKh: String(req.body.footerKh || '').trim(),
       footerEn: String(req.body.footerEn || '').trim(),
       logo: cleanImage(req.body.logo),

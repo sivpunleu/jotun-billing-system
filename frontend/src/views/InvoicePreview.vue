@@ -45,10 +45,35 @@ const companySettings = reactive({
   invoiceNotes: '',
   footerKh: 'សូមអរគុណចំពោះការគាំទ្រ !',
   footerEn: 'Thank you for support !',
+  invoiceFontSize: 13,
   logo: '',
   jotunLogo: '',
   paymentQr: '',
   sellerSignature: '',
+})
+
+const normalizedInvoiceFontSize = computed(() => {
+  const size = Number(companySettings.invoiceFontSize)
+  if (!Number.isFinite(size)) return 13
+  return Math.min(18, Math.max(9, size))
+})
+
+const invoiceTypographyStyle = computed(() => {
+  const base = normalizedInvoiceFontSize.value
+  const size = (ratio) => `${Math.round(base * ratio * 10) / 10}px`
+
+  return {
+    '--invoice-font-size': size(1),
+    '--invoice-brand-title-size': size(0.92),
+    '--invoice-brand-subtitle-size': size(0.85),
+    '--invoice-company-title-size': size(1.54),
+    '--invoice-company-line-size': size(0.85),
+    '--invoice-heading-size': size(1.46),
+    '--invoice-table-header-size': size(1),
+    '--invoice-total-title-size': size(0.92),
+    '--invoice-small-size': size(0.85),
+    '--invoice-footer-size': size(1),
+  }
 })
 
 const printInvoice = () => window.print()
@@ -605,7 +630,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <article v-if="invoice" class="invoice-paper classic-invoice">
+    <article
+      v-if="invoice"
+      class="invoice-paper classic-invoice"
+      :style="invoiceTypographyStyle"
+    >
       <header class="classic-header">
         <div class="classic-brand-block">
           <img class="classic-logo" :src="companySettings.logo || logo" alt="Marvel Decor" />
