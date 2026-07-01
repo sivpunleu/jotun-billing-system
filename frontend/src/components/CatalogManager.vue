@@ -587,7 +587,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-danger" type="submit" :disabled="saving">
+          <button class="btn btn-brand" type="submit" :disabled="saving">
             {{ saving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុក' }}
           </button>
           <button v-if="editingId" class="btn btn-light" type="button" @click="resetForm">បោះបង់</button>
@@ -612,7 +612,7 @@ onMounted(() => {
         <p>បង្កើតកំណត់ត្រាថ្មី ឬកែពាក្យស្វែងរករបស់អ្នក។</p>
         <button
           v-if="canManageBilling && !showTrash"
-          class="btn btn-danger"
+          class="btn btn-brand"
           type="button"
           @click="focusCreateForm"
         >

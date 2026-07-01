@@ -16,7 +16,10 @@ import reportRoutes from './routes/reportRoutes.js'
 import salespersonRoutes from './routes/salespersonRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
 import supplierRoutes from './routes/supplierRoutes.js'
-import { startAutomatedBackupScheduler } from './services/backupScheduler.js'
+import {
+  getAutomatedBackupStatus,
+  startAutomatedBackupScheduler,
+} from './services/backupScheduler.js'
 import { migrateExistingData } from './services/migrationService.js'
 
 dotenv.config()
@@ -67,6 +70,8 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     service: 'jotun-billing-api',
     storage: getStorageMode(),
+    backup: getAutomatedBackupStatus(),
+    timestamp: new Date().toISOString(),
   })
 })
 

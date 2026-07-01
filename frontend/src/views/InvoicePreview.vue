@@ -46,6 +46,7 @@ const companySettings = reactive({
   footerKh: 'សូមអរគុណចំពោះការគាំទ្រ !',
   footerEn: 'Thank you for support !',
   invoiceFontSize: 13,
+  invoicePaperSize: 'a5',
   logo: '',
   jotunLogo: '',
   paymentQr: '',
@@ -57,6 +58,16 @@ const normalizedInvoiceFontSize = computed(() => {
   if (!Number.isFinite(size)) return 13
   return Math.min(18, Math.max(9, size))
 })
+
+const normalizedInvoicePaperSize = computed(() =>
+  String(companySettings.invoicePaperSize || 'a5').toLowerCase() === 'a4'
+    ? 'a4'
+    : 'a5',
+)
+
+const invoicePaperClass = computed(
+  () => `invoice-paper-${normalizedInvoicePaperSize.value}`,
+)
 
 const invoiceTypographyStyle = computed(() => {
   const base = normalizedInvoiceFontSize.value
@@ -407,7 +418,7 @@ onMounted(() => {
         </button>
         <button
           v-if="invoice"
-          class="btn btn-danger"
+          class="btn btn-brand"
           type="button"
           @click="printInvoice"
         >
@@ -643,6 +654,7 @@ onMounted(() => {
     <article
       v-if="invoice"
       class="invoice-paper classic-invoice"
+      :class="invoicePaperClass"
       :style="invoiceTypographyStyle"
     >
       <header class="classic-header">

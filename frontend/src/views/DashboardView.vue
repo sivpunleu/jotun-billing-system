@@ -3,13 +3,21 @@ import { computed, onMounted, ref } from 'vue'
 import { invoiceApi, reportApi } from '../api/invoices'
 import { isOwner } from '../auth/session'
 import ErrorState from '../components/ErrorState.vue'
-import { formatDate, formatMoney } from '../utils/invoice'
+import { formatDate, formatMoney, toDateInput } from '../utils/invoice'
 import { showToast } from '../ui/feedback'
 
 const metrics = ref(null)
+const rangeSummary = ref(null)
 const loading = ref(true)
+const rangeLoading = ref(false)
 const exporting = ref('')
 const error = ref('')
+const activeRange = ref('month')
+const rangePresets = [
+  { key: 'today', label: 'Today' },
+  { key: 'month', label: 'This Month' },
+  { key: 'year', label: 'This Year' },
+]
 
 const statusChart = computed(() => {
   const totals = metrics.value?.totalsByStatus || {}
@@ -58,11 +66,59 @@ const moneyPercent = (value) =>
     ? Math.max(2, (Number(value || 0) / cashTotal.value) * 100)
     : 0
 
+const rangeParams = (preset = activeRange.value) => {
+  const now = new Date()
+  if (preset === 'today') {
+    return {
+      from: toDateInput(now),
+      to: toDateInput(now),
+      groupBy: 'day',
+    }
+  }
+  if (preset === 'year') {
+    return {
+      from: toDateInput(new Date(now.getFullYear(), 0, 1)),
+      to: toDateInput(now),
+      groupBy: 'month',
+    }
+  }
+  return {
+    from: toDateInput(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: toDateInput(now),
+    groupBy: 'day',
+  }
+}
+
+const loadRangeSummary = async () => {
+  rangeLoading.value = true
+  try {
+    rangeSummary.value = (
+      await reportApi.revenue(rangeParams())
+    ).data.summary
+  } catch (requestError) {
+    showToast(
+      requestError.response?.data?.message || 'Unable to load range summary',
+      'error',
+    )
+  } finally {
+    rangeLoading.value = false
+  }
+}
+
+const changeRange = async (preset) => {
+  activeRange.value = preset
+  await loadRangeSummary()
+}
+
 const loadDashboard = async () => {
   loading.value = true
   error.value = ''
   try {
-    metrics.value = (await invoiceApi.dashboard()).data
+    const [dashboardResponse] = await Promise.all([
+      invoiceApi.dashboard(),
+      loadRangeSummary(),
+    ])
+    metrics.value = dashboardResponse.data
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'Unable to load dashboard'
@@ -137,6 +193,44 @@ onMounted(loadDashboard)
     </div>
 
     <template v-else-if="metrics">
+      <div class="content-card dashboard-range-card mb-4">
+        <div>
+          <span class="eyebrow">RANGE SNAPSHOT</span>
+          <h2 class="panel-title mb-1">ចំណូលតាមពេលវេលា</h2>
+          <p class="mb-0 text-secondary">ប្តូរ range ដើម្បីមើល performance លឿនៗ។</p>
+        </div>
+        <div class="dashboard-range-tabs">
+          <button
+            v-for="preset in rangePresets"
+            :key="preset.key"
+            type="button"
+            :class="{ active: activeRange === preset.key }"
+            :disabled="rangeLoading"
+            @click="changeRange(preset.key)"
+          >
+            {{ preset.label }}
+          </button>
+        </div>
+        <div class="dashboard-range-metrics">
+          <div>
+            <span>Revenue</span>
+            <strong>{{ formatMoney(rangeSummary?.revenue || 0) }}</strong>
+          </div>
+          <div>
+            <span>Outstanding</span>
+            <strong>{{ formatMoney(rangeSummary?.outstanding || 0) }}</strong>
+          </div>
+          <div>
+            <span>Invoices</span>
+            <strong>{{ rangeSummary?.invoiceCount || 0 }}</strong>
+          </div>
+          <div>
+            <span>Profit</span>
+            <strong>{{ formatMoney(rangeSummary?.grossProfit || 0) }}</strong>
+          </div>
+        </div>
+      </div>
+
       <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
           <div class="summary-card">

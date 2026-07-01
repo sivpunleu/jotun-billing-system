@@ -354,7 +354,7 @@ onMounted(initialize)
                 </div>
               </div>
               <button
-                class="btn btn-danger mt-4"
+                class="btn btn-brand mt-4"
                 type="submit"
                 :disabled="saving"
               >

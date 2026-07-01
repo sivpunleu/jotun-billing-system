@@ -126,7 +126,7 @@ const submitLogin = async (event) => {
           </div>
         </div>
 
-        <button class="btn btn-danger btn-lg w-100" type="submit" :disabled="loading">
+        <button class="btn btn-brand btn-lg w-100" type="submit" :disabled="loading">
           <span
             v-if="loading"
             class="spinner-border spinner-border-sm me-2"

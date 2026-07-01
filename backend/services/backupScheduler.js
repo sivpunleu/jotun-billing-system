@@ -16,6 +16,39 @@ const parseBackupTime = () => {
   }
 }
 
+const formatBackupTime = ({ hour, minute }) =>
+  `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+
+const nextBackupRunAt = (now = new Date()) => {
+  const { hour, minute } = parseBackupTime()
+  const nextRun = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      hour,
+      minute,
+      0,
+      0,
+    ),
+  )
+  if (nextRun <= now) {
+    nextRun.setUTCDate(nextRun.getUTCDate() + 1)
+  }
+  return nextRun
+}
+
+export const getAutomatedBackupStatus = (now = new Date()) => {
+  const enabled = process.env.AUTO_BACKUP_ENABLED !== 'false'
+  const backupTime = parseBackupTime()
+  return {
+    enabled,
+    backupTimeUtc: formatBackupTime(backupTime),
+    retentionDays: Number(process.env.AUTO_BACKUP_RETENTION_DAYS || 30),
+    nextRunAt: enabled ? nextBackupRunAt(now).toISOString() : null,
+  }
+}
+
 const isDueToday = (now = new Date()) => {
   const { hour, minute } = parseBackupTime()
   return (

@@ -48,6 +48,11 @@ const systemSettingSchema = new mongoose.Schema(
       max: 18,
       default: 13,
     },
+    invoicePaperSize: {
+      type: String,
+      enum: ['a4', 'a5'],
+      default: 'a5',
+    },
     footerKh: {
       type: String,
       trim: true,

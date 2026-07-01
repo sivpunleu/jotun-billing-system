@@ -247,6 +247,10 @@ const sendError = (res, error) => {
   return res.status(400).json({ message: error.message || 'Request failed' })
 }
 
+const isDuplicateInvoiceNumberError = (error) =>
+  error.code === 11000 &&
+  (!error.keyPattern || error.keyPattern.invoiceNumber)
+
 const paginationResponse = ({ items, total, page, limit }) => ({
   items,
   pagination: {
@@ -414,14 +418,28 @@ export const revokeInvoicePublicLink = async (req, res) => {
 
 export const createInvoice = async (req, res) => {
   try {
-    const invoiceNumber = await reserveInvoiceNumber(req.body.invoiceDate)
     const body = await snapshotItemCosts(req.body)
-    const payload = normalizeInvoice(body, {
-      invoiceNumber,
-      actor: req.admin.username,
-    })
-    payload.createdBy = req.admin.username
-    const invoice = await insertInvoice(payload)
+    let invoice = null
+    let lastDuplicateError = null
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const invoiceNumber = await reserveInvoiceNumber(req.body.invoiceDate)
+      const payload = normalizeInvoice(body, {
+        invoiceNumber,
+        actor: req.admin.username,
+      })
+      payload.createdBy = req.admin.username
+      try {
+        invoice = await insertInvoice(payload)
+        break
+      } catch (error) {
+        if (!isDuplicateInvoiceNumberError(error)) throw error
+        lastDuplicateError = error
+      }
+    }
+
+    if (!invoice) throw lastDuplicateError || new Error('Unable to create invoice')
+
     await writeAuditLog({
       actor: req.admin,
       action: 'create',

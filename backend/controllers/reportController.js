@@ -9,6 +9,7 @@ import {
   restoreDatabaseBackup,
   restoreDatabaseBackupSnapshot,
 } from '../services/backupService.js'
+import { getAutomatedBackupStatus } from '../services/backupScheduler.js'
 
 const csvValue = (value) => {
   const stringValue =
@@ -393,11 +394,13 @@ export const exportDatabaseBackup = async (req, res) => {
 export const listBackupSnapshots = async (req, res) => {
   try {
     const items = await listDatabaseBackups({ limit: req.query.limit })
+    const backupStatus = getAutomatedBackupStatus()
     res.json({
       items,
-      automaticEnabled: process.env.AUTO_BACKUP_ENABLED !== 'false',
-      retentionDays: Number(process.env.AUTO_BACKUP_RETENTION_DAYS || 30),
-      backupTimeUtc: process.env.AUTO_BACKUP_TIME || '02:00',
+      automaticEnabled: backupStatus.enabled,
+      retentionDays: backupStatus.retentionDays,
+      backupTimeUtc: backupStatus.backupTimeUtc,
+      nextRunAt: backupStatus.nextRunAt,
     })
   } catch (error) {
     res.status(500).json({ message: error.message || 'Unable to list backups' })

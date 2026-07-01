@@ -378,7 +378,7 @@ watch(
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-          <button class="btn btn-danger" type="submit" :disabled="saving">
+          <button class="btn btn-brand" type="submit" :disabled="saving">
             <span
               v-if="saving"
               class="spinner-border spinner-border-sm me-1"

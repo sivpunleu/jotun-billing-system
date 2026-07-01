@@ -339,6 +339,9 @@ onMounted(initialize)
             Daily backup: {{ backupMeta?.automaticEnabled ? 'Enabled' : 'Disabled' }}
             · {{ backupMeta?.backupTimeUtc || '02:00' }} UTC
             · retention {{ backupMeta?.retentionDays || 30 }} days
+            <template v-if="backupMeta?.nextRunAt">
+              Â· next {{ formatDate(backupMeta.nextRunAt) }}
+            </template>
           </small>
         </div>
         <button

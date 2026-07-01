@@ -181,7 +181,7 @@ onMounted(loadAdmins)
             </select>
           </div>
           <div class="col-12">
-            <button class="btn btn-danger" type="submit" :disabled="creatingAdmin">
+            <button class="btn btn-brand" type="submit" :disabled="creatingAdmin">
               {{ creatingAdmin ? 'កំពុងបង្កើត...' : 'បង្កើត Admin' }}
             </button>
           </div>

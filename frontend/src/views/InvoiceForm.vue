@@ -407,14 +407,17 @@ onBeforeUnmount(() => {
                   :value="isEditing ? form.invoiceNumber : 'បង្កើតស្វ័យប្រវត្តិពេលរក្សាទុក'"
                   disabled
                 />
+                <small class="form-hint">Invoice number is reserved when you save.</small>
               </div>
               <div class="col-md-3">
                 <label class="form-label">កាលបរិច្ឆេទ *</label>
                 <input v-model="form.invoiceDate" class="form-control" type="date" required />
+                <small class="form-hint">Used for invoice numbering and reports.</small>
               </div>
               <div class="col-md-3">
                 <label class="form-label">ថ្ងៃកំណត់ *</label>
                 <input v-model="form.dueDate" class="form-control" type="date" required />
+                <small class="form-hint">Must be same day or after invoice date.</small>
               </div>
               <div class="col-md-6 sales-source-field">
                 <label class="form-label">ប្រភពការលក់ *</label>
@@ -495,6 +498,7 @@ onBeforeUnmount(() => {
               <div class="col-md-6">
                 <label class="form-label">ឈ្មោះអតិថិជន *</label>
                 <input v-model.trim="form.customer.name" class="form-control" required />
+                <small class="form-hint">Required for invoice, search, and statements.</small>
               </div>
               <div class="col-md-6">
                 <label class="form-label">លេខទូរស័ព្ទ</label>
@@ -519,9 +523,12 @@ onBeforeUnmount(() => {
               <div><h2>ផលិតផល</h2><p>ជ្រើសពី catalogue ឬបញ្ចូលទំនិញថ្មីដោយដៃ។</p></div>
             </div>
             <div class="items-list">
-              <div v-for="(item, index) in form.items" :key="index" class="item-row">
+              <div v-for="(item, index) in form.items" :key="index" class="item-row invoice-item-card">
                 <div class="item-row-heading">
-                  <strong>ផលិតផលទី {{ index + 1 }}</strong>
+                  <span>
+                    <strong>ផលិតផលទី {{ index + 1 }}</strong>
+                    <small>{{ item.description || 'New invoice item' }}</small>
+                  </span>
                   <button class="btn btn-sm btn-link text-danger" type="button" :disabled="form.items.length === 1" @click="removeItem(index)">
                     <i class="bi bi-trash3 me-1"></i> លុប
                   </button>
@@ -539,6 +546,7 @@ onBeforeUnmount(() => {
                   <div class="col-md-5">
                     <label class="form-label">ឈ្មោះផលិតផល *</label>
                     <input v-model.trim="item.description" class="form-control" required />
+                    <small class="form-hint">This text appears in the printed invoice.</small>
                   </div>
                   <div class="col-md-2">
                     <label class="form-label">Color Code</label>
@@ -623,7 +631,7 @@ onBeforeUnmount(() => {
               <div class="grand-total"><span>ប្រាក់នៅសល់</span><strong>{{ formatMoney(balanceDue) }}</strong></div>
             </div>
 
-            <button class="btn btn-danger btn-lg w-100 mt-4" type="submit" :disabled="saving">
+            <button class="btn btn-brand btn-lg w-100 mt-4" type="submit" :disabled="saving">
               <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
               <i v-else class="bi bi-check2-circle me-2"></i>
               {{ saving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុកវិក្កយបត្រ' }}

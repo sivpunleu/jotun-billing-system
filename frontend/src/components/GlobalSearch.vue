@@ -89,8 +89,21 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
     <div v-if="open" class="global-search-results">
       <div v-if="error" class="search-message text-danger">{{ error }}</div>
       <div v-else-if="loading" class="search-message">កំពុងស្វែងរក...</div>
-      <div v-else-if="!resultCount" class="search-message">
-        រកមិនឃើញលទ្ធផល
+      <div v-else-if="!resultCount" class="search-message search-empty-results">
+        <i class="bi bi-search"></i>
+        <strong>រកមិនឃើញលទ្ធផល</strong>
+        <span>Try another keyword, or create a new record from here.</span>
+        <div class="search-quick-actions">
+          <button type="button" @mousedown.prevent="navigate('/invoices/new')">
+            <i class="bi bi-plus-lg"></i> Invoice
+          </button>
+          <button type="button" @mousedown.prevent="navigate('/customers')">
+            <i class="bi bi-person-plus"></i> Customer
+          </button>
+          <button type="button" @mousedown.prevent="navigate('/products')">
+            <i class="bi bi-box-seam"></i> Product
+          </button>
+        </div>
       </div>
       <template v-else>
         <div v-if="results.invoices.length" class="search-group">

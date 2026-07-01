@@ -82,7 +82,7 @@ onMounted(load)
       <RouterLink class="btn btn-outline-secondary" to="/customers">
         <i class="bi bi-arrow-left me-1"></i> អតិថិជន
       </RouterLink>
-      <button class="btn btn-danger" type="button" @click="printStatement">
+      <button class="btn btn-brand" type="button" @click="printStatement">
         <i class="bi bi-printer me-1"></i> Print Statement
       </button>
     </div>

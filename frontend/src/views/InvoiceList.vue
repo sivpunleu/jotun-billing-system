@@ -131,7 +131,7 @@ onMounted(initialize)
         </button>
         <RouterLink
           v-if="canManageBilling && !showTrash"
-          class="btn btn-danger btn-lg"
+          class="btn btn-brand btn-lg"
           to="/invoices/new"
         >
           <i class="bi bi-plus-lg me-2"></i> វិក្កយបត្រថ្មី
@@ -209,7 +209,7 @@ onMounted(initialize)
         <p>{{ showTrash ? 'ធុងសំរាមនៅទទេ។' : 'ចាប់ផ្តើមដោយបង្កើតវិក្កយបត្រដំបូង។' }}</p>
         <RouterLink
           v-if="canManageBilling && !showTrash"
-          class="btn btn-danger"
+          class="btn btn-brand"
           to="/invoices/new"
         >
           <i class="bi bi-plus-lg me-1"></i> បង្កើតវិក្កយបត្រ

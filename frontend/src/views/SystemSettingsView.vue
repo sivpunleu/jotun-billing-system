@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { settingsApi } from '../api/invoices'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
 import {
@@ -11,6 +11,18 @@ import {
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const activeTab = ref('company')
+const settingsTabs = [
+  { key: 'company', label: 'Company', icon: 'bi-building' },
+  { key: 'invoice', label: 'Invoice', icon: 'bi-receipt' },
+  { key: 'assets', label: 'Assets', icon: 'bi-images' },
+]
+const assetList = [
+  { key: 'logo', label: 'Marvel Logo' },
+  { key: 'jotunLogo', label: 'JOTUN Logo' },
+  { key: 'paymentQr', label: 'ABA QR Code' },
+  { key: 'sellerSignature', label: 'Seller Signature' },
+]
 const form = reactive({
   companyName: '',
   companyNameKh: '',
@@ -20,6 +32,7 @@ const form = reactive({
   paymentAccount: '',
   invoiceNotes: '',
   invoiceFontSize: 13,
+  invoicePaperSize: 'a5',
   footerKh: '',
   footerEn: '',
   logo: '',
@@ -37,12 +50,26 @@ const normalizeInvoiceFontSize = (value) => {
   return Math.min(fontSizeMax, Math.max(fontSizeMin, Math.round(size * 10) / 10))
 }
 
+const normalizeInvoicePaperSize = (value) =>
+  String(value || 'a5').toLowerCase() === 'a4' ? 'a4' : 'a5'
+
+const previewPaperClass = computed(
+  () => `settings-invoice-preview-${normalizeInvoicePaperSize(form.invoicePaperSize)}`,
+)
+const previewStyle = computed(() => ({
+  '--settings-preview-font-size': `${normalizeInvoiceFontSize(form.invoiceFontSize)}px`,
+  '--settings-preview-mini-font-size': `${Math.round(
+    normalizeInvoiceFontSize(form.invoiceFontSize) * 5.5,
+  ) / 10}px`,
+}))
+
 const load = async () => {
   loading.value = true
   try {
     const { data } = await settingsApi.get()
     Object.assign(form, data)
     form.invoiceFontSize = normalizeInvoiceFontSize(data.invoiceFontSize)
+    form.invoicePaperSize = normalizeInvoicePaperSize(data.invoicePaperSize)
     phoneText.value = (data.phones || []).join(', ')
   } catch (requestError) {
     error.value =
@@ -139,6 +166,7 @@ const save = async (event) => {
       .map((phone) => phone.trim())
       .filter(Boolean)
     form.invoiceFontSize = normalizeInvoiceFontSize(form.invoiceFontSize)
+    form.invoicePaperSize = normalizeInvoicePaperSize(form.invoicePaperSize)
     Object.assign(form, (await settingsApi.update(form)).data)
     showToast('System settings saved')
   } catch (requestError) {
@@ -167,8 +195,26 @@ onMounted(load)
     <ContentSkeleton v-if="loading" :cards="3" />
 
     <form v-else class="row g-4" novalidate @submit.prevent="save">
+      <div class="col-12">
+        <div class="settings-tabs" role="tablist" aria-label="System settings sections">
+          <button
+            v-for="tab in settingsTabs"
+            :key="tab.key"
+            class="settings-tab"
+            :class="{ active: activeTab === tab.key }"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === tab.key"
+            @click="activeTab = tab.key"
+          >
+            <i class="bi" :class="tab.icon"></i>
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
+      </div>
+
       <div class="col-xl-8">
-        <div class="content-card form-card mb-4">
+        <div v-show="activeTab === 'company'" class="content-card form-card mb-4">
           <div class="section-title">
             <span class="section-number">01</span>
             <div>
@@ -186,6 +232,7 @@ onMounted(load)
                 maxlength="120"
                 required
               />
+              <small class="form-hint">Required. This appears on every invoice header.</small>
             </div>
             <div class="col-md-6">
               <label class="form-label">ឈ្មោះក្រុមហ៊ុន</label>
@@ -210,15 +257,23 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="content-card form-card">
+        <div v-show="activeTab === 'invoice'" class="content-card form-card mb-4">
           <div class="section-title">
             <span class="section-number">02</span>
             <div>
-              <h2>Invoice Text</h2>
-              <p>កំណត់ចំណាំ និងអក្សរខាងក្រោមវិក្កយបត្រ។</p>
+              <h2>Invoice Layout & Text</h2>
+              <p>កំណត់ទំហំក្រដាស Font ចំណាំ និងអក្សរខាងក្រោមវិក្កយបត្រ។</p>
             </div>
           </div>
           <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label">Invoice Paper Size</label>
+              <select v-model="form.invoicePaperSize" class="form-select">
+                <option value="a5">A5 - half page / compact</option>
+                <option value="a4">A4 - full page</option>
+              </select>
+              <div class="form-text">A5 is best for compact shop invoices.</div>
+            </div>
             <div class="col-md-7">
               <label class="form-label d-flex align-items-center justify-content-between gap-3">
                 <span>Invoice Font Size</span>
@@ -253,6 +308,21 @@ onMounted(load)
               </div>
               <div class="form-text">Use 13px as the normal invoice size.</div>
             </div>
+            <div class="col-md-7">
+              <div class="settings-paper-summary">
+                <i class="bi bi-printer"></i>
+                <span>
+                  <strong>{{ form.invoicePaperSize.toUpperCase() }} Print Layout</strong>
+                  <small>
+                    {{
+                      form.invoicePaperSize === 'a5'
+                        ? 'Compact shop invoice. Best for half-page printing.'
+                        : 'Full-page invoice. Best when you need more breathing room.'
+                    }}
+                  </small>
+                </span>
+              </div>
+            </div>
             <div class="col-12">
               <label class="form-label">Default Invoice Notes</label>
               <textarea v-model="form.invoiceNotes" class="form-control" rows="4"></textarea>
@@ -267,54 +337,108 @@ onMounted(load)
             </div>
           </div>
         </div>
+
+        <div v-show="activeTab === 'assets'" class="content-card form-card mb-4">
+          <div class="section-title">
+            <span class="section-number">03</span>
+            <div>
+              <h2>Brand Assets</h2>
+              <p>Upload logo, JOTUN logo, ABA QR និង seller signature។</p>
+            </div>
+          </div>
+
+          <div class="settings-assets-grid">
+            <div
+              v-for="asset in assetList"
+              :key="asset.key"
+              class="settings-asset"
+            >
+              <label class="form-label">{{ asset.label }}</label>
+              <div class="settings-asset-preview">
+                <img v-if="form[asset.key]" :src="form[asset.key]" :alt="asset.label" />
+                <i v-else class="bi bi-image"></i>
+              </div>
+              <div class="d-flex gap-2">
+                <label class="btn btn-outline-primary btn-sm mb-0">
+                  Upload
+                  <input
+                    class="visually-hidden"
+                    type="file"
+                    accept="image/*"
+                    @change="chooseImage(asset.key, $event)"
+                  />
+                </label>
+                <button
+                  v-if="form[asset.key]"
+                  class="btn btn-outline-danger btn-sm"
+                  type="button"
+                  @click="removeAsset(asset)"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="col-xl-4">
-        <div class="content-card form-card settings-media-card">
-          <div class="section-title">
-            <span class="section-number">03</span>
-            <div><h2>Brand Assets</h2><p>Upload និងមើល preview។</p></div>
+        <div class="content-card form-card settings-preview-card">
+          <div class="section-title compact-title">
+            <span class="section-number">04</span>
+            <div>
+              <h2>Print Preview</h2>
+              <p>Preview តូចសម្រាប់ Paper និង Font setting។</p>
+            </div>
           </div>
-
-          <div
-            v-for="asset in [
-              { key: 'logo', label: 'Marvel Logo' },
-              { key: 'jotunLogo', label: 'JOTUN Logo' },
-              { key: 'paymentQr', label: 'ABA QR Code' },
-              { key: 'sellerSignature', label: 'Seller Signature' },
-            ]"
-            :key="asset.key"
-            class="settings-asset"
-          >
-            <label class="form-label">{{ asset.label }}</label>
-            <div class="settings-asset-preview">
-              <img v-if="form[asset.key]" :src="form[asset.key]" :alt="asset.label" />
-              <i v-else class="bi bi-image"></i>
+          <div class="settings-invoice-preview-shell">
+            <div
+              class="settings-invoice-preview"
+              :class="previewPaperClass"
+              :style="previewStyle"
+            >
+              <header>
+                <div class="mini-logo">
+                  <img v-if="form.logo" :src="form.logo" alt="Marvel" />
+                  <i v-else class="bi bi-building"></i>
+                </div>
+                <div>
+                  <strong>{{ form.companyNameKh || form.companyName || 'Company' }}</strong>
+                  <span>{{ form.companyName || 'Marvel Decor & JOTUN' }}</span>
+                  <small>{{ form.telegram || 'Telegram' }}</small>
+                </div>
+                <div class="mini-jotun">
+                  <img v-if="form.jotunLogo" :src="form.jotunLogo" alt="JOTUN" />
+                  <span v-else>JOTUN</span>
+                </div>
+              </header>
+              <h3>វិក្កយបត្រ / INVOICE</h3>
+              <div class="mini-lines">
+                <span></span><span></span><span></span>
+              </div>
+              <table>
+                <thead>
+                  <tr><th>Item</th><th>Qty</th><th>Amount</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>JOTUN Paint</td><td>2</td><td>$400</td></tr>
+                  <tr><td>Tools</td><td>1</td><td>$15</td></tr>
+                </tbody>
+              </table>
+              <footer>
+                <span>{{ form.footerEn || 'Thank you for support !' }}</span>
+                <strong>{{ form.invoicePaperSize.toUpperCase() }}</strong>
+              </footer>
             </div>
-            <div class="d-flex gap-2">
-              <label class="btn btn-outline-primary btn-sm mb-0">
-                Upload
-                <input
-                  class="visually-hidden"
-                  type="file"
-                  accept="image/*"
-                  @change="chooseImage(asset.key, $event)"
-                />
-              </label>
-              <button
-                v-if="form[asset.key]"
-                class="btn btn-outline-danger btn-sm"
-                type="button"
-                @click="removeAsset(asset)"
-              >
-                Remove
-              </button>
-            </div>
+          </div>
+          <div class="settings-preview-meta">
+            <span><i class="bi bi-file-earmark"></i> {{ form.invoicePaperSize.toUpperCase() }}</span>
+            <span><i class="bi bi-fonts"></i> {{ form.invoiceFontSize }}px</span>
           </div>
         </div>
 
         <button
-          class="btn btn-danger btn-lg settings-save-button"
+          class="btn btn-brand btn-lg settings-save-button"
           :disabled="saving"
         >
           <i class="bi bi-check2-circle me-1"></i>

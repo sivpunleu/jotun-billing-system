@@ -16,6 +16,7 @@ export const defaultSystemSettings = {
   invoiceNotes:
     '- ទំនិញទិញហើយមិនអាចប្ដូរ ឬសងត្រឡប់វិញបានទេ\n- រាល់ការទូទាត់ត្រូវមានវិក្កយបត្រត្រឹមត្រូវ',
   invoiceFontSize: 13,
+  invoicePaperSize: 'a5',
   footerKh: 'សូមអរគុណចំពោះការគាំទ្រ !',
   footerEn: 'Thank you for support !',
   logo: '',

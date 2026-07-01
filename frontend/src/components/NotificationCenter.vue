@@ -17,11 +17,37 @@ const data = ref({
   activity: [],
 })
 const activeTab = ref('alerts')
+const activeAlertFilter = ref('all')
 const telegramConfigured = ref(false)
 const sendingDebt = ref(false)
 
 const alertCount = computed(
   () => data.value.counts.overdue + data.value.counts.lowStock,
+)
+const alertFilters = computed(() => [
+  { key: 'all', label: 'All', count: alertCount.value },
+  { key: 'overdue', label: 'Overdue', count: data.value.overdue.length },
+  {
+    key: 'outstanding',
+    label: 'Debt',
+    count: data.value.outstanding.length,
+  },
+  { key: 'stock', label: 'Stock', count: data.value.lowStock.length },
+])
+const showOverdue = computed(() =>
+  ['all', 'overdue'].includes(activeAlertFilter.value),
+)
+const showOutstanding = computed(() =>
+  ['all', 'outstanding'].includes(activeAlertFilter.value),
+)
+const showLowStock = computed(() =>
+  ['all', 'stock'].includes(activeAlertFilter.value),
+)
+const filteredAlertCount = computed(
+  () =>
+    (showOverdue.value ? data.value.overdue.length : 0) +
+    (showOutstanding.value ? data.value.outstanding.length : 0) +
+    (showLowStock.value ? data.value.lowStock.length : 0),
 )
 
 const load = async () => {
@@ -138,10 +164,24 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
       </div>
 
       <div v-if="activeTab === 'alerts'" class="notification-list">
-        <div v-if="data.overdue.length" class="notification-section-label">
+        <div class="notification-filter-tabs">
+          <button
+            v-for="filter in alertFilters"
+            :key="filter.key"
+            type="button"
+            :class="{ active: activeAlertFilter === filter.key }"
+            @click="activeAlertFilter = filter.key"
+          >
+            {{ filter.label }}
+            <span>{{ filter.count }}</span>
+          </button>
+        </div>
+
+        <div v-if="showOverdue && data.overdue.length" class="notification-section-label">
           ហួសថ្ងៃកំណត់
         </div>
         <button
+          v-if="showOverdue"
           v-for="invoice in data.overdue"
           :key="`overdue-${invoice._id}`"
           type="button"
@@ -157,10 +197,11 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
           <b>{{ formatMoney(invoice.balanceDue) }}</b>
         </button>
 
-        <div v-if="data.outstanding.length" class="notification-section-label">
+        <div v-if="showOutstanding && data.outstanding.length" class="notification-section-label">
           បំណុលនៅសល់
         </div>
         <button
+          v-if="showOutstanding"
           v-for="invoice in data.outstanding.slice(0, 5)"
           :key="`outstanding-${invoice._id}`"
           type="button"
@@ -174,10 +215,11 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
           <b>{{ formatMoney(invoice.balanceDue) }}</b>
         </button>
 
-        <div v-if="data.lowStock.length" class="notification-section-label">
+        <div v-if="showLowStock && data.lowStock.length" class="notification-section-label">
           ស្តុកជិតអស់
         </div>
         <button
+          v-if="showLowStock"
           v-for="product in data.lowStock"
           :key="`stock-${product._id}`"
           type="button"
@@ -198,9 +240,7 @@ onBeforeUnmount(() => clearInterval(refreshTimer))
 
         <div
           v-if="
-            !data.overdue.length &&
-            !data.outstanding.length &&
-            !data.lowStock.length
+            !filteredAlertCount
           "
           class="notification-empty"
         >

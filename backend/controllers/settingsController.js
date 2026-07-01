@@ -27,6 +27,14 @@ const cleanInvoiceFontSize = (value) => {
   return Math.round(size * 10) / 10
 }
 
+const cleanInvoicePaperSize = (value) => {
+  const paperSize = String(value || 'a5').trim().toLowerCase()
+  if (!['a4', 'a5'].includes(paperSize)) {
+    throw new Error('Invoice paper size must be A4 or A5')
+  }
+  return paperSize
+}
+
 export const readSystemSettings = async (_req, res) => {
   try {
     res.json(await getSystemSettings())
@@ -51,6 +59,7 @@ export const updateSystemSettings = async (req, res) => {
       paymentAccount: String(req.body.paymentAccount || '').trim(),
       invoiceNotes: String(req.body.invoiceNotes || '').trim(),
       invoiceFontSize: cleanInvoiceFontSize(req.body.invoiceFontSize),
+      invoicePaperSize: cleanInvoicePaperSize(req.body.invoicePaperSize),
       footerKh: String(req.body.footerKh || '').trim(),
       footerEn: String(req.body.footerEn || '').trim(),
       logo: cleanImage(req.body.logo),

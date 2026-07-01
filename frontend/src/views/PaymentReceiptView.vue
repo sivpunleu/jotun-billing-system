@@ -79,7 +79,7 @@ onMounted(() => {
       >
         <i class="bi bi-arrow-left me-1"></i> Invoice
       </RouterLink>
-      <button class="btn btn-danger" type="button" @click="printReceipt">
+      <button class="btn btn-brand" type="button" @click="printReceipt">
         <i class="bi bi-printer me-1"></i> Print Receipt
       </button>
       <button
