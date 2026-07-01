@@ -194,7 +194,7 @@ onMounted(loadDashboard)
 
     <template v-else-if="metrics">
       <div class="content-card dashboard-range-card mb-4">
-        <div>
+        <div class="dashboard-range-copy">
           <span class="eyebrow">RANGE SNAPSHOT</span>
           <h2 class="panel-title mb-1">ចំណូលតាមពេលវេលា</h2>
           <p class="mb-0 text-secondary">ប្តូរ range ដើម្បីមើល performance លឿនៗ។</p>
