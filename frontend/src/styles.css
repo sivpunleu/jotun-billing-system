@@ -2021,6 +2021,14 @@ textarea {
   margin-bottom: 22px;
 }
 
+.invoice-scroll-frame {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
 .invoice-paper {
   width: 210mm;
   max-width: 100%;
@@ -2041,6 +2049,7 @@ textarea {
   color: #111;
   font-family: 'Battambang', Arial, sans-serif;
   font-size: var(--invoice-font-size, 13px);
+  line-height: 1.38;
 }
 
 .classic-header {
@@ -2254,7 +2263,7 @@ textarea {
 .company-copy p {
   margin: 0;
   font-size: var(--invoice-company-line-size, 14px);
-  line-height: 1.4;
+  line-height: 1.48;
 }
 
 .invoice-heading {
@@ -2327,7 +2336,7 @@ textarea {
   border: 1px solid #333;
   background: #e8e8e8;
   font-size: var(--invoice-table-header-size, 13px);
-  line-height: 1.35;
+  line-height: 1.45;
   text-align: center;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
@@ -2337,6 +2346,7 @@ textarea {
   height: 35px;
   padding: 5px 8px;
   border: 1px solid #333;
+  line-height: 1.45;
   vertical-align: top;
 }
 
@@ -2446,7 +2456,7 @@ textarea {
   width: 59%;
   font-size: var(--invoice-total-title-size, 12px);
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.38;
   text-align: left;
 }
 
@@ -2458,6 +2468,7 @@ textarea {
 .classic-totals td {
   border-left: 0;
   font-family: Arial, sans-serif;
+  line-height: 1.35;
   white-space: nowrap;
 }
 
@@ -2559,7 +2570,7 @@ textarea {
 
 .invoice-paper-a5 .company-copy p {
   font-size: var(--invoice-a5-company-line-size, 7.4px);
-  line-height: 1.25;
+  line-height: 1.42;
 }
 
 .invoice-paper-a5 .invoice-heading {
@@ -2578,8 +2589,8 @@ textarea {
 
 .invoice-paper-a5 .invoice-info-row {
   gap: 3px;
-  min-height: 4.4mm;
-  line-height: 1.25;
+  min-height: 5mm;
+  line-height: 1.42;
 }
 
 .invoice-paper-a5 .classic-meta {
@@ -2593,11 +2604,13 @@ textarea {
 .invoice-paper-a5 .classic-table th {
   padding: 1.2mm 1.3mm;
   font-size: var(--invoice-a5-table-header-size, 8.8px);
+  line-height: 1.42;
 }
 
 .invoice-paper-a5 .classic-table td {
-  height: 7.2mm;
+  height: 8.1mm;
   padding: 1.4mm 1.6mm;
+  line-height: 1.42;
 }
 
 .invoice-paper-a5 .classic-table .money-column {
@@ -2633,12 +2646,13 @@ textarea {
 
 .invoice-paper-a5 .classic-totals th,
 .invoice-paper-a5 .classic-totals td {
-  height: 7.6mm;
+  height: 8.4mm;
   padding: 1mm 1.6mm;
 }
 
 .invoice-paper-a5 .classic-totals th {
   font-size: var(--invoice-a5-total-title-size, 8.2px);
+  line-height: 1.36;
 }
 
 .invoice-paper-a5 .classic-totals th span,
@@ -4722,6 +4736,252 @@ textarea {
   .classic-footer {
     font-size: 9px;
   }
+
+  .invoice-scroll-frame {
+    width: calc(100% + 30px);
+    margin-inline: -15px;
+    padding: 0 15px 14px;
+  }
+
+  .invoice-scroll-frame .invoice-paper {
+    width: 210mm;
+    max-width: none;
+    min-height: 297mm;
+    padding: 7mm 10mm 6mm;
+  }
+
+  .invoice-scroll-frame .invoice-paper.invoice-paper-a5 {
+    width: 148mm;
+    min-height: 210mm;
+    padding: 5mm 6mm;
+  }
+
+  .invoice-scroll-frame .classic-invoice {
+    font-size: var(--invoice-font-size, 13px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5.classic-invoice {
+    font-size: var(--invoice-a5-font-size, 9.6px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-header {
+    grid-template-columns: 205px minmax(0, 1fr) 205px;
+    column-gap: 20px;
+    min-height: 154px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-header {
+    grid-template-columns: 32mm minmax(0, 1fr) 32mm;
+    column-gap: 5mm;
+    min-height: 29mm;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-logo {
+    width: 105px;
+    height: 105px;
+    flex-basis: 105px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-logo {
+    width: 22mm;
+    height: 22mm;
+    flex-basis: 22mm;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-jotun-logo {
+    width: 96px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-jotun-logo {
+    width: 33mm !important;
+    height: 11mm !important;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .company-copy h1 {
+    font-size: var(--invoice-company-title-size, 20px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .company-copy h1 {
+    font-size: var(--invoice-a5-company-title-size, 13px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .company-copy p {
+    font-size: var(--invoice-company-line-size, 14px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .company-copy p {
+    font-size: var(--invoice-a5-company-line-size, 7.4px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-brand-title {
+    font-size: var(--invoice-brand-title-size, 12px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-brand-title {
+    font-size: var(--invoice-a5-brand-title-size, 8px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-subtitle {
+    font-size: var(--invoice-brand-subtitle-size, 11px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-subtitle {
+    font-size: var(--invoice-a5-brand-subtitle-size, 7.5px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .invoice-heading h2 {
+    font-size: var(--invoice-heading-size, 19px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .invoice-heading h2 {
+    font-size: var(--invoice-a5-heading-size, 13.7px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-customer {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+    gap: 34px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-customer {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5mm;
+  }
+
+  .invoice-scroll-frame .classic-meta {
+    justify-self: end;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-meta {
+    min-width: 290px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-meta {
+    min-width: 0;
+  }
+
+  .invoice-scroll-frame .classic-meta .invoice-info-row {
+    justify-content: end;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .invoice-info-row {
+    gap: 7px;
+    min-height: 21px;
+    line-height: 1.45;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .invoice-info-row {
+    gap: 3px;
+    min-height: 5mm;
+    line-height: 1.42;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-meta .invoice-info-row {
+    grid-template-columns: max-content minmax(105px, max-content);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-meta .invoice-info-row {
+    grid-template-columns: max-content minmax(18mm, 1fr);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-table th {
+    padding: 5px 7px;
+    font-size: var(--invoice-table-header-size, 13px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-table th {
+    padding: 1.2mm 1.3mm;
+    font-size: var(--invoice-a5-table-header-size, 8.8px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-table td {
+    height: 35px;
+    padding: 5px 8px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-table td {
+    height: 8.1mm;
+    padding: 1.4mm 1.6mm;
+  }
+
+  .invoice-scroll-frame .classic-table .number-column {
+    width: 6%;
+  }
+
+  .invoice-scroll-frame .classic-table .code-column {
+    width: 13%;
+  }
+
+  .invoice-scroll-frame .classic-table .qty-column {
+    width: 8%;
+  }
+
+  .invoice-scroll-frame .classic-table .money-column {
+    width: 15%;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-table .money-column {
+    width: 16%;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-settlement {
+    grid-template-columns: 62% 38%;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-settlement {
+    grid-template-columns: 59% 41%;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .qr-block img {
+    width: 105px;
+    height: 105px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .qr-block img {
+    width: 22mm;
+    height: 22mm;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-totals th,
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-totals td {
+    height: 40px;
+    padding: 4px 8px;
+    font-size: var(--invoice-font-size, 13px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-totals th,
+  .invoice-scroll-frame .invoice-paper-a5 .classic-totals td {
+    height: 8.4mm;
+    padding: 1mm 1.6mm;
+    font-size: var(--invoice-a5-font-size, 9.6px);
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .signature-section {
+    gap: 78px;
+    margin: 4px 32px 0;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .signature-section {
+    gap: 12mm;
+    margin: 2mm 8mm 0;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .signature-space {
+    height: 82px;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .signature-space {
+    height: 20mm;
+  }
+
+  .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-footer {
+    font-size: var(--invoice-footer-size, 13px);
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .classic-footer {
+    font-size: var(--invoice-a5-footer-size, 8.3px);
+  }
 }
 
 @media print {
@@ -4755,6 +5015,11 @@ textarea {
     padding: 0;
   }
 
+  .invoice-scroll-frame {
+    overflow: visible;
+    padding: 0;
+  }
+
   .invoice-paper {
     width: 210mm;
     max-width: none;
@@ -4767,6 +5032,7 @@ textarea {
   .classic-invoice {
     page: invoice-a4;
     font-size: var(--invoice-font-size, 13px);
+    line-height: 1.42;
   }
 
   .classic-header {
@@ -4829,7 +5095,7 @@ textarea {
 
   .company-copy p {
     font-size: var(--invoice-company-line-size, 11px);
-    line-height: 1.4;
+    line-height: 1.48;
   }
 
   .invoice-heading {
@@ -4848,8 +5114,8 @@ textarea {
 
   .invoice-info-row {
     gap: 7px;
-    min-height: 21px;
-    line-height: 1.35;
+    min-height: 23px;
+    line-height: 1.45;
   }
 
   .classic-meta {
@@ -4865,13 +5131,15 @@ textarea {
   .classic-table th {
     padding: 5px 7px;
     font-size: var(--invoice-table-header-size, 13px);
+    line-height: 1.45;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
   .classic-table td {
-    height: 9mm;
+    height: 10mm;
     padding: 5px 8px;
+    line-height: 1.45;
   }
 
   .classic-table .number-column {
@@ -4919,12 +5187,13 @@ textarea {
 
   .classic-totals th,
   .classic-totals td {
-    height: 40px;
+    height: 42px;
     padding: 4px 8px;
   }
 
   .classic-totals th {
     font-size: var(--invoice-total-title-size, 12px);
+    line-height: 1.38;
   }
 
   .classic-totals th span,
@@ -4998,7 +5267,7 @@ textarea {
 
   .invoice-paper-a5 .company-copy p {
     font-size: var(--invoice-a5-company-line-size, 7.4px);
-    line-height: 1.25;
+    line-height: 1.42;
   }
 
   .invoice-paper-a5 .invoice-heading {
@@ -5017,8 +5286,8 @@ textarea {
 
   .invoice-paper-a5 .invoice-info-row {
     gap: 3px;
-    min-height: 4.4mm;
-    line-height: 1.25;
+    min-height: 5mm;
+    line-height: 1.42;
   }
 
   .invoice-paper-a5 .classic-meta {
@@ -5032,11 +5301,13 @@ textarea {
   .invoice-paper-a5 .classic-table th {
     padding: 1.2mm 1.3mm;
     font-size: var(--invoice-a5-table-header-size, 8.8px);
+    line-height: 1.42;
   }
 
   .invoice-paper-a5 .classic-table td {
-    height: 7.2mm;
+    height: 8.1mm;
     padding: 1.4mm 1.6mm;
+    line-height: 1.42;
   }
 
   .invoice-paper-a5 .classic-table .money-column {
@@ -5072,12 +5343,13 @@ textarea {
 
   .invoice-paper-a5 .classic-totals th,
   .invoice-paper-a5 .classic-totals td {
-    height: 7.6mm;
+    height: 8.4mm;
     padding: 1mm 1.6mm;
   }
 
   .invoice-paper-a5 .classic-totals th {
     font-size: var(--invoice-a5-total-title-size, 8.2px);
+    line-height: 1.36;
   }
 
   .invoice-paper-a5 .classic-totals th span,

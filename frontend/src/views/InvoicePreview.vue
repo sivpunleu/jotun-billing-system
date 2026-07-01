@@ -823,13 +823,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <article
-      v-if="invoice"
-      ref="invoicePaperRef"
-      class="invoice-paper classic-invoice"
-      :class="invoicePaperClass"
-      :style="invoiceTypographyStyle"
-    >
+    <div v-if="invoice" class="invoice-scroll-frame">
+      <article
+        ref="invoicePaperRef"
+        class="invoice-paper classic-invoice"
+        :class="invoicePaperClass"
+        :style="invoiceTypographyStyle"
+      >
       <header class="classic-header">
         <div class="classic-brand-block">
           <img class="classic-logo" :src="companySettings.logo || logo" alt="Marvel Decor" />
@@ -1027,6 +1027,7 @@ onMounted(() => {
         <span>{{ companySettings.footerEn }}</span>
         <strong>{{ companySettings.footerKh }}</strong>
       </footer>
-    </article>
+      </article>
+    </div>
   </section>
 </template>
