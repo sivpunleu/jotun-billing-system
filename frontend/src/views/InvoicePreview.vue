@@ -1,4 +1,5 @@
 <script setup>
+import html2canvas from 'html2canvas'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { insightApi, invoiceApi, settingsApi } from '../api/invoices'
@@ -114,65 +115,6 @@ const printInvoice = () => {
   window.print()
 }
 
-const blobToDataUrl = (blob) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onloadend = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
-
-const copyComputedStyles = (sourceNode, cloneNode) => {
-  if (
-    sourceNode.nodeType !== Node.ELEMENT_NODE ||
-    cloneNode.nodeType !== Node.ELEMENT_NODE
-  ) {
-    return
-  }
-
-  const computedStyle = window.getComputedStyle(sourceNode)
-  Array.from(computedStyle).forEach((property) => {
-    cloneNode.style.setProperty(
-      property,
-      computedStyle.getPropertyValue(property),
-      computedStyle.getPropertyPriority(property),
-    )
-  })
-
-  Array.from(sourceNode.children).forEach((child, index) => {
-    if (cloneNode.children[index]) {
-      copyComputedStyles(child, cloneNode.children[index])
-    }
-  })
-}
-
-const inlineCloneImages = async (source, clone) => {
-  const sourceImages = Array.from(source.querySelectorAll('img'))
-  const cloneImages = Array.from(clone.querySelectorAll('img'))
-
-  await Promise.all(
-    cloneImages.map(async (image, index) => {
-      const original = sourceImages[index]
-      const sourceUrl =
-        original?.currentSrc || original?.src || image.getAttribute('src')
-
-      if (!sourceUrl || sourceUrl.startsWith('data:')) {
-        if (sourceUrl) image.setAttribute('src', sourceUrl)
-        return
-      }
-
-      try {
-        const response = await fetch(sourceUrl, { cache: 'force-cache' })
-        if (!response.ok) throw new Error('Image fetch failed')
-        const dataUrl = await blobToDataUrl(await response.blob())
-        image.setAttribute('src', dataUrl)
-      } catch {
-        image.setAttribute('src', sourceUrl)
-      }
-    }),
-  )
-}
-
 const waitForInvoiceAssets = async (element) => {
   if (document.fonts?.ready) {
     await document.fonts.ready
@@ -193,6 +135,24 @@ const waitForInvoiceAssets = async (element) => {
   )
 }
 
+const downloadCanvas = async (canvas, filename) => {
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((imageBlob) => {
+      if (imageBlob) resolve(imageBlob)
+      else reject(new Error('Unable to create image file'))
+    }, 'image/png')
+  })
+
+  const downloadUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(downloadUrl)
+}
+
 const saveInvoiceImage = async () => {
   const source = invoicePaperRef.value
   if (!source || !invoice.value) return
@@ -201,66 +161,24 @@ const saveInvoiceImage = async () => {
   try {
     await waitForInvoiceAssets(source)
 
-    const rect = source.getBoundingClientRect()
-    const width = Math.ceil(rect.width)
-    const height = Math.ceil(rect.height)
-    const clone = source.cloneNode(true)
-    clone.classList.add('invoice-image-export')
-    copyComputedStyles(source, clone)
-    clone.style.width = `${width}px`
-    clone.style.minHeight = `${height}px`
-    clone.style.margin = '0'
-    clone.style.boxShadow = 'none'
-
-    await inlineCloneImages(source, clone)
-
-    const serializedInvoice = new XMLSerializer().serializeToString(clone)
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;min-height:${height}px;background:#fff;">
-            ${serializedInvoice}
-          </div>
-        </foreignObject>
-      </svg>
-    `
-    const svgBlob = new Blob([svg], {
-      type: 'image/svg+xml;charset=utf-8',
+    const canvas = await html2canvas(source, {
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      imageTimeout: 15000,
+      logging: false,
+      scale: Math.max(2, Math.min(window.devicePixelRatio || 2, 3)),
+      useCORS: true,
+      windowHeight: source.scrollHeight,
+      windowWidth: source.scrollWidth,
+      onclone(clonedDocument) {
+        const clonedPaper = clonedDocument.querySelector('.invoice-paper')
+        if (!clonedPaper) return
+        clonedPaper.style.boxShadow = 'none'
+        clonedPaper.style.margin = '0'
+        clonedPaper.style.transform = 'none'
+      },
     })
-    const svgUrl = URL.createObjectURL(svgBlob)
-    const image = new Image()
-
-    await new Promise((resolve, reject) => {
-      image.onload = resolve
-      image.onerror = reject
-      image.src = svgUrl
-    })
-
-    const scale = Math.max(2, Math.min(window.devicePixelRatio || 2, 3))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(width * scale)
-    canvas.height = Math.round(height * scale)
-    const context = canvas.getContext('2d')
-    context.fillStyle = '#fff'
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(image, 0, 0, canvas.width, canvas.height)
-    URL.revokeObjectURL(svgUrl)
-
-    const pngBlob = await new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob)
-        else reject(new Error('Unable to create image'))
-      }, 'image/png')
-    })
-
-    const downloadUrl = URL.createObjectURL(pngBlob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `${invoice.value.invoiceNumber || 'invoice'}.png`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(downloadUrl)
+    await downloadCanvas(canvas, `${invoice.value.invoiceNumber || 'invoice'}.png`)
     showToast('Invoice image saved')
   } catch (exportError) {
     console.error('Unable to save invoice image', exportError)

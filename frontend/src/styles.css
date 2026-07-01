@@ -1565,11 +1565,13 @@ textarea {
 
 .status-pill {
   --status-color: #68778c;
+  --status-border: rgba(104, 119, 140, 0.22);
+  --status-ring: rgba(104, 119, 140, 0.14);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 5px 9px;
-  border: 1px solid color-mix(in srgb, var(--status-color) 18%, transparent);
+  border: 1px solid var(--status-border);
   border-radius: 999px;
   font-size: 0.69rem;
   font-weight: 800;
@@ -1583,11 +1585,13 @@ textarea {
   border-radius: 50%;
   background: var(--status-color);
   content: '';
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-color) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--status-ring);
 }
 
 .status-unpaid {
   --status-color: #c51f2d;
+  --status-border: rgba(197, 31, 45, 0.22);
+  --status-ring: rgba(197, 31, 45, 0.14);
   color: #a41623;
   background: #fde9eb;
 }
@@ -1595,12 +1599,16 @@ textarea {
 .status-partial,
 .status-partially_paid {
   --status-color: #d59b00;
+  --status-border: rgba(213, 155, 0, 0.22);
+  --status-ring: rgba(213, 155, 0, 0.14);
   color: #876300;
   background: #fff5d3;
 }
 
 .status-paid {
   --status-color: #15956b;
+  --status-border: rgba(21, 149, 107, 0.22);
+  --status-ring: rgba(21, 149, 107, 0.14);
   color: #08734e;
   background: #dcf6ec;
 }
