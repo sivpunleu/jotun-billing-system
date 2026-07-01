@@ -2253,7 +2253,7 @@ textarea {
 
 .company-copy p {
   margin: 0;
-  font-size: var(--invoice-company-line-size, 11px);
+  font-size: var(--invoice-company-line-size, 14px);
   line-height: 1.4;
 }
 
@@ -4627,7 +4627,7 @@ textarea {
   }
 
   .company-copy p {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .classic-brand-title {
