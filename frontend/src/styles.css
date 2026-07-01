@@ -203,15 +203,15 @@ textarea {
 
 .sidebar-nav > a {
   display: flex;
-  min-height: 46px;
+  min-height: 42px;
   align-items: center;
-  gap: 13px;
-  padding: 10px 13px;
+  gap: 11px;
+  padding: 9px 12px;
   border-radius: 11px;
   color: #c9d5e6;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.34;
   text-decoration: none;
   transition: 160ms ease;
 }
@@ -233,6 +233,7 @@ textarea {
   color: #fff;
   background: linear-gradient(135deg, var(--red), #ef4350);
   box-shadow: 0 9px 24px rgba(220, 38, 53, 0.22);
+  line-height: 1.28;
 }
 
 .sidebar-nav > a.router-link-active i {
@@ -1720,10 +1721,26 @@ textarea {
   background: #fff0f2;
 }
 
+@media screen and (min-width: 768px) {
+  .invoice-table th:last-child,
+  .invoice-table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: -12px 0 18px rgba(255, 255, 255, 0.92);
+  }
+
+  .invoice-table thead th:last-child {
+    z-index: 3;
+    background: #f8fafc;
+  }
+}
+
 .loading-state,
 .empty-state {
   display: flex;
-  min-height: 310px;
+  min-height: 280px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -1746,6 +1763,8 @@ textarea {
 
 .empty-state .btn {
   margin-top: 5px;
+  min-width: 172px;
+  justify-content: center;
 }
 
 .error-state {
@@ -1933,10 +1952,11 @@ textarea {
 
 .item-row {
   margin-bottom: 18px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: #fafbfd;
+  padding: 22px;
+  border: 1px solid #dfe8f2;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .item-row-heading {
@@ -1961,7 +1981,19 @@ textarea {
 }
 
 .invoice-item-card {
-  box-shadow: inset 4px 0 rgba(24, 138, 194, 0.12);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 4px 0 rgba(24, 138, 194, 0.14),
+    0 10px 28px rgba(7, 27, 58, 0.05);
+}
+
+.invoice-item-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(24, 138, 194, 0.45), transparent 58%);
+  content: '';
 }
 
 .line-total {
@@ -2027,6 +2059,158 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
+}
+
+.preview-action-list {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.invoice-layout-badge,
+.invoice-preview-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid #d8e3ee;
+  border-radius: 999px;
+  color: var(--navy);
+  background: #f8fbfe;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.invoice-layout-badge i,
+.invoice-preview-meta i {
+  color: var(--blue);
+}
+
+.mobile-actions-menu {
+  position: relative;
+  min-width: min(100%, 220px);
+}
+
+.mobile-actions-menu summary {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 13px;
+  border: 1px solid #d9e3ee;
+  border-radius: 13px;
+  color: var(--navy);
+  background: #fff;
+  font-weight: 800;
+  list-style: none;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(7, 27, 58, 0.08);
+}
+
+.mobile-actions-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.mobile-actions-menu summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-actions-menu summary small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.mobile-actions-list {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  display: grid;
+  width: min(92vw, 310px);
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #dfe7ef;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(7, 27, 58, 0.2);
+}
+
+.mobile-actions-list .btn {
+  justify-content: center;
+}
+
+.invoice-management-details {
+  margin-bottom: 16px;
+}
+
+.invoice-management-details > summary {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 18px;
+  border: 1px solid #dfe7ef;
+  border-radius: 18px;
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+  box-shadow: var(--shadow);
+}
+
+.invoice-management-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.invoice-management-summary-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.invoice-management-summary-copy strong {
+  color: var(--navy);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.invoice-management-summary-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-management-summary > i {
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.invoice-management-details[open] .invoice-management-summary > i {
+  transform: rotate(180deg);
+}
+
+.invoice-management-details > .content-card {
+  margin-top: 10px;
+}
+
+.invoice-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 12px;
+}
+
+.invoice-preview-meta small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .invoice-scroll-frame {
@@ -4470,10 +4654,19 @@ textarea {
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    flex-wrap: wrap;
+    background: #fbfdff;
   }
 
   .responsive-table .mobile-card-actions::before {
     margin-right: auto;
+  }
+
+  .responsive-table .mobile-card-actions .action-button {
+    width: 40px;
+    height: 40px;
+    margin-left: 0;
+    border-radius: 12px;
   }
 
   .table-skeleton {
@@ -4514,6 +4707,35 @@ textarea {
   .preview-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .preview-actions > .btn,
+  .preview-actions > a {
+    align-self: flex-start;
+  }
+
+  .mobile-actions-menu {
+    width: 100%;
+  }
+
+  .mobile-actions-list {
+    position: static;
+    width: 100%;
+  }
+
+  .invoice-management-details > summary {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .invoice-management-summary-copy small {
+    white-space: normal;
+  }
+
+  .invoice-preview-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 14px;
   }
 
   .share-link-heading {

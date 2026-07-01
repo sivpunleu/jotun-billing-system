@@ -71,6 +71,7 @@ const normalizedInvoicePaperSize = computed(() =>
 const invoicePaperClass = computed(
   () => `invoice-paper-${normalizedInvoicePaperSize.value}`,
 )
+const invoicePaperLabel = computed(() => normalizedInvoicePaperSize.value.toUpperCase())
 
 const invoiceTypographyStyle = computed(() => {
   const base = normalizedInvoiceFontSize.value
@@ -179,10 +180,13 @@ const saveInvoiceImage = async () => {
       },
     })
     await downloadCanvas(canvas, `${invoice.value.invoiceNumber || 'invoice'}.png`)
-    showToast('Invoice image saved')
+    showToast('Invoice PNG saved')
   } catch (exportError) {
     console.error('Unable to save invoice image', exportError)
-    showToast('Unable to save invoice image', 'error')
+    showToast(
+      'Unable to save PNG. Try refreshing the page, or use Print / Save PDF.',
+      'error',
+    )
   } finally {
     savingImage.value = false
   }
@@ -457,7 +461,11 @@ onMounted(() => {
         បញ្ជីវិក្កយបត្រ
       </RouterLink>
       <span v-else></span>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="preview-action-list d-none d-md-flex flex-wrap gap-2">
+        <span v-if="invoice" class="invoice-layout-badge">
+          <i class="bi bi-file-earmark-text"></i>
+          {{ invoicePaperLabel }} Preview
+        </span>
         <RouterLink
           v-if="invoice && showManageControls"
           class="btn btn-outline-primary"
@@ -510,6 +518,7 @@ onMounted(() => {
           class="btn btn-outline-primary"
           type="button"
           :disabled="savingImage"
+          title="Download this invoice as a PNG image"
           @click="saveInvoiceImage"
         >
           <span
@@ -517,7 +526,7 @@ onMounted(() => {
             class="spinner-border spinner-border-sm me-1"
           ></span>
           <i v-else class="bi bi-file-earmark-image me-1"></i>
-          Save Image
+          Save PNG
         </button>
         <button
           v-if="invoice"
@@ -529,15 +538,106 @@ onMounted(() => {
           Print / Save PDF
         </button>
       </div>
+      <details v-if="invoice" class="mobile-actions-menu d-md-none">
+        <summary>
+          <span>
+            <i class="bi bi-sliders"></i>
+            Actions
+          </span>
+          <small>{{ invoicePaperLabel }} · PNG/PDF</small>
+        </summary>
+        <div class="mobile-actions-list">
+          <RouterLink
+            v-if="showManageControls"
+            class="btn btn-outline-primary"
+            :to="{ name: 'invoice-edit', params: { id: invoice._id } }"
+          >
+            <i class="bi bi-pencil me-1"></i>
+            កែប្រែ
+          </RouterLink>
+          <RouterLink
+            v-if="showManageControls"
+            class="btn btn-outline-secondary"
+            :to="{
+              name: 'invoice-create',
+              query: { duplicate: invoice._id },
+            }"
+          >
+            <i class="bi bi-copy me-1"></i>
+            ចម្លង
+          </RouterLink>
+          <button
+            v-if="showManageControls"
+            class="btn btn-outline-info telegram-action"
+            type="button"
+            :disabled="Boolean(sendingTelegram) || !telegramConfigured"
+            @click="sendInvoiceTelegram"
+          >
+            <span
+              v-if="sendingTelegram === 'invoice'"
+              class="spinner-border spinner-border-sm me-1"
+            ></span>
+            <i v-else class="bi bi-telegram me-1"></i>
+            Telegram
+          </button>
+          <button
+            v-if="showManageControls"
+            class="btn btn-outline-danger"
+            type="button"
+            @click="deleteInvoice"
+          >
+            <i class="bi bi-trash3 me-1"></i>
+            លុប
+          </button>
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            :disabled="savingImage"
+            title="Download this invoice as a PNG image"
+            @click="saveInvoiceImage"
+          >
+            <span
+              v-if="savingImage"
+              class="spinner-border spinner-border-sm me-1"
+            ></span>
+            <i v-else class="bi bi-file-earmark-image me-1"></i>
+            Save PNG
+          </button>
+          <button
+            class="btn btn-brand"
+            type="button"
+            @click="printInvoice"
+          >
+            <i class="bi bi-printer me-1"></i>
+            Print / Save PDF
+          </button>
+        </div>
+      </details>
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <ContentSkeleton v-if="loading" :cards="2" />
 
-    <div
+    <details
       v-if="invoice && showAdminControls"
-      class="share-link-management d-print-none"
+      class="share-link-management invoice-management-details d-print-none"
     >
+      <summary class="invoice-management-summary">
+        <span
+          class="status-pill"
+          :class="shareLinkActive ? 'status-paid' : 'status-cancelled'"
+        >
+          {{ shareLinkStatus }}
+        </span>
+        <span class="invoice-management-summary-copy">
+          <strong>Public Invoice Link</strong>
+          <small v-if="shareLinkActive">
+            Expires {{ new Date(invoice.shareTokenExpiresAt).toLocaleString() }}
+          </small>
+          <small v-else>Regenerate before sharing with a customer.</small>
+        </span>
+        <i class="bi bi-chevron-down"></i>
+      </summary>
       <div class="content-card form-card">
         <div class="share-link-heading">
           <div>
@@ -615,12 +715,28 @@ onMounted(() => {
           </button>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div
+    <details
       v-if="invoice && showAdminControls"
-      class="payment-management d-print-none"
+      class="payment-management invoice-management-details d-print-none"
     >
+      <summary class="invoice-management-summary">
+        <span
+          class="status-pill"
+          :class="`status-${resolvedStatus}`"
+        >
+          {{ statusLabels[resolvedStatus] }}
+        </span>
+        <span class="invoice-management-summary-copy">
+          <strong>Payment History</strong>
+          <small>
+            Paid {{ formatMoney(paidAmount(invoice)) }} · Balance
+            {{ formatMoney(invoice.balanceDue) }}
+          </small>
+        </span>
+        <i class="bi bi-chevron-down"></i>
+      </summary>
       <div class="content-card form-card">
         <div class="payment-management-heading">
           <div>
@@ -752,6 +868,14 @@ onMounted(() => {
           មិនទាន់មានការបង់ប្រាក់បន្ថែម។
         </p>
       </div>
+    </details>
+
+    <div v-if="invoice" class="invoice-preview-meta d-print-none">
+      <span>
+        <i class="bi bi-file-earmark-text"></i>
+        {{ invoicePaperLabel }} invoice layout
+      </span>
+      <small>Preview, PNG export, and print use the same invoice paper.</small>
     </div>
 
     <div v-if="invoice" class="invoice-scroll-frame">
