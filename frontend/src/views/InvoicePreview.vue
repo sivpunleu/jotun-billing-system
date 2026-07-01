@@ -26,6 +26,8 @@ const error = ref('')
 const recordingPayment = ref(false)
 const sendingTelegram = ref('')
 const updatingShareLink = ref(false)
+const savingImage = ref(false)
+const invoicePaperRef = ref(null)
 const shareLinkDays = ref(30)
 const telegramConfigured = ref(false)
 const paymentForm = reactive({
@@ -98,6 +100,153 @@ const invoiceTypographyStyle = computed(() => {
 })
 
 const printInvoice = () => window.print()
+
+const collectDocumentStyles = () =>
+  Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        return Array.from(sheet.cssRules)
+          .map((rule) => rule.cssText)
+          .join('\n')
+      } catch {
+        return ''
+      }
+    })
+    .join('\n')
+
+const toCdata = (value) => String(value).replaceAll(']]>', ']]]]><![CDATA[>')
+
+const blobToDataUrl = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+
+const inlineCloneImages = async (source, clone) => {
+  const sourceImages = Array.from(source.querySelectorAll('img'))
+  const cloneImages = Array.from(clone.querySelectorAll('img'))
+
+  await Promise.all(
+    cloneImages.map(async (image, index) => {
+      const original = sourceImages[index]
+      const sourceUrl =
+        original?.currentSrc || original?.src || image.getAttribute('src')
+
+      if (!sourceUrl || sourceUrl.startsWith('data:')) {
+        if (sourceUrl) image.setAttribute('src', sourceUrl)
+        return
+      }
+
+      try {
+        const response = await fetch(sourceUrl, { cache: 'force-cache' })
+        if (!response.ok) throw new Error('Image fetch failed')
+        const dataUrl = await blobToDataUrl(await response.blob())
+        image.setAttribute('src', dataUrl)
+      } catch {
+        image.setAttribute('src', sourceUrl)
+      }
+    }),
+  )
+}
+
+const waitForInvoiceAssets = async (element) => {
+  if (document.fonts?.ready) {
+    await document.fonts.ready
+  }
+
+  const pendingImages = Array.from(element.querySelectorAll('img')).filter(
+    (image) => !image.complete,
+  )
+
+  await Promise.all(
+    pendingImages.map(
+      (image) =>
+        new Promise((resolve) => {
+          image.onload = resolve
+          image.onerror = resolve
+        }),
+    ),
+  )
+}
+
+const saveInvoiceImage = async () => {
+  const source = invoicePaperRef.value
+  if (!source || !invoice.value) return
+
+  savingImage.value = true
+  try {
+    await waitForInvoiceAssets(source)
+
+    const rect = source.getBoundingClientRect()
+    const width = Math.ceil(rect.width)
+    const height = Math.ceil(rect.height)
+    const clone = source.cloneNode(true)
+    clone.classList.add('invoice-image-export')
+    clone.style.width = `${width}px`
+    clone.style.minHeight = `${height}px`
+    clone.style.margin = '0'
+    clone.style.boxShadow = 'none'
+
+    await inlineCloneImages(source, clone)
+
+    const styles = collectDocumentStyles()
+    const serializedInvoice = new XMLSerializer().serializeToString(clone)
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;min-height:${height}px;background:#fff;">
+            <style><![CDATA[${toCdata(styles)}]]></style>
+            ${serializedInvoice}
+          </div>
+        </foreignObject>
+      </svg>
+    `
+    const svgBlob = new Blob([svg], {
+      type: 'image/svg+xml;charset=utf-8',
+    })
+    const svgUrl = URL.createObjectURL(svgBlob)
+    const image = new Image()
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve
+      image.onerror = reject
+      image.src = svgUrl
+    })
+
+    const scale = Math.max(2, Math.min(window.devicePixelRatio || 2, 3))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(width * scale)
+    canvas.height = Math.round(height * scale)
+    const context = canvas.getContext('2d')
+    context.fillStyle = '#fff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    URL.revokeObjectURL(svgUrl)
+
+    const pngBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Unable to create image'))
+      }, 'image/png')
+    })
+
+    const downloadUrl = URL.createObjectURL(pngBlob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `${invoice.value.invoiceNumber || 'invoice'}.png`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(downloadUrl)
+    showToast('Invoice image saved')
+  } catch {
+    showToast('Unable to save invoice image', 'error')
+  } finally {
+    savingImage.value = false
+  }
+}
 
 const formatInvoiceDate = (value) => {
   if (!value) return '-'
@@ -418,6 +567,20 @@ onMounted(() => {
         </button>
         <button
           v-if="invoice"
+          class="btn btn-outline-primary"
+          type="button"
+          :disabled="savingImage"
+          @click="saveInvoiceImage"
+        >
+          <span
+            v-if="savingImage"
+            class="spinner-border spinner-border-sm me-1"
+          ></span>
+          <i v-else class="bi bi-file-earmark-image me-1"></i>
+          Save Image
+        </button>
+        <button
+          v-if="invoice"
           class="btn btn-brand"
           type="button"
           @click="printInvoice"
@@ -653,6 +816,7 @@ onMounted(() => {
 
     <article
       v-if="invoice"
+      ref="invoicePaperRef"
       class="invoice-paper classic-invoice"
       :class="invoicePaperClass"
       :style="invoiceTypographyStyle"
@@ -761,7 +925,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr
-            v-for="index in Math.max(0, 5 - invoice.items.length)"
+            v-for="index in Math.max(0, 4 - invoice.items.length)"
             :key="`blank-${index}`"
             class="blank-item-row"
           >

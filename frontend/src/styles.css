@@ -2048,7 +2048,7 @@ textarea {
   grid-template-columns: 205px minmax(0, 1fr) 205px;
   align-items: start;
   column-gap: 20px;
-  min-height: 166px;
+  min-height: 154px;
   text-align: center;
 }
 
@@ -2334,8 +2334,8 @@ textarea {
 }
 
 .classic-table td {
-  height: 39px;
-  padding: 6px 8px;
+  height: 35px;
+  padding: 5px 8px;
   border: 1px solid #333;
   vertical-align: top;
 }
@@ -2382,11 +2382,11 @@ textarea {
 .classic-settlement {
   display: grid;
   grid-template-columns: 62% 38%;
-  min-height: 226px;
+  min-height: 196px;
 }
 
 .classic-payment {
-  padding: 10px 10px 0;
+  padding: 8px 10px 0;
 }
 
 .payment-notes {
@@ -2436,7 +2436,7 @@ textarea {
 
 .classic-totals th,
 .classic-totals td {
-  height: 45px;
+  height: 40px;
   padding: 4px 8px;
   border: 1px solid #333;
   vertical-align: middle;
@@ -2468,8 +2468,8 @@ textarea {
 .signature-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 85px;
-  margin: 8px 32px 0;
+  gap: 78px;
+  margin: 4px 32px 0;
 }
 
 .signature-box {
@@ -2478,7 +2478,7 @@ textarea {
 
 .signature-space {
   display: flex;
-  height: 105px;
+  height: 82px;
   align-items: center;
   justify-content: center;
 }
@@ -2495,7 +2495,7 @@ textarea {
   width: auto;
   max-width: 82%;
   height: auto;
-  max-height: 92px;
+  max-height: 76px;
   object-fit: contain;
 }
 
@@ -2515,7 +2515,7 @@ textarea {
 .classic-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 28px;
+  margin-top: 20px;
   padding-top: 10px;
   border-top: 1px solid #333;
   font-family: Arial, 'Battambang', sans-serif;
@@ -4772,7 +4772,7 @@ textarea {
   .classic-header {
     grid-template-columns: 205px minmax(0, 1fr) 205px;
     column-gap: 20px;
-    min-height: 43mm;
+    min-height: 40mm;
   }
 
   .statement-page,
@@ -4870,8 +4870,8 @@ textarea {
   }
 
   .classic-table td {
-    height: 10mm;
-    padding: 6px 8px;
+    height: 9mm;
+    padding: 5px 8px;
   }
 
   .classic-table .number-column {
@@ -4892,11 +4892,11 @@ textarea {
 
   .classic-settlement {
     grid-template-columns: 62% 38%;
-    min-height: 58mm;
+    min-height: 50mm;
   }
 
   .classic-payment {
-    padding: 10px 10px 0;
+    padding: 8px 10px 0;
   }
 
   .payment-notes {
@@ -4919,7 +4919,7 @@ textarea {
 
   .classic-totals th,
   .classic-totals td {
-    height: 45px;
+    height: 40px;
     padding: 4px 8px;
   }
 
@@ -4933,24 +4933,24 @@ textarea {
   }
 
   .signature-section {
-    gap: 85px;
-    margin: 8px 32px 0;
+    gap: 78px;
+    margin: 4px 32px 0;
   }
 
   .signature-space {
-    height: 27mm;
+    height: 21mm;
   }
 
   .seller-signature-image {
     display: block !important;
     max-width: 82%;
-    max-height: 24mm;
+    max-height: 19mm;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
   .classic-footer {
-    margin-top: 7mm;
+    margin-top: 5mm;
     padding-top: 10px;
     font-size: var(--invoice-footer-size, 13px);
   }
