@@ -99,7 +99,20 @@ const invoiceTypographyStyle = computed(() => {
   }
 })
 
-const printInvoice = () => window.print()
+const printInvoice = () => {
+  const shouldUseMobileA4 =
+    normalizedInvoicePaperSize.value === 'a5' &&
+    window.matchMedia('(max-width: 767px)').matches
+
+  if (!shouldUseMobileA4) {
+    document.body.classList.remove('mobile-print-a4')
+    window.print()
+    return
+  }
+
+  document.body.classList.add('mobile-print-a4')
+  window.print()
+}
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {

@@ -2312,6 +2312,7 @@ textarea {
 
 .invoice-info-row span {
   min-width: 0;
+  padding-left: 3px;
   overflow-wrap: anywhere;
 }
 
@@ -2582,15 +2583,19 @@ textarea {
 }
 
 .invoice-paper-a5 .classic-customer {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 5mm;
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+  gap: 3mm;
   padding: 0 1mm 2mm;
 }
 
 .invoice-paper-a5 .invoice-info-row {
-  gap: 3px;
+  gap: 1mm;
   min-height: 5mm;
   line-height: 1.42;
+}
+
+.invoice-paper-a5 .invoice-info-row span {
+  padding-left: 0.6mm;
 }
 
 .invoice-paper-a5 .classic-meta {
@@ -2598,7 +2603,7 @@ textarea {
 }
 
 .invoice-paper-a5 .classic-meta .invoice-info-row {
-  grid-template-columns: max-content minmax(18mm, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .invoice-paper-a5 .classic-table th {
@@ -4845,8 +4850,8 @@ textarea {
 
   .invoice-scroll-frame .invoice-paper-a5 .classic-customer {
     align-items: end;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 5mm;
+    grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+    gap: 3mm;
   }
 
   .invoice-scroll-frame .classic-meta {
@@ -4872,9 +4877,13 @@ textarea {
   }
 
   .invoice-scroll-frame .invoice-paper-a5 .invoice-info-row {
-    gap: 3px;
+    gap: 1mm;
     min-height: 5mm;
     line-height: 1.42;
+  }
+
+  .invoice-scroll-frame .invoice-paper-a5 .invoice-info-row span {
+    padding-left: 0.6mm;
   }
 
   .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-meta .invoice-info-row {
@@ -4882,7 +4891,7 @@ textarea {
   }
 
   .invoice-scroll-frame .invoice-paper-a5 .classic-meta .invoice-info-row {
-    grid-template-columns: max-content minmax(18mm, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
   }
 
   .invoice-scroll-frame .invoice-paper:not(.invoice-paper-a5) .classic-table th {
@@ -5279,15 +5288,19 @@ textarea {
   }
 
   .invoice-paper-a5 .classic-customer {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 5mm;
+    grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+    gap: 3mm;
     padding: 0 1mm 2mm;
   }
 
   .invoice-paper-a5 .invoice-info-row {
-    gap: 3px;
+    gap: 1mm;
     min-height: 5mm;
     line-height: 1.42;
+  }
+
+  .invoice-paper-a5 .invoice-info-row span {
+    padding-left: 0.6mm;
   }
 
   .invoice-paper-a5 .classic-meta {
@@ -5295,7 +5308,7 @@ textarea {
   }
 
   .invoice-paper-a5 .classic-meta .invoice-info-row {
-    grid-template-columns: max-content minmax(18mm, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
   }
 
   .invoice-paper-a5 .classic-table th {
@@ -5374,5 +5387,172 @@ textarea {
     margin-top: 3mm;
     padding-top: 2mm;
     font-size: var(--invoice-a5-footer-size, 8.3px);
+  }
+
+  body.mobile-print-a4 .invoice-paper.invoice-paper-a5 {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 7mm 10mm 6mm;
+  }
+
+  body.mobile-print-a4 .classic-invoice.invoice-paper-a5 {
+    page: invoice-a4;
+    font-size: var(--invoice-font-size, 13px);
+    line-height: 1.42;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-header {
+    grid-template-columns: 205px minmax(0, 1fr) 205px;
+    column-gap: 20px;
+    min-height: 40mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-logo {
+    width: 28mm;
+    height: 28mm;
+    flex-basis: 28mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-jotun-logo {
+    width: 42mm !important;
+    height: 14mm !important;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-brand-title {
+    font-size: var(--invoice-brand-title-size, 12px);
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-subtitle {
+    font-size: var(--invoice-brand-subtitle-size, 11px);
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .company-copy h1 {
+    margin-bottom: 3px;
+    font-size: var(--invoice-company-title-size, 20px);
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .company-copy p {
+    font-size: var(--invoice-company-line-size, 11px);
+    line-height: 1.48;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .invoice-heading {
+    margin: -7px 0 7px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .invoice-heading h2 {
+    font-size: var(--invoice-heading-size, 19px);
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-customer {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+    gap: 9mm;
+    padding: 0 2px 6px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .invoice-info-row {
+    gap: 7px;
+    min-height: 23px;
+    line-height: 1.45;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .invoice-info-row span {
+    padding-left: 3px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-meta {
+    justify-self: end;
+    min-width: 76mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-meta .invoice-info-row {
+    grid-template-columns: max-content minmax(28mm, max-content);
+    justify-content: end;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table th {
+    padding: 5px 7px;
+    font-size: var(--invoice-table-header-size, 13px);
+    line-height: 1.45;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table td {
+    height: 10mm;
+    padding: 5px 8px;
+    line-height: 1.45;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table .number-column {
+    width: 6%;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table .code-column {
+    width: 13%;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table .qty-column {
+    width: 8%;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-table .money-column {
+    width: 15%;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-settlement {
+    grid-template-columns: 62% 38%;
+    min-height: 50mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-payment {
+    padding: 8px 10px 0;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .payment-notes {
+    min-height: 54px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .qr-block {
+    width: 160px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .qr-block img {
+    width: 105px;
+    height: 105px;
+    margin-left: 6px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-totals th,
+  body.mobile-print-a4 .invoice-paper-a5 .classic-totals td {
+    height: 42px;
+    padding: 4px 8px;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-totals th {
+    font-size: var(--invoice-total-title-size, 12px);
+    line-height: 1.38;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-totals th span,
+  body.mobile-print-a4 .invoice-paper-a5 .signature-box span {
+    font-size: var(--invoice-small-size, 11px);
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .signature-section {
+    gap: 78px;
+    margin: 4px 32px 0;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .signature-space {
+    height: 21mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .seller-signature-image {
+    max-height: 19mm;
+  }
+
+  body.mobile-print-a4 .invoice-paper-a5 .classic-footer {
+    margin-top: 5mm;
+    padding-top: 10px;
+    font-size: var(--invoice-footer-size, 13px);
   }
 }
