@@ -101,21 +101,6 @@ const invoiceTypographyStyle = computed(() => {
 
 const printInvoice = () => window.print()
 
-const collectDocumentStyles = () =>
-  Array.from(document.styleSheets)
-    .map((sheet) => {
-      try {
-        return Array.from(sheet.cssRules)
-          .map((rule) => rule.cssText)
-          .join('\n')
-      } catch {
-        return ''
-      }
-    })
-    .join('\n')
-
-const toCdata = (value) => String(value).replaceAll(']]>', ']]]]><![CDATA[>')
-
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -123,6 +108,30 @@ const blobToDataUrl = (blob) =>
     reader.onerror = reject
     reader.readAsDataURL(blob)
   })
+
+const copyComputedStyles = (sourceNode, cloneNode) => {
+  if (
+    sourceNode.nodeType !== Node.ELEMENT_NODE ||
+    cloneNode.nodeType !== Node.ELEMENT_NODE
+  ) {
+    return
+  }
+
+  const computedStyle = window.getComputedStyle(sourceNode)
+  Array.from(computedStyle).forEach((property) => {
+    cloneNode.style.setProperty(
+      property,
+      computedStyle.getPropertyValue(property),
+      computedStyle.getPropertyPriority(property),
+    )
+  })
+
+  Array.from(sourceNode.children).forEach((child, index) => {
+    if (cloneNode.children[index]) {
+      copyComputedStyles(child, cloneNode.children[index])
+    }
+  })
+}
 
 const inlineCloneImages = async (source, clone) => {
   const sourceImages = Array.from(source.querySelectorAll('img'))
@@ -184,6 +193,7 @@ const saveInvoiceImage = async () => {
     const height = Math.ceil(rect.height)
     const clone = source.cloneNode(true)
     clone.classList.add('invoice-image-export')
+    copyComputedStyles(source, clone)
     clone.style.width = `${width}px`
     clone.style.minHeight = `${height}px`
     clone.style.margin = '0'
@@ -191,13 +201,11 @@ const saveInvoiceImage = async () => {
 
     await inlineCloneImages(source, clone)
 
-    const styles = collectDocumentStyles()
     const serializedInvoice = new XMLSerializer().serializeToString(clone)
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <foreignObject width="100%" height="100%">
           <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;min-height:${height}px;background:#fff;">
-            <style><![CDATA[${toCdata(styles)}]]></style>
             ${serializedInvoice}
           </div>
         </foreignObject>
@@ -241,7 +249,8 @@ const saveInvoiceImage = async () => {
     link.remove()
     URL.revokeObjectURL(downloadUrl)
     showToast('Invoice image saved')
-  } catch {
+  } catch (exportError) {
+    console.error('Unable to save invoice image', exportError)
     showToast('Unable to save invoice image', 'error')
   } finally {
     savingImage.value = false
