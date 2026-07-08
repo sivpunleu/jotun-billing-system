@@ -558,9 +558,15 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="col-md-3">
                     <label class="form-label">ឯកតា *</label>
-                    <select v-model="item.unit" class="form-select" required>
-                      <option v-for="option in unitOptions" :key="option" :value="option">{{ option }}</option>
-                    </select>
+                    <input
+                      v-model.trim="item.unit"
+                      class="form-control"
+                      list="invoice-unit-options"
+                      placeholder="វាយ ឬជ្រើសឯកតា"
+                      autocomplete="off"
+                      required
+                    />
+                    <small class="form-hint">អាចបញ្ចូលឯកតាថ្មីដោយដៃបាន។</small>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">តម្លៃរាយ *</label>
@@ -577,6 +583,9 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
+            <datalist id="invoice-unit-options">
+              <option v-for="option in unitOptions" :key="option" :value="option">{{ option }}</option>
+            </datalist>
             <button class="btn btn-outline-primary" type="button" @click="addItem">
               <i class="bi bi-plus-lg me-1"></i> បន្ថែមផលិតផល
             </button>
