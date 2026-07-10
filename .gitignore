@@ -5,3 +5,6 @@ dist/
 .DS_Store
 backend/data/*.json
 !backend/data/.gitkeep
+frontend/release/
+frontend/.vite/
+frontend/dist-electron/

@@ -1,4 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+  createRouter,
+  createWebHashHistory,
+  createWebHistory,
+} from 'vue-router'
 import AuditLogView from '../views/AuditLogView.vue'
 import CustomerList from '../views/CustomerList.vue'
 import DashboardView from '../views/DashboardView.vue'
@@ -22,7 +26,11 @@ import {
 } from '../auth/session'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history:
+    window.location.protocol === 'file:' ||
+    import.meta.env.VITE_ROUTER_MODE === 'hash'
+      ? createWebHashHistory()
+      : createWebHistory(),
   routes: [
     {
       path: '/',

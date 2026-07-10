@@ -1,11 +1,17 @@
 {
   "name": "jotun-billing-frontend",
   "version": "1.0.0",
+  "description": "Marvel Decor and JOTUN billing desktop and web app",
+  "author": "Marvel Decor",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "desktop:dev": "electron electron/main.cjs --dev",
+    "desktop:pack": "npm run build && electron-builder --dir",
+    "desktop:build": "npm run build && electron-builder --win --x64",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,6 +26,35 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
     "vite": "^6.0.5"
+  },
+  "build": {
+    "appId": "com.marveldecor.jotonbilling",
+    "productName": "Joton Billing",
+    "executableName": "Joton",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false,
+      "artifactName": "Joton-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Joton Billing"
+    }
   }
 }
