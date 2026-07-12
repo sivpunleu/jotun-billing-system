@@ -18,6 +18,7 @@ import {
   invoiceApi,
   productApi,
   salespersonApi,
+  settingsApi,
 } from '../api/invoices'
 import ContentSkeleton from '../components/ContentSkeleton.vue'
 import { formatMoney, toDateInput } from '../utils/invoice'
@@ -26,6 +27,9 @@ import {
   showToast,
   validateForm,
 } from '../ui/feedback'
+import logo from '../assets/logo-marvel.png'
+import jotunLogo from '../assets/jotun.jpg'
+import qrPlaceholder from '../assets/aba-qr-square.jpg'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,6 +46,80 @@ const formReady = ref(false)
 const savedSnapshot = ref('')
 const allowNavigation = ref(false)
 
+const companySettings = reactive({
+  companyName: 'Marvel Decor & JOTUN',
+  companyNameKh: 'ម៉ាវែល ដេគ័រ & JOTUN',
+  address: '',
+  telegram: '068 8888 70',
+  phones: ['098 689 883', '068 888 870'],
+  paymentAccount: 'ABA : 068 888 187',
+  invoiceNotes: '',
+  footerKh: 'សូមអរគុណចំពោះការគាំទ្រ !',
+  footerEn: 'Thank you for support !',
+  invoiceFontSize: 13,
+  invoicePaperSize: 'a5',
+  logo: '',
+  jotunLogo: '',
+  paymentQr: '',
+  sellerSignature: '',
+})
+
+const normalizedInvoiceFontSize = computed(() => {
+  const size = Number(companySettings.invoiceFontSize)
+  if (!Number.isFinite(size)) return 13
+  return Math.min(18, Math.max(9, size))
+})
+
+const normalizedInvoicePaperSize = computed(() =>
+  String(companySettings.invoicePaperSize || 'a5').toLowerCase() === 'a4'
+    ? 'a4'
+    : 'a5',
+)
+
+const invoicePaperClass = computed(
+  () => `invoice-paper-${normalizedInvoicePaperSize.value}`,
+)
+const invoicePaperLabel = computed(() => normalizedInvoicePaperSize.value.toUpperCase())
+
+const invoiceTypographyStyle = computed(() => {
+  const base = normalizedInvoiceFontSize.value
+  const size = (ratio) => `${Math.round(base * ratio * 10) / 10}px`
+
+  return {
+    '--invoice-font-size': size(1),
+    '--invoice-brand-title-size': size(0.92),
+    '--invoice-brand-subtitle-size': size(0.85),
+    '--invoice-company-title-size': size(1.54),
+    '--invoice-company-line-size': size(0.85),
+    '--invoice-heading-size': size(1.46),
+    '--invoice-table-header-size': size(1),
+    '--invoice-total-title-size': size(0.92),
+    '--invoice-small-size': size(0.85),
+    '--invoice-footer-size': size(1),
+    '--invoice-a5-font-size': size(0.74),
+    '--invoice-a5-brand-title-size': size(0.62),
+    '--invoice-a5-brand-subtitle-size': size(0.58),
+    '--invoice-a5-company-title-size': size(1),
+    '--invoice-a5-company-line-size': size(0.57),
+    '--invoice-a5-heading-size': size(1.05),
+    '--invoice-a5-table-header-size': size(0.68),
+    '--invoice-a5-total-title-size': size(0.63),
+    '--invoice-a5-small-size': size(0.58),
+    '--invoice-a5-footer-size': size(0.64),
+  }
+})
+
+const money = (value) => formatMoney(value).replace('$', '').trim()
+
+const loadSettings = async () => {
+  try {
+    const response = await settingsApi.get()
+    Object.assign(companySettings, response.data)
+  } catch {
+    // Keep local fallback branding if settings cannot be loaded.
+  }
+}
+
 const addDays = (dateValue, days) => {
   const date = new Date(dateValue)
   date.setDate(date.getDate() + days)
@@ -57,6 +135,8 @@ const newItem = () => ({
   unit: 'ធុង',
   unitPrice: 0,
   discount: 0,
+  stockQuantity: 0,
+  lowStockThreshold: 5,
 })
 
 const unitOptions = [
@@ -176,6 +256,8 @@ const applyProduct = (item) => {
     colorCode: product.colorCode || '',
     unit: product.unit || 'ធុង',
     unitPrice: Number(product.unitPrice || 0),
+    stockQuantity: Number(product.stockQuantity || 0),
+    lowStockThreshold: Number(product.lowStockThreshold ?? 5),
   })
 }
 
@@ -241,16 +323,21 @@ const loadInvoice = async () => {
       : 'unpaid',
     notes: data.notes || '',
     items: Array.isArray(data.items)
-      ? data.items.map((item) => ({
-          productId: item.productId || '',
-          description: item.description,
-          itemCode: item.itemCode || '',
-          colorCode: item.colorCode || '',
-          quantity: item.quantity,
-          unit: item.unit || 'ធុង',
-          unitPrice: item.unitPrice,
-          discount: item.discount || 0,
-        }))
+      ? data.items.map((item) => {
+          const product = products.value.find((p) => String(p._id) === String(item.productId))
+          return {
+            productId: item.productId || '',
+            description: item.description,
+            itemCode: item.itemCode || '',
+            colorCode: item.colorCode || '',
+            quantity: item.quantity,
+            unit: item.unit || 'ធុង',
+            unitPrice: item.unitPrice,
+            discount: item.discount || 0,
+            stockQuantity: product ? (product.stockQuantity || 0) : 0,
+            lowStockThreshold: product ? (product.lowStockThreshold ?? 5) : 5,
+          }
+        })
       : [newItem()],
   })
   if (!isEditing.value) duplicatedFrom.value = data.invoiceNumber || ''
@@ -260,7 +347,7 @@ const initialize = async () => {
   loading.value = true
   error.value = ''
   try {
-    await Promise.all([loadLookups(), loadInvoice()])
+    await Promise.all([loadLookups(), loadInvoice(), loadSettings()])
   } catch (requestError) {
     error.value =
       requestError.response?.data?.message || 'មិនអាចទាញយកទិន្នន័យបានទេ'
@@ -393,7 +480,7 @@ onBeforeUnmount(() => {
 
     <form v-else novalidate @submit.prevent="submitForm">
       <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="col-lg-7">
           <div class="content-card form-card mb-4">
             <div class="section-title">
               <span class="section-number">01</span>
@@ -539,7 +626,7 @@ onBeforeUnmount(() => {
                     <select v-model="item.productId" class="form-select" @change="applyProduct(item)">
                       <option value="">-- បញ្ចូលដោយដៃ --</option>
                       <option v-for="product in products" :key="product._id" :value="product._id">
-                        {{ product.name }} · {{ product.itemCode || 'No code' }} · {{ formatMoney(product.unitPrice) }}/{{ product.unit }}
+                        {{ product.name }} · {{ product.itemCode || 'No code' }} · {{ formatMoney(product.unitPrice) }}/{{ product.unit }} (ស្តុក: {{ product.stockQuantity || 0 }} {{ product.unit }})
                       </option>
                     </select>
                   </div>
@@ -555,6 +642,12 @@ onBeforeUnmount(() => {
                   <div class="col-md-2">
                     <label class="form-label">បរិមាណ *</label>
                     <input v-model.number="item.quantity" class="form-control" type="number" min="0.01" step="0.01" required />
+                    <small v-if="item.productId" class="product-stock-info" :class="{ 'product-stock-low': item.stockQuantity <= item.lowStockThreshold }">
+                      ស្តុក៖ {{ item.stockQuantity }} {{ item.unit }}
+                    </small>
+                    <div v-if="item.productId && item.quantity > item.stockQuantity" class="stock-warning-badge">
+                      <i class="bi bi-exclamation-triangle"></i> លើសស្តុក
+                    </div>
                   </div>
                   <div class="col-md-3">
                     <label class="form-label">ឯកតា *</label>
@@ -591,17 +684,15 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <div class="content-card form-card">
+          <div class="content-card form-card mb-4">
             <div class="section-title">
               <span class="section-number">04</span>
               <div><h2>កំណត់ចំណាំ</h2><p>លក្ខខណ្ឌបង់ប្រាក់ ឬព័ត៌មានបន្ថែម។</p></div>
             </div>
             <textarea v-model.trim="form.notes" class="form-control" rows="4"></textarea>
           </div>
-        </div>
 
-        <div class="col-lg-4">
-          <div class="content-card form-card totals-card">
+          <div class="content-card form-card totals-card mb-4">
             <h2>សេចក្ដីសង្ខេប</h2>
             <div class="mb-3">
               <label class="form-label">ស្ថានភាព</label>
@@ -645,6 +736,223 @@ onBeforeUnmount(() => {
               <i v-else class="bi bi-check2-circle me-2"></i>
               {{ saving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុកវិក្កយបត្រ' }}
             </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Live A4/A5 Print Preview (Sticky) -->
+        <div class="col-lg-5 d-none d-lg-block">
+          <div class="invoice-form-preview-col">
+            <div class="invoice-preview-meta mb-3">
+              <span>
+                <i class="bi bi-file-earmark-text"></i>
+                {{ invoicePaperLabel }} Live Preview
+              </span>
+              <small class="text-secondary">រាល់ការកែប្រែនឹងបង្ហាញឡើងភ្លាមៗ។</small>
+            </div>
+            <div class="invoice-scroll-frame">
+              <article
+                class="invoice-paper classic-invoice"
+                :class="invoicePaperClass"
+                :style="invoiceTypographyStyle"
+              >
+                <header class="classic-header">
+                  <div class="classic-brand-block">
+                    <img class="classic-logo" :src="companySettings.logo || logo" alt="Marvel Decor" />
+                    <div class="classic-brand-copy">
+                      <h5 class="classic-brand-title">ម៉ាវែល ដេគ័រ</h5>
+                      <h6 class="classic-subtitle">Marvel Decor</h6>
+                    </div>
+                  </div>
+                  <div class="company-copy">
+                    <h1>{{ companySettings.companyNameKh || companySettings.companyName }}</h1>
+                    <p v-if="companySettings.companyName">
+                      {{ companySettings.companyName }}
+                    </p>
+                    <p v-if="companySettings.address">
+                      អាស័យដ្ឋាន : {{ companySettings.address }}
+                    </p>
+                    <p v-if="companySettings.telegram">
+                      Telegram : {{ companySettings.telegram }}
+                    </p>
+                    <p v-for="phone in companySettings.phones" :key="phone">
+                      លេខទូរស័ព្ទ | Phone: {{ phone }}
+                    </p>
+                  </div>
+                  <div class="classic-jotun-block">
+                    <img
+                      class="classic-jotun-logo"
+                      :src="companySettings.jotunLogo || jotunLogo"
+                      alt="Jotun"
+                      style="width: 150px; height: 50px"
+                    />
+                  </div>
+                </header>
+
+                <div class="invoice-heading">
+                  <h2>វិក្កយបត្រ / INVOICE</h2>
+                </div>
+
+                <section class="classic-customer">
+                  <div class="customer-details">
+                    <div class="invoice-info-row">
+                      <strong>អតិថិជន | Customer:</strong>
+                      <span>{{ form.customer?.name || '-' }}</span>
+                    </div>
+                    <div class="invoice-info-row">
+                      <strong>លេខទូរស័ព្ទ | Phone:</strong>
+                      <span>{{ form.customer?.phone || '-' }}</span>
+                    </div>
+                    <div class="invoice-info-row">
+                      <strong>អាសយដ្ឋាន | Address:</strong>
+                      <span>{{ form.customer?.address || '-' }}</span>
+                    </div>
+                  </div>
+                  <div class="classic-meta">
+                    <div class="invoice-info-row">
+                      <strong>កាលបរិច្ឆេទ | Date:</strong>
+                      <span>{{ form.invoiceDate ? formatDate(form.invoiceDate) : '-' }}</span>
+                    </div>
+                    <div class="invoice-info-row">
+                      <strong>វិក្កយបត្រ | Invoice No:</strong>
+                      <span>{{ isEditing ? form.invoiceNumber : 'INV-YYYY-XXXXX' }}</span>
+                    </div>
+                    <div class="invoice-info-row">
+                      <strong>ប្រភពលក់ | Sold By:</strong>
+                      <span>
+                        {{
+                          form.salesChannel === 'salesperson'
+                            ? form.salesperson?.name || '-'
+                            : 'ទិញនៅហាងផ្ទាល់'
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <table class="classic-table">
+                  <thead>
+                    <tr>
+                      <th class="number-column">ល.រ<br />No.</th>
+                      <th>ឈ្មោះ និងបរិយាយទំនិញ<br />Item &amp; Description</th>
+                      <th class="code-column">លេខកូដពណ៌<br />Color Code</th>
+                      <th class="qty-column">ចំនួន<br />Qty</th>
+                      <th class="money-column">តម្លៃ<br />Unit Price</th>
+                      <th class="money-column">សរុប<br />Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, index) in form.items" :key="index">
+                      <td class="text-center">{{ index + 1 }}</td>
+                      <td>{{ item.description || '-' }}</td>
+                      <td class="text-center">{{ item.colorCode || '-' }}</td>
+                      <td class="text-center qty-value">
+                        {{ item.quantity }}
+                        <span v-if="item.unit">{{ item.unit }}</span>
+                      </td>
+                      <td class="currency-cell">
+                        <span>$</span>
+                        <strong>{{ money(item.unitPrice) }}</strong>
+                      </td>
+                      <td class="currency-cell">
+                        <span>$</span>
+                        <strong>{{ money(lineTotal(item)) }}</strong>
+                      </td>
+                    </tr>
+                    <tr
+                      v-for="index in Math.max(0, 4 - form.items.length)"
+                      :key="`blank-${index}`"
+                      class="blank-item-row"
+                    >
+                      <td>&nbsp;</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <section class="classic-settlement">
+                  <div class="classic-payment">
+                    <div class="payment-notes">
+                      <p v-if="form.notes">{{ form.notes }}</p>
+                      <template v-else-if="companySettings.invoiceNotes">
+                        <p>{{ companySettings.invoiceNotes }}</p>
+                      </template>
+                      <template v-else>
+                        <p>- ទំនិញទិញហើយមិនអាចប្តូរ ឬសងត្រឡប់វិញបានទេ</p>
+                        <p>- រាល់ការទូទាត់ត្រូវមានវិក្កយបត្រត្រឹមត្រូវ</p>
+                      </template>
+                    </div>
+                    <div class="qr-block">
+                      <p>ទូទាត់តាមរយៈ៖</p>
+                      <strong>{{ companySettings.paymentAccount }}</strong>
+                      <img :src="companySettings.paymentQr || qrPlaceholder" alt="ABA payment QR" />
+                    </div>
+                  </div>
+
+                  <table class="classic-totals">
+                    <tbody>
+                      <tr>
+                        <th>សរុប<br /><span>Total Price</span></th>
+                        <td><span>$</span><strong>{{ money(subtotal) }}</strong></td>
+                      </tr>
+                      <tr v-if="Number(form.discount || 0) > 0">
+                        <th>បញ្ចុះតម្លៃ<br /><span>Discount</span></th>
+                        <td><span>$</span><strong>-{{ money(form.discount) }}</strong></td>
+                      </tr>
+                      <tr v-if="Number(taxAmount || 0) > 0">
+                        <th>ពន្ធ ({{ form.taxRate }}%)<br /><span>Tax</span></th>
+                        <td><span>$</span><strong>{{ money(taxAmount) }}</strong></td>
+                      </tr>
+                      <tr>
+                        <th>ថ្លៃដឹកជញ្ជូន<br /><span>Delivery Fee</span></th>
+                        <td><span>$</span><strong>{{ money(form.deliveryFee) }}</strong></td>
+                      </tr>
+                      <tr>
+                        <th>
+                          ប្រាក់កក់ ({{ form.depositRate || 0 }}%)<br />
+                          <span>Deposit ({{ form.depositRate || 0 }}%)</span>
+                        </th>
+                        <td><span>$</span><strong>{{ money(depositAmount) }}</strong></td>
+                      </tr>
+                      <tr>
+                        <th>ប្រាក់នៅសល់<br /><span>Balance Due</span></th>
+                        <td><span>$</span><strong>{{ money(balanceDue) }}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+
+                <section class="signature-section">
+                  <div class="signature-box">
+                    <div class="signature-space"></div>
+                    <div class="signature-line"></div>
+                    <p>ហត្ថលេខា និងឈ្មោះ អតិថិជន</p>
+                    <span>Customer's Signature &amp; Name</span>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-space seller-mark">
+                      <img
+                        v-if="companySettings.sellerSignature"
+                        class="seller-signature-image"
+                        :src="companySettings.sellerSignature"
+                        alt="Seller signature"
+                      />
+                    </div>
+                    <div class="signature-line"></div>
+                    <p>ហត្ថលេខា និងឈ្មោះ អ្នកលក់</p>
+                    <span>Seller's Signature &amp; Name</span>
+                  </div>
+                </section>
+
+                <footer class="classic-footer">
+                  <span>{{ companySettings.footerEn }}</span>
+                  <strong>{{ companySettings.footerKh }}</strong>
+                </footer>
+              </article>
+            </div>
           </div>
         </div>
       </div>

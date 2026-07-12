@@ -5835,3 +5835,41 @@ textarea {
     font-size: var(--invoice-footer-size, 13px);
   }
 }
+
+/* Invoice Form Live Preview Styles */
+@media screen and (min-width: 992px) {
+  .invoice-form-preview-col {
+    position: sticky;
+    top: 90px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+}
+
+.stock-warning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #a41623;
+  background: #fde9eb;
+  border: 1px solid rgba(197, 31, 45, 0.15);
+  margin-top: 6px;
+}
+
+.product-stock-info {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-top: 4px;
+  display: block;
+}
+
+.product-stock-low {
+  color: var(--red);
+}
+
