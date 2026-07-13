@@ -3204,14 +3204,69 @@ textarea {
 }
 
 .billing-swal-actions {
-  gap: 10px;
+  gap: 12px;
+}
+
+.swal2-container.swal2-backdrop-show {
+  backdrop-filter: blur(6px) !important;
+  background-color: rgba(7, 27, 58, 0.4) !important;
+  transition: backdrop-filter 0.3s ease, background-color 0.3s ease;
+}
+
+.billing-swal-popup.swal2-show {
+  animation: swal2-show 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.billing-swal-actions .btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.billing-swal-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(7, 27, 58, 0.12);
+}
+
+.billing-swal-actions .btn:active {
+  transform: translateY(0);
 }
 
 .billing-swal-toast {
-  border-left: 4px solid var(--blue);
   border-radius: 12px;
   font-family: 'Manrope', 'Battambang', sans-serif;
   box-shadow: 0 18px 50px rgba(7, 27, 58, 0.16);
+  border-left: 4px solid var(--blue);
+}
+
+.billing-swal-toast-success {
+  border-left: 4px solid #10b981 !important;
+}
+
+.billing-swal-toast-success .swal2-timer-progress-bar {
+  background-color: #10b981 !important;
+}
+
+.billing-swal-toast-error {
+  border-left: 4px solid #ef4444 !important;
+}
+
+.billing-swal-toast-error .swal2-timer-progress-bar {
+  background-color: #ef4444 !important;
+}
+
+.billing-swal-toast-warning {
+  border-left: 4px solid #f59e0b !important;
+}
+
+.billing-swal-toast-warning .swal2-timer-progress-bar {
+  background-color: #f59e0b !important;
+}
+
+.billing-swal-toast-info {
+  border-left: 4px solid var(--blue) !important;
+}
+
+.billing-swal-toast-info .swal2-timer-progress-bar {
+  background-color: var(--blue) !important;
 }
 
 .billing-swal-toast .swal2-title {
@@ -3532,6 +3587,21 @@ textarea {
 .stock-swal-input {
   width: calc(100% - 3em) !important;
   margin: 0 1.5em 8px !important;
+  height: 44px !important;
+  border: 1px solid #dce3ec !important;
+  border-radius: 8px !important;
+  padding: 0 14px !important;
+  font-size: 0.88rem !important;
+  background-color: #fff !important;
+  color: var(--ink) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.stock-swal-select:focus,
+.stock-swal-input:focus {
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(24, 138, 194, 0.12) !important;
+  outline: none !important;
 }
 
 .stock-history {
@@ -3558,9 +3628,20 @@ textarea {
 }
 
 .stock-history-row > span {
-  color: var(--red);
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.stock-movement-type-in {
+  color: #10b981 !important;
+}
+
+.stock-movement-type-out {
+  color: var(--red) !important;
+}
+
+.stock-movement-type-set {
+  color: var(--blue) !important;
 }
 
 .stock-history-row > small {

@@ -19,7 +19,7 @@ export const showToast = (message, type = 'success') =>
     timer: 3500,
     timerProgressBar: true,
     customClass: {
-      popup: 'billing-swal-toast',
+      popup: `billing-swal-toast billing-swal-toast-${type}`,
     },
   })
 
@@ -39,7 +39,7 @@ export const showSuccessAlert = (
     buttonsStyling: false,
     customClass: {
       popup: 'billing-swal-popup',
-      confirmButton: 'btn btn-danger px-4',
+      confirmButton: 'btn btn-brand px-4',
     },
   })
 
@@ -135,7 +135,7 @@ export const validateForm = async (
     buttonsStyling: false,
     customClass: {
       popup: 'billing-swal-popup',
-      confirmButton: 'btn btn-danger px-4',
+      confirmButton: 'btn btn-brand px-4',
     },
   })
 
@@ -197,7 +197,7 @@ export const requestStockMovement = async (product) => {
     .map(
       (movement) => `
         <div class="stock-history-row">
-          <span>${escapeHtml(movement.type)}</span>
+          <span class="stock-movement-type stock-movement-type-${String(movement.type).toLowerCase()}">${escapeHtml(movement.type)}</span>
           <strong>${Number(movement.quantity || 0)} ${escapeHtml(product.unit || '')}</strong>
           <small>${escapeHtml(movement.note || movement.recordedBy || '')}</small>
         </div>
