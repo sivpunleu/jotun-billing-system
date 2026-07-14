@@ -1,20 +1,33 @@
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
+const safeText = (value) => String(value ?? '')
+
+const safeNumber = (value) => {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+const stockMovementTypeClass = (type) => {
+  const normalizedType = safeText(type).toLowerCase()
+  return ['in', 'out', 'set'].includes(normalizedType)
+    ? normalizedType
+    : 'unknown'
+}
+
+const createTextElement = (tagName, className, text) => {
+  const element = document.createElement(tagName)
+  if (className) element.className = className
+  element.textContent = safeText(text)
+  return element
+}
 
 export const showToast = (message, type = 'success') =>
   Swal.fire({
     toast: true,
     position: 'top-end',
     icon: type === 'error' ? 'error' : type,
-    title: message,
+    titleText: safeText(message),
     showConfirmButton: false,
     timer: 3500,
     timerProgressBar: true,
@@ -30,7 +43,7 @@ export const showSuccessAlert = (
 ) =>
   Swal.fire({
     icon: 'success',
-    title,
+    titleText: safeText(title),
     text: message,
     timer: options.timer ?? 1400,
     timerProgressBar: true,
@@ -129,7 +142,7 @@ export const validateForm = async (
 
   await Swal.fire({
     icon: 'warning',
-    title: 'សូមពិនិត្យព័ត៌មាន',
+    titleText: 'សូមពិនិត្យព័ត៌មាន',
     text: message,
     confirmButtonText: 'យល់ព្រម',
     buttonsStyling: false,
@@ -152,7 +165,7 @@ export const requestConfirmation = async (options = {}) => {
     : undefined
 
   const result = await Swal.fire({
-    title: options.title || 'Confirm action',
+    titleText: safeText(options.title || 'Confirm action'),
     text: options.message || '',
     icon: options.tone === 'danger' ? 'warning' : 'question',
     input,
@@ -191,42 +204,110 @@ export const requestConfirmation = async (options = {}) => {
 }
 
 export const requestStockMovement = async (product) => {
-  const recentMovements = (product.stockMovements || [])
-    .slice(-5)
-    .reverse()
-    .map(
-      (movement) => `
-        <div class="stock-history-row">
-          <span class="stock-movement-type stock-movement-type-${String(movement.type).toLowerCase()}">${escapeHtml(movement.type)}</span>
-          <strong>${Number(movement.quantity || 0)} ${escapeHtml(product.unit || '')}</strong>
-          <small>${escapeHtml(movement.note || movement.recordedBy || '')}</small>
-        </div>
-      `,
-    )
-    .join('')
+  const content = document.createElement('div')
+
+  const currentStock = document.createElement('div')
+  currentStock.className = 'stock-swal-current'
+  currentStock.append('Current stock: ')
+  currentStock.append(
+    createTextElement(
+      'strong',
+      '',
+      `${safeNumber(product.stockQuantity)} ${safeText(product.unit)}`.trim(),
+    ),
+  )
+  content.append(currentStock)
+
+  const typeLabel = createTextElement(
+    'label',
+    'stock-swal-label',
+    'Movement',
+  )
+  typeLabel.setAttribute('for', 'stock-movement-type')
+  content.append(typeLabel)
+
+  const typeSelect = document.createElement('select')
+  typeSelect.id = 'stock-movement-type'
+  typeSelect.className = 'swal2-select stock-swal-select'
+  const movementTypeOptions = [
+    ['in', 'Stock In'],
+    ['out', 'Stock Out'],
+    ['set', 'Set Exact Stock'],
+  ]
+  movementTypeOptions.forEach(([value, label]) => {
+    const option = document.createElement('option')
+    option.value = value
+    option.textContent = label
+    typeSelect.append(option)
+  })
+  content.append(typeSelect)
+
+  const quantityLabel = createTextElement(
+    'label',
+    'stock-swal-label',
+    'Quantity',
+  )
+  quantityLabel.setAttribute('for', 'stock-movement-quantity')
+  content.append(quantityLabel)
+
+  const quantityInput = document.createElement('input')
+  quantityInput.id = 'stock-movement-quantity'
+  quantityInput.className = 'swal2-input stock-swal-input'
+  quantityInput.type = 'number'
+  quantityInput.min = '0'
+  quantityInput.step = '0.01'
+  quantityInput.placeholder = '0'
+  content.append(quantityInput)
+
+  const noteLabel = createTextElement('label', 'stock-swal-label', 'Note')
+  noteLabel.setAttribute('for', 'stock-movement-note')
+  content.append(noteLabel)
+
+  const noteInput = document.createElement('input')
+  noteInput.id = 'stock-movement-note'
+  noteInput.className = 'swal2-input stock-swal-input'
+  noteInput.type = 'text'
+  noteInput.placeholder = 'Purchase, damaged, adjustment...'
+  content.append(noteInput)
+
+  const recentMovements = (product.stockMovements || []).slice(-5).reverse()
+  if (recentMovements.length) {
+    const history = document.createElement('div')
+    history.className = 'stock-history'
+    history.append(createTextElement('b', '', 'Recent movements'))
+
+    recentMovements.forEach((movement) => {
+      const row = document.createElement('div')
+      row.className = 'stock-history-row'
+
+      const type = createTextElement(
+        'span',
+        `stock-movement-type stock-movement-type-${stockMovementTypeClass(
+          movement.type,
+        )}`,
+        movement.type,
+      )
+      const quantity = createTextElement(
+        'strong',
+        '',
+        `${safeNumber(movement.quantity)} ${safeText(product.unit)}`.trim(),
+      )
+      const note = createTextElement(
+        'small',
+        '',
+        movement.note || movement.recordedBy || '',
+      )
+
+      row.append(type, quantity, note)
+      history.append(row)
+    })
+
+    content.append(history)
+  }
 
   const result = await Swal.fire({
-    title: `Stock: ${product.name}`,
-    html: `
-      <div class="stock-swal-current">
-        Current stock: <strong>${Number(product.stockQuantity || 0)} ${product.unit || ''}</strong>
-      </div>
-      <label class="stock-swal-label" for="stock-movement-type">Movement</label>
-      <select id="stock-movement-type" class="swal2-select stock-swal-select">
-        <option value="in">Stock In</option>
-        <option value="out">Stock Out</option>
-        <option value="set">Set Exact Stock</option>
-      </select>
-      <label class="stock-swal-label" for="stock-movement-quantity">Quantity</label>
-      <input id="stock-movement-quantity" class="swal2-input stock-swal-input" type="number" min="0" step="0.01" placeholder="0">
-      <label class="stock-swal-label" for="stock-movement-note">Note</label>
-      <input id="stock-movement-note" class="swal2-input stock-swal-input" type="text" placeholder="Purchase, damaged, adjustment...">
-      ${
-        recentMovements
-          ? `<div class="stock-history"><b>Recent movements</b>${recentMovements}</div>`
-          : ''
-      }
-    `,
+    titleText: `Stock: ${safeText(product.name)}`,
+    html: content,
     showCancelButton: true,
     confirmButtonText: 'Save Movement',
     cancelButtonText: 'Cancel',
@@ -252,7 +333,7 @@ export const requestStockMovement = async (product) => {
         Swal.showValidationMessage('Quantity must be greater than zero')
         return false
       }
-      if (type === 'out' && quantity > Number(product.stockQuantity || 0)) {
+      if (type === 'out' && quantity > safeNumber(product.stockQuantity)) {
         Swal.showValidationMessage('Stock out exceeds current stock')
         return false
       }

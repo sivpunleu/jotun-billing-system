@@ -245,12 +245,16 @@ export const reserveInvoiceNumber = async (dateValue = new Date()) => {
 
 export const insertInvoice = async (payload) => {
   if (getStorageMode() === 'mongodb') {
+    const shareToken = String(payload.shareToken || '').trim()
     return Invoice.create({
       ...payload,
-      shareToken: payload.shareToken || createShareToken(),
-      shareTokenExpiresAt:
-        payload.shareTokenExpiresAt || createShareTokenExpiration(),
-      shareTokenRevokedAt: null,
+      shareToken,
+      shareTokenExpiresAt: shareToken
+        ? payload.shareTokenExpiresAt || createShareTokenExpiration()
+        : null,
+      shareTokenRevokedAt: shareToken
+        ? payload.shareTokenRevokedAt || null
+        : null,
     })
   }
 
@@ -263,15 +267,18 @@ export const insertInvoice = async (payload) => {
     if (duplicate) throw duplicateInvoiceError()
 
     const timestamp = new Date().toISOString()
-    const usedTokens = existingShareTokens(invoices)
+    const shareToken = String(payload.shareToken || '').trim()
     const invoice = {
       ...payload,
       invoiceNumber: String(payload.invoiceNumber).toUpperCase(),
-      shareToken: payload.shareToken || createUniqueShareToken(usedTokens),
-      shareTokenExpiresAt:
-        payload.shareTokenExpiresAt ||
-        createShareTokenExpiration().toISOString(),
-      shareTokenRevokedAt: null,
+      shareToken,
+      shareTokenExpiresAt: shareToken
+        ? payload.shareTokenExpiresAt ||
+          createShareTokenExpiration().toISOString()
+        : null,
+      shareTokenRevokedAt: shareToken
+        ? payload.shareTokenRevokedAt || null
+        : null,
       _id: randomUUID(),
       deletedAt: null,
       createdAt: timestamp,
@@ -467,17 +474,21 @@ export const revokeInvoiceShareLink = async (id, actor) => {
 export const backfillLocalShareAccess = async () => {
   if (getStorageMode() === 'mongodb') return 0
   return mutateLocalCollection('invoices', (invoices) => {
-    const usedTokens = existingShareTokens(invoices)
     let updated = 0
     invoices.forEach((invoice) => {
       let changed = false
-      if (!invoice.shareToken) {
-        invoice.shareToken = createUniqueShareToken(usedTokens)
+      const shareToken = String(invoice.shareToken || '').trim()
+      if (invoice.shareToken !== shareToken) {
+        invoice.shareToken = shareToken
         changed = true
       }
-      if (!invoice.shareTokenExpiresAt) {
+      if (shareToken && !invoice.shareTokenExpiresAt) {
         invoice.shareTokenExpiresAt =
           createShareTokenExpiration().toISOString()
+        changed = true
+      }
+      if (!shareToken && invoice.shareTokenExpiresAt) {
+        invoice.shareTokenExpiresAt = null
         changed = true
       }
       if (invoice.shareTokenRevokedAt === undefined) {

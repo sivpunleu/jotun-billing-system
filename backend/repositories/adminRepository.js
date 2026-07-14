@@ -8,47 +8,109 @@ import {
 
 const withoutPassword = (
   admin,
-  { includeTokenVersion = false } = {},
+  {
+    includeRevokedAccessTokens = false,
+    includeSessionArtifacts = false,
+    includeTokenVersion = false,
+  } = {},
 ) => {
   if (!admin) return null
   const plain = typeof admin.toObject === 'function' ? admin.toObject() : admin
   const { passwordHash: _passwordHash, ...safeAdmin } = plain
   if (!includeTokenVersion) delete safeAdmin.tokenVersion
+  if (!includeSessionArtifacts) delete safeAdmin.refreshTokens
+  if (!includeSessionArtifacts && !includeRevokedAccessTokens) {
+    delete safeAdmin.revokedAccessTokens
+  }
   return safeAdmin
+}
+
+const sessionSelection = '+tokenVersion +refreshTokens +revokedAccessTokens'
+
+const pruneSessionArtifacts = (admin, now = new Date()) => {
+  if (!admin) return
+  const timestamp = new Date(now).getTime()
+  admin.refreshTokens = Array.isArray(admin.refreshTokens)
+    ? admin.refreshTokens.filter(
+        (token) => new Date(token.expiresAt).getTime() > timestamp,
+      )
+    : []
+  admin.revokedAccessTokens = Array.isArray(admin.revokedAccessTokens)
+    ? admin.revokedAccessTokens.filter(
+        (token) => new Date(token.expiresAt).getTime() > timestamp,
+      )
+    : []
 }
 
 export const findAdminByUsername = async (
   username,
-  { includePassword = false } = {},
+  {
+    includePassword = false,
+    includeRevokedAccessTokens = false,
+    includeSessionArtifacts = false,
+  } = {},
 ) => {
   const normalized = String(username || '').trim().toLowerCase()
   if (getStorageMode() === 'mongodb') {
     const query = Admin.findOne({ username: normalized })
     query.select('+tokenVersion')
     if (includePassword) query.select('+passwordHash')
+    if (includeRevokedAccessTokens || includeSessionArtifacts) {
+      query.select('+revokedAccessTokens')
+    }
+    if (includeSessionArtifacts) query.select('+refreshTokens')
     return query
   }
   const admins = await readLocalCollection('admins')
   const admin =
     admins.find((item) => item.username.toLowerCase() === normalized) || null
-  return includePassword
-    ? admin
-    : withoutPassword(admin, { includeTokenVersion: true })
+  if (includePassword) return admin
+  return withoutPassword(admin, {
+    includeRevokedAccessTokens,
+    includeSessionArtifacts,
+    includeTokenVersion: true,
+  })
 }
 
 export const findAdminById = async (
   id,
-  { includeTokenVersion = true } = {},
+  {
+    includeRevokedAccessTokens = false,
+    includeSessionArtifacts = false,
+    includeTokenVersion = true,
+  } = {},
 ) => {
   if (getStorageMode() === 'mongodb') {
     const query = Admin.findById(id)
     if (includeTokenVersion) query.select('+tokenVersion')
+    if (includeRevokedAccessTokens || includeSessionArtifacts) {
+      query.select('+revokedAccessTokens')
+    }
+    if (includeSessionArtifacts) query.select('+refreshTokens')
     return query
   }
   const admins = await readLocalCollection('admins')
   return withoutPassword(
     admins.find((item) => String(item._id) === String(id)) || null,
-    { includeTokenVersion },
+    {
+      includeRevokedAccessTokens,
+      includeSessionArtifacts,
+      includeTokenVersion,
+    },
+  )
+}
+
+export const findAdminSessionState = async (id) => {
+  if (getStorageMode() === 'mongodb') {
+    return Admin.findById(id).select(sessionSelection)
+  }
+  const admins = await readLocalCollection('admins')
+  return withoutPassword(
+    admins.find((item) => String(item._id) === String(id)) || null,
+    {
+      includeSessionArtifacts: true,
+      includeTokenVersion: true,
+    },
   )
 }
 
@@ -136,9 +198,40 @@ export const recordAdminLogin = async (id) => {
   return updateAdmin(id, { lastLoginAt: new Date() })
 }
 
+export const updateAdminSessionState = async (id, mutator) => {
+  if (getStorageMode() === 'mongodb') {
+    const admin = await Admin.findById(id).select(sessionSelection)
+    if (!admin) return null
+    pruneSessionArtifacts(admin)
+    const result = await mutator(admin)
+    pruneSessionArtifacts(admin)
+    await admin.save()
+    return result ?? withoutPassword(admin, {
+      includeSessionArtifacts: true,
+      includeTokenVersion: true,
+    })
+  }
+
+  return mutateLocalCollection('admins', async (admins) => {
+    const index = admins.findIndex((item) => String(item._id) === String(id))
+    if (index === -1) return null
+    const admin = admins[index]
+    pruneSessionArtifacts(admin)
+    const result = await mutator(admin)
+    pruneSessionArtifacts(admin)
+    admin.updatedAt = new Date().toISOString()
+    return result ?? withoutPassword(admin, {
+      includeSessionArtifacts: true,
+      includeTokenVersion: true,
+    })
+  })
+}
+
 export const getAllAdminsForBackup = async () => {
   if (getStorageMode() === 'mongodb') {
-    return Admin.find({}).select('-passwordHash').lean()
+    return Admin.find({})
+      .select('-passwordHash -refreshTokens -revokedAccessTokens')
+      .lean()
   }
   return (await readLocalCollection('admins')).map(withoutPassword)
 }

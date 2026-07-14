@@ -1,9 +1,12 @@
-const attempts = new Map()
+import {
+  getRateLimitStore,
+  resetRateLimitStoreForTests,
+} from './rateLimitStore.js'
+
 const WINDOW_MS = 15 * 60 * 1000
 const ACCOUNT_MAX_ATTEMPTS = 8
 const PAIR_MAX_ATTEMPTS = 8
 const IP_MAX_ATTEMPTS = 24
-const MAX_TRACKED_ATTEMPTS = 10_000
 
 const getClientIp = (req) =>
   String(req.ip || req.socket?.remoteAddress || 'unknown')
@@ -15,68 +18,63 @@ const getKeys = (req) => {
   const ip = getClientIp(req)
   const username = getUsername(req)
   return [
-    { key: `account:${username}`, max: ACCOUNT_MAX_ATTEMPTS },
-    { key: `pair:${username}:${ip}`, max: PAIR_MAX_ATTEMPTS },
-    { key: `ip:${ip}`, max: IP_MAX_ATTEMPTS },
+    { key: `login:account:${username}`, max: ACCOUNT_MAX_ATTEMPTS },
+    { key: `login:pair:${username}:${ip}`, max: PAIR_MAX_ATTEMPTS },
+    { key: `login:ip:${ip}`, max: IP_MAX_ATTEMPTS },
   ]
 }
 
-const pruneAttempts = (now) => {
-  for (const [key, entry] of attempts) {
-    if (now > entry.resetAt) attempts.delete(key)
-  }
+const blockedAttempt = async (req, now) => {
+  const keys = getKeys(req)
+  const store = getRateLimitStore()
+  const entries = await store.getMany(
+    keys.map(({ key }) => key),
+    { windowMs: WINDOW_MS, now },
+  )
 
-  while (attempts.size > MAX_TRACKED_ATTEMPTS) {
-    attempts.delete(attempts.keys().next().value)
-  }
-}
-
-const blockedAttempt = (req, now) =>
-  getKeys(req)
-    .map(({ key, max }) => ({ entry: attempts.get(key), max }))
+  return keys
+    .map(({ max }, index) => ({ entry: entries[index], max }))
     .filter(({ entry }) => entry && now <= entry.resetAt)
     .find(({ entry, max }) => entry.count >= max)
+}
 
 export const loginRateLimit = (req, res, next) => {
-  const now = Date.now()
-  pruneAttempts(now)
-  const blocked = blockedAttempt(req, now)
+  return Promise.resolve()
+    .then(async () => {
+      const now = Date.now()
+      const blocked = await blockedAttempt(req, now)
 
-  if (blocked) {
-    const retryAfter = Math.max(
-      1,
-      Math.ceil((blocked.entry.resetAt - now) / 1000),
-    )
-    res.set('Retry-After', String(retryAfter))
-    return res.status(429).json({
-      message: 'Too many login attempts. Please try again later',
+      if (blocked) {
+        const retryAfter = Math.max(
+          1,
+          Math.ceil((blocked.entry.resetAt - now) / 1000),
+        )
+        res.set('Retry-After', String(retryAfter))
+        return res.status(429).json({
+          message: 'Too many login attempts. Please try again later',
+        })
+      }
+
+      return next()
     })
-  }
-
-  return next()
+    .catch(next)
 }
 
-export const recordLoginFailure = (req) => {
+export const recordLoginFailure = async (req) => {
   const now = Date.now()
-  pruneAttempts(now)
+  const store = getRateLimitStore()
 
-  for (const { key } of getKeys(req)) {
-    const current = attempts.get(key)
-    if (!current || now > current.resetAt) {
-      attempts.set(key, { count: 1, resetAt: now + WINDOW_MS })
-      continue
-    }
-    current.count += 1
-    attempts.set(key, current)
-  }
+  await Promise.all(
+    getKeys(req).map(({ key }) =>
+      store.increment(key, { windowMs: WINDOW_MS, now }),
+    ),
+  )
 }
 
-export const clearLoginFailures = (req) => {
+export const clearLoginFailures = async (req) => {
+  const store = getRateLimitStore()
   const keys = getKeys(req)
-  attempts.delete(keys[0].key)
-  attempts.delete(keys[1].key)
+  await store.delete([keys[0].key, keys[1].key])
 }
 
-export const resetLoginRateLimitForTests = () => {
-  attempts.clear()
-}
+export const resetLoginRateLimitForTests = resetRateLimitStoreForTests

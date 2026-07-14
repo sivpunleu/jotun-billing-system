@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import connectDB, { getStorageMode } from './config/db.js'
 import { apiRateLimit } from './middleware/apiRateLimit.js'
 import { standardJsonBody } from './middleware/jsonBody.js'
+import { validateRateLimitConfig } from './middleware/rateLimitStore.js'
 import auditRoutes from './routes/auditRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import customerRoutes from './routes/customerRoutes.js'
@@ -23,6 +24,7 @@ import {
 import { migrateExistingData } from './services/migrationService.js'
 
 dotenv.config()
+validateRateLimitConfig()
 
 const app = express()
 const port = process.env.PORT || 5000

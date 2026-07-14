@@ -1,10 +1,7 @@
 import { getStorageMode } from '../config/db.js'
 import Invoice from '../models/Invoice.js'
 import { backfillLocalShareAccess } from '../repositories/invoiceRepository.js'
-import {
-  createShareToken,
-  createShareTokenExpiration,
-} from '../utils/shareToken.js'
+import { createShareTokenExpiration } from '../utils/shareToken.js'
 
 export const migrateExistingData = async () => {
   if (getStorageMode() !== 'mongodb') {
@@ -90,44 +87,9 @@ export const migrateExistingData = async () => {
     console.log(`Migrated ${result.modifiedCount} existing invoice records`)
   }
 
-  const invoicesWithoutToken = await Invoice.find({
-    $or: [
-      { shareToken: { $exists: false } },
-      { shareToken: '' },
-      { shareToken: null },
-    ],
-  }).select('_id')
-
-  let tokenCount = 0
-  for (const invoice of invoicesWithoutToken) {
-    let updated = false
-    while (!updated) {
-      try {
-        await Invoice.updateOne(
-          {
-            _id: invoice._id,
-            $or: [
-              { shareToken: { $exists: false } },
-              { shareToken: '' },
-              { shareToken: null },
-            ],
-          },
-          { $set: { shareToken: createShareToken() } },
-        )
-        updated = true
-        tokenCount += 1
-      } catch (error) {
-        if (error.code !== 11000) throw error
-      }
-    }
-  }
-
-  if (tokenCount > 0) {
-    console.log(`Generated share tokens for ${tokenCount} invoice records`)
-  }
-
   const expirationResult = await Invoice.updateMany(
     {
+      shareToken: { $type: 'string', $gt: '' },
       $or: [
         { shareTokenExpiresAt: { $exists: false } },
         { shareTokenExpiresAt: null },

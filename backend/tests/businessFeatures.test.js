@@ -217,3 +217,83 @@ test('revenue report groups deposits and payment history by date', async () => {
     await rm(dataDirectory, { recursive: true, force: true })
   }
 })
+
+test('invoice CSV export neutralizes spreadsheet formulas', async () => {
+  const dataDirectory = await mkdtemp(
+    path.join(os.tmpdir(), 'jotun-billing-csv-'),
+  )
+  process.env.LOCAL_DATA_DIR = dataDirectory
+
+  try {
+    const cacheKey = Date.now()
+    const repository = await import(
+      `../repositories/invoiceRepository.js?csv=${cacheKey}`
+    )
+    const controller = await import(
+      `../controllers/reportController.js?csv=${cacheKey}`
+    )
+
+    await repository.insertInvoice({
+      invoiceNumber: 'INV-2026-99991',
+      invoiceDate: '2026-06-01T00:00:00.000Z',
+      dueDate: '2026-06-10T00:00:00.000Z',
+      customer: {
+        name: '=Formula Customer',
+        phone: '+855 12 345 678',
+      },
+      salesChannel: 'salesperson',
+      salesperson: { name: '@Sale Team' },
+      items: [
+        {
+          description: 'Jotun Paint',
+          quantity: 1,
+          unitPrice: 100,
+          total: 100,
+        },
+      ],
+      subtotal: 100,
+      grandTotal: 100,
+      paidAmount: 0,
+      balanceDue: 100,
+      status: 'unpaid',
+    })
+
+    let headers = {}
+    let responseBody = ''
+    let statusCode = 200
+    const res = {
+      status(code) {
+        statusCode = code
+        return this
+      },
+      set(nextHeaders) {
+        headers = nextHeaders
+        return this
+      },
+      send(payload) {
+        responseBody = payload
+        return this
+      },
+      json(payload) {
+        responseBody = payload
+        return this
+      },
+    }
+
+    await controller.exportInvoicesCsv(
+      { admin: { username: 'owner' } },
+      res,
+    )
+
+    assert.equal(statusCode, 200)
+    assert.equal(headers['Content-Type'], 'text/csv; charset=utf-8')
+    assert.equal(responseBody.includes('"INV-2026-99991"'), true)
+    assert.equal(responseBody.includes('"\'INV-2026-99991"'), false)
+    assert.equal(responseBody.includes('"\'=Formula Customer"'), true)
+    assert.equal(responseBody.includes('"\'+855 12 345 678"'), true)
+    assert.equal(responseBody.includes('"\'@Sale Team"'), true)
+  } finally {
+    delete process.env.LOCAL_DATA_DIR
+    await rm(dataDirectory, { recursive: true, force: true })
+  }
+})

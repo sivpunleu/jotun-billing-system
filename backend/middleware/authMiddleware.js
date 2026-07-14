@@ -4,6 +4,7 @@ import {
   findAdminByUsername,
 } from '../repositories/adminRepository.js'
 import {
+  accessTokenRevoked,
   tokenVersionMatches,
   verifyAdminToken,
 } from '../services/authService.js'
@@ -26,8 +27,12 @@ export const requireAdmin = async (req, res, next) => {
   try {
     const payload = verifyAdminToken(token, authConfig)
     const storedAdmin = payload.adminId
-      ? await findAdminById(payload.adminId)
-      : await findAdminByUsername(payload.username)
+      ? await findAdminById(payload.adminId, {
+          includeRevokedAccessTokens: true,
+        })
+      : await findAdminByUsername(payload.username, {
+          includeRevokedAccessTokens: true,
+        })
 
     if (!storedAdmin) {
       return res.status(401).json({
@@ -45,11 +50,22 @@ export const requireAdmin = async (req, res, next) => {
       })
     }
 
+    if (accessTokenRevoked(payload, storedAdmin)) {
+      return res.status(401).json({
+        message: 'This session has been signed out',
+      })
+    }
+
     req.admin = {
       id: String(storedAdmin._id || payload.adminId || ''),
       username: storedAdmin.username || payload.username,
       displayName: storedAdmin.displayName || payload.displayName || '',
       role: storedAdmin.role || payload.role || 'viewer',
+    }
+    req.authToken = {
+      expiresAt: payload.exp ? new Date(payload.exp * 1000) : null,
+      payload,
+      tokenId: payload.jti || '',
     }
     return next()
   } catch (error) {

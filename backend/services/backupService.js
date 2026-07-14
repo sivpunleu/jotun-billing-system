@@ -25,10 +25,7 @@ import Purchase from '../models/Purchase.js'
 import Salesperson from '../models/Salesperson.js'
 import Supplier from '../models/Supplier.js'
 import SystemSetting from '../models/SystemSetting.js'
-import {
-  createShareToken,
-  createShareTokenExpiration,
-} from '../utils/shareToken.js'
+import { createShareTokenExpiration } from '../utils/shareToken.js'
 import { getAllPurchases } from '../repositories/purchaseRepository.js'
 
 export const BACKUP_FORMAT_VERSION = 3
@@ -127,21 +124,669 @@ const normalizeArray = (payload, key) => {
 }
 
 const normalizeInvoiceShareAccess = (invoices) => {
-  const usedTokens = new Set()
   return invoices.map((invoice) => {
-    let shareToken = String(invoice.shareToken || '').trim()
-    while (!shareToken || usedTokens.has(shareToken)) {
-      shareToken = createShareToken()
-    }
-    usedTokens.add(shareToken)
+    const shareToken = String(invoice.shareToken || '').trim()
     return {
       ...invoice,
       shareToken,
-      shareTokenExpiresAt:
-        invoice.shareTokenExpiresAt || createShareTokenExpiration().toISOString(),
-      shareTokenRevokedAt: invoice.shareTokenRevokedAt || null,
+      shareTokenExpiresAt: shareToken
+        ? invoice.shareTokenExpiresAt ||
+          createShareTokenExpiration().toISOString()
+        : null,
+      shareTokenRevokedAt: shareToken
+        ? invoice.shareTokenRevokedAt || null
+        : null,
     }
   })
+}
+
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+
+const fieldPath = (collection, index, field = '') =>
+  `${collection}[${index}]${field ? `.${field}` : ''}`
+
+const addError = (errors, collection, index, field, message) => {
+  errors.push(`${fieldPath(collection, index, field)}: ${message}`)
+}
+
+const assertPlainRecord = (record, errors, collection, index) => {
+  if (!isPlainObject(record)) {
+    addError(errors, collection, index, '', 'must be an object')
+    return false
+  }
+  return true
+}
+
+const requireString = (record, field, errors, collection, index) => {
+  if (!String(record[field] || '').trim()) {
+    addError(errors, collection, index, field, 'is required')
+  }
+}
+
+const requireId = (record, field, errors, collection, index) => {
+  const value = record[field]
+  if (value === undefined || value === null || !String(value).trim()) {
+    addError(errors, collection, index, field, 'is required')
+  }
+}
+
+const validateNumber = (
+  record,
+  field,
+  errors,
+  collection,
+  index,
+  { required = false, min = null, max = null } = {},
+) => {
+  const value = record[field]
+  if (value === undefined || value === null || value === '') {
+    if (required) addError(errors, collection, index, field, 'is required')
+    return
+  }
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    addError(errors, collection, index, field, 'must be a valid number')
+    return
+  }
+  if (min !== null && numericValue < min) {
+    addError(errors, collection, index, field, `must be at least ${min}`)
+  }
+  if (max !== null && numericValue > max) {
+    addError(errors, collection, index, field, `must be at most ${max}`)
+  }
+}
+
+const validateDate = (
+  record,
+  field,
+  errors,
+  collection,
+  index,
+  { required = false } = {},
+) => {
+  const value = record[field]
+  if (value === undefined || value === null || value === '') {
+    if (required) addError(errors, collection, index, field, 'is required')
+    return
+  }
+  if (Number.isNaN(new Date(value).getTime())) {
+    addError(errors, collection, index, field, 'must be a valid date')
+  }
+}
+
+const validateEnum = (
+  record,
+  field,
+  values,
+  errors,
+  collection,
+  index,
+) => {
+  const value = record[field]
+  if (value === undefined || value === null || value === '') return
+  if (!values.includes(value)) {
+    addError(
+      errors,
+      collection,
+      index,
+      field,
+      `must be one of ${values.join(', ')}`,
+    )
+  }
+}
+
+const validateArray = (
+  record,
+  field,
+  errors,
+  collection,
+  index,
+  { required = false, minLength = 0 } = {},
+) => {
+  const value = record[field]
+  if (value === undefined || value === null) {
+    if (required) addError(errors, collection, index, field, 'is required')
+    return []
+  }
+  if (!Array.isArray(value)) {
+    addError(errors, collection, index, field, 'must be an array')
+    return []
+  }
+  if (value.length < minLength) {
+    addError(
+      errors,
+      collection,
+      index,
+      field,
+      `must contain at least ${minLength} item(s)`,
+    )
+  }
+  return value
+}
+
+const validateNestedObject = (
+  record,
+  field,
+  errors,
+  collection,
+  index,
+  { required = false } = {},
+) => {
+  const value = record[field]
+  if (value === undefined || value === null) {
+    if (required) addError(errors, collection, index, field, 'is required')
+    return null
+  }
+  if (!isPlainObject(value)) {
+    addError(errors, collection, index, field, 'must be an object')
+    return null
+  }
+  return value
+}
+
+const validateUniqueValues = (
+  records,
+  { collection, field, label = field, normalize = (value) => value },
+  errors,
+) => {
+  const seen = new Map()
+  records.forEach((record, index) => {
+    const rawValue = record?.[field]
+    if (rawValue === undefined || rawValue === null || rawValue === '') return
+    const value = normalize(rawValue)
+    if (!value) return
+    if (seen.has(value)) {
+      addError(
+        errors,
+        collection,
+        index,
+        field,
+        `${label} duplicates ${fieldPath(collection, seen.get(value), field)}`,
+      )
+      return
+    }
+    seen.set(value, index)
+  })
+}
+
+const validateInvoiceRecord = (invoice, errors, collection, index) => {
+  if (!assertPlainRecord(invoice, errors, collection, index)) return
+  requireString(invoice, 'invoiceNumber', errors, collection, index)
+  validateDate(invoice, 'invoiceDate', errors, collection, index, {
+    required: true,
+  })
+  validateDate(invoice, 'dueDate', errors, collection, index, {
+    required: true,
+  })
+  validateDate(invoice, 'shareTokenExpiresAt', errors, collection, index)
+  validateDate(invoice, 'shareTokenRevokedAt', errors, collection, index)
+  validateEnum(
+    invoice,
+    'status',
+    ['draft', 'unpaid', 'partially_paid', 'paid', 'cancelled'],
+    errors,
+    collection,
+    index,
+  )
+  validateEnum(
+    invoice,
+    'paymentStatus',
+    ['unpaid', 'partial', 'paid'],
+    errors,
+    collection,
+    index,
+  )
+  validateEnum(
+    invoice,
+    'salesChannel',
+    ['store', 'salesperson'],
+    errors,
+    collection,
+    index,
+  )
+  const invoiceNumberFields = [
+    ['subtotal', true, 0],
+    ['discount', false, 0],
+    ['taxRate', false, 0, 100],
+    ['taxAmount', false, 0],
+    ['deliveryFee', false, 0],
+    ['depositRate', false, 0, 100],
+    ['depositAmount', false, 0],
+    ['grandTotal', true, 0],
+    ['balanceDue', true, 0],
+    ['paidAmount', false, 0],
+  ]
+  invoiceNumberFields.forEach(([field, required, min, max]) => {
+    validateNumber(invoice, field, errors, collection, index, {
+      required,
+      min,
+      max,
+    })
+  })
+
+  const customer = validateNestedObject(
+    invoice,
+    'customer',
+    errors,
+    collection,
+    index,
+    { required: true },
+  )
+  if (customer) requireString(customer, 'name', errors, collection, index)
+
+  validateArray(invoice, 'items', errors, collection, index, {
+    required: true,
+    minLength: 1,
+  }).forEach((item, itemIndex) => {
+    const itemCollection = `${collection}[${index}].items`
+    if (!assertPlainRecord(item, errors, itemCollection, itemIndex)) return
+    requireString(item, 'description', errors, itemCollection, itemIndex)
+    validateNumber(item, 'quantity', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0.01,
+    })
+    validateNumber(item, 'unitPrice', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0,
+    })
+    validateNumber(item, 'costPrice', errors, itemCollection, itemIndex, {
+      min: 0,
+    })
+    validateNumber(item, 'discount', errors, itemCollection, itemIndex, {
+      min: 0,
+    })
+    validateNumber(item, 'total', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0,
+    })
+  })
+
+  validateArray(invoice, 'payments', errors, collection, index).forEach(
+    (payment, paymentIndex) => {
+      const paymentCollection = `${collection}[${index}].payments`
+      if (!assertPlainRecord(payment, errors, paymentCollection, paymentIndex)) {
+        return
+      }
+      validateNumber(
+        payment,
+        'amount',
+        errors,
+        paymentCollection,
+        paymentIndex,
+        { required: true, min: 0.01 },
+      )
+      validateDate(payment, 'paidAt', errors, paymentCollection, paymentIndex, {
+        required: true,
+      })
+      requireString(payment, 'receivedBy', errors, paymentCollection, paymentIndex)
+    },
+  )
+}
+
+const validateCustomerRecord = (record, errors, collection, index) => {
+  if (!assertPlainRecord(record, errors, collection, index)) return
+  requireString(record, 'name', errors, collection, index)
+  validateDate(record, 'deletedAt', errors, collection, index)
+}
+
+const validateProductRecord = (product, errors, collection, index) => {
+  if (!assertPlainRecord(product, errors, collection, index)) return
+  requireString(product, 'name', errors, collection, index)
+  requireString(product, 'unit', errors, collection, index)
+  validateNumber(product, 'unitPrice', errors, collection, index, {
+    required: true,
+    min: 0,
+  })
+  validateNumber(product, 'costPrice', errors, collection, index, { min: 0 })
+  validateNumber(product, 'stockQuantity', errors, collection, index, { min: 0 })
+  validateNumber(product, 'lowStockThreshold', errors, collection, index, {
+    min: 0,
+  })
+  validateDate(product, 'deletedAt', errors, collection, index)
+
+  validateArray(product, 'stockMovements', errors, collection, index).forEach(
+    (movement, movementIndex) => {
+      const movementCollection = `${collection}[${index}].stockMovements`
+      if (!assertPlainRecord(movement, errors, movementCollection, movementIndex)) {
+        return
+      }
+      validateEnum(
+        movement,
+        'type',
+        ['in', 'out', 'set'],
+        errors,
+        movementCollection,
+        movementIndex,
+      )
+      const stockMovementNumberFields = [
+        'quantity',
+        'previousStock',
+        'resultingStock',
+        'unitCost',
+      ]
+      stockMovementNumberFields.forEach((field) => {
+        validateNumber(
+          movement,
+          field,
+          errors,
+          movementCollection,
+          movementIndex,
+          { min: 0 },
+        )
+      })
+      validateDate(
+        movement,
+        'recordedAt',
+        errors,
+        movementCollection,
+        movementIndex,
+      )
+    },
+  )
+}
+
+const validateSupplierRecord = (record, errors, collection, index) => {
+  if (!assertPlainRecord(record, errors, collection, index)) return
+  requireString(record, 'name', errors, collection, index)
+  validateDate(record, 'deletedAt', errors, collection, index)
+}
+
+const validatePurchaseRecord = (purchase, errors, collection, index) => {
+  if (!assertPlainRecord(purchase, errors, collection, index)) return
+  requireString(purchase, 'purchaseNumber', errors, collection, index)
+  validateDate(purchase, 'purchaseDate', errors, collection, index, {
+    required: true,
+  })
+  requireId(purchase, 'supplierId', errors, collection, index)
+  validateEnum(
+    purchase,
+    'status',
+    ['draft', 'receiving', 'received', 'cancelled'],
+    errors,
+    collection,
+    index,
+  )
+  validateNumber(purchase, 'subtotal', errors, collection, index, {
+    required: true,
+    min: 0,
+  })
+  validateDate(purchase, 'receivedAt', errors, collection, index)
+  validateDate(purchase, 'cancelledAt', errors, collection, index)
+
+  const supplier = validateNestedObject(
+    purchase,
+    'supplier',
+    errors,
+    collection,
+    index,
+    { required: true },
+  )
+  if (supplier) requireString(supplier, 'name', errors, collection, index)
+
+  validateArray(purchase, 'items', errors, collection, index, {
+    required: true,
+    minLength: 1,
+  }).forEach((item, itemIndex) => {
+    const itemCollection = `${collection}[${index}].items`
+    if (!assertPlainRecord(item, errors, itemCollection, itemIndex)) return
+    requireId(item, 'productId', errors, itemCollection, itemIndex)
+    requireString(item, 'name', errors, itemCollection, itemIndex)
+    validateNumber(item, 'quantity', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0.01,
+    })
+    validateNumber(item, 'unitCost', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0,
+    })
+    validateNumber(item, 'total', errors, itemCollection, itemIndex, {
+      required: true,
+      min: 0,
+    })
+    const purchaseCostSnapshotFields = [
+      'previousStock',
+      'previousCostPrice',
+      'resultingCostPrice',
+    ]
+    purchaseCostSnapshotFields.forEach((field) => {
+      validateNumber(item, field, errors, itemCollection, itemIndex, {
+        min: 0,
+      })
+    })
+  })
+}
+
+const validateAuditLogRecord = (record, errors, collection, index) => {
+  if (!assertPlainRecord(record, errors, collection, index)) return
+  requireString(record, 'actorUsername', errors, collection, index)
+  requireString(record, 'action', errors, collection, index)
+  requireString(record, 'entityType', errors, collection, index)
+  validateDate(record, 'createdAt', errors, collection, index)
+}
+
+const validateCounterRecord = (record, errors, collection, index) => {
+  if (!assertPlainRecord(record, errors, collection, index)) return
+  requireString(record, '_id', errors, collection, index)
+  validateNumber(record, 'sequence', errors, collection, index, { min: 0 })
+}
+
+const validateAdminBackupRecord = (record, errors, collection, index) => {
+  if (!assertPlainRecord(record, errors, collection, index)) return
+  requireString(record, 'username', errors, collection, index)
+  validateEnum(
+    record,
+    'role',
+    ['owner', 'admin', 'viewer'],
+    errors,
+    collection,
+    index,
+  )
+  validateNumber(record, 'tokenVersion', errors, collection, index, {
+    min: 0,
+  })
+  validateDate(record, 'lastLoginAt', errors, collection, index)
+  if (record.passwordHash !== undefined) {
+    addError(
+      errors,
+      collection,
+      index,
+      'passwordHash',
+      'must not be present in backup restore payloads',
+    )
+  }
+}
+
+const validateSettingsRecord = (settings, errors, collection, index) => {
+  if (!assertPlainRecord(settings, errors, collection, index)) return
+  if (settings.phones !== undefined && !Array.isArray(settings.phones)) {
+    addError(errors, collection, index, 'phones', 'must be an array')
+  }
+  validateNumber(settings, 'invoiceFontSize', errors, collection, index, {
+    min: 9,
+    max: 18,
+  })
+  validateEnum(
+    settings,
+    'invoicePaperSize',
+    ['a4', 'a5'],
+    errors,
+    collection,
+    index,
+  )
+}
+
+const restoreValidationConfigs = [
+  {
+    key: 'invoices',
+    Model: Invoice,
+    records: (backup) => backup.invoices,
+    validateRecord: validateInvoiceRecord,
+    unique: [
+      {
+        field: 'invoiceNumber',
+        label: 'invoice number',
+        normalize: (value) => String(value).trim().toUpperCase(),
+      },
+      {
+        field: 'shareToken',
+        label: 'public share token',
+        normalize: (value) => String(value).trim(),
+      },
+    ],
+  },
+  {
+    key: 'customers',
+    Model: Customer,
+    records: (backup) => backup.customers,
+    validateRecord: validateCustomerRecord,
+  },
+  {
+    key: 'products',
+    Model: Product,
+    records: (backup) => backup.products,
+    validateRecord: validateProductRecord,
+    unique: [
+      {
+        field: 'itemCode',
+        label: 'item code',
+        normalize: (value) => String(value).trim().toUpperCase(),
+      },
+    ],
+  },
+  {
+    key: 'salespeople',
+    Model: Salesperson,
+    records: (backup) => backup.salespeople,
+    validateRecord: validateCustomerRecord,
+  },
+  {
+    key: 'suppliers',
+    Model: Supplier,
+    records: (backup) => backup.suppliers,
+    validateRecord: validateSupplierRecord,
+  },
+  {
+    key: 'purchases',
+    Model: Purchase,
+    records: (backup) => backup.purchases,
+    validateRecord: validatePurchaseRecord,
+    unique: [
+      {
+        field: 'purchaseNumber',
+        label: 'purchase number',
+        normalize: (value) => String(value).trim().toUpperCase(),
+      },
+    ],
+  },
+  {
+    key: 'auditLogs',
+    Model: AuditLog,
+    records: (backup) => backup.auditLogs,
+    validateRecord: validateAuditLogRecord,
+  },
+  {
+    key: 'counters',
+    Model: Counter,
+    records: (backup) => backup.counters,
+    validateRecord: validateCounterRecord,
+    preserveStringIds: true,
+    unique: [{ field: '_id', label: 'counter id' }],
+  },
+  {
+    key: 'settings',
+    Model: SystemSetting,
+    records: (backup) => [backup.settings],
+    validateRecord: validateSettingsRecord,
+  },
+  {
+    key: 'admins',
+    records: (backup) => backup.admins,
+    validateRecord: validateAdminBackupRecord,
+    skipped: true,
+    unique: [
+      {
+        field: 'username',
+        label: 'admin username',
+        normalize: (value) => String(value).trim().toLowerCase(),
+      },
+    ],
+  },
+]
+
+const validateWithMongooseSchema = async (config, record, index, errors) => {
+  if (!config.Model || config.skipped || getStorageMode() !== 'mongodb') return
+  const cleanedRecord = config.preserveStringIds
+    ? cleanPlainRecord(record)
+    : cleanMongoRecord(record)
+  const document = new config.Model(cleanedRecord)
+  const validationError = document.validateSync()
+  if (!validationError) return
+  const details = Object.values(validationError.errors || {})
+    .map((error) => error.message)
+    .join('; ')
+  addError(
+    errors,
+    config.key,
+    index,
+    '',
+    details || validationError.message || 'fails schema validation',
+  )
+}
+
+export const validateBackupForRestore = async (backup) => {
+  const errors = []
+
+  for (const config of restoreValidationConfigs) {
+    const records = config.records(backup)
+    if (!Array.isArray(records)) {
+      errors.push(`${config.key}: must be an array`)
+      continue
+    }
+    records.forEach((record, index) => {
+      config.validateRecord(record, errors, config.key, index)
+    })
+    for (const uniqueCheck of config.unique || []) {
+      validateUniqueValues(
+        records,
+        { collection: config.key, ...uniqueCheck },
+        errors,
+      )
+    }
+    for (let index = 0; index < records.length; index += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await validateWithMongooseSchema(config, records[index], index, errors)
+    }
+  }
+
+  if (!isPlainObject(backup.metadata)) {
+    errors.push('metadata: must be an object')
+  }
+  if (!isPlainObject(backup.settings)) {
+    errors.push('settings: must be an object')
+  }
+
+  if (errors.length) {
+    const error = new Error(
+      `Backup validation failed: ${errors.slice(0, 5).join('; ')}`,
+    )
+    error.name = 'BackupValidationError'
+    error.details = errors
+    throw error
+  }
+
+  return {
+    valid: true,
+    counts: backup.metadata.counts,
+    checkedCollections: restoreValidationConfigs.map((config) => config.key),
+    restoredCollections: backupCollectionNames,
+    skippedCollections: ['admins', 'backup-snapshots'],
+  }
+}
+
+export const validateBackupRestorePayload = async (payload) => {
+  const backup = normalizeBackupPayload(payload)
+  return validateBackupForRestore(backup)
 }
 
 export const buildDatabaseBackup = async ({
@@ -337,9 +982,18 @@ export const getBackupDownloadPayload = async (id) => {
 
 export const restoreDatabaseBackup = async (
   payload,
-  { actor, sourceSnapshotId = '' } = {},
+  { actor, sourceSnapshotId = '', dryRun = false } = {},
 ) => {
   const backup = normalizeBackupPayload(payload)
+  const validation = await validateBackupForRestore(backup)
+  if (dryRun) {
+    return {
+      counts: backup.metadata.counts,
+      validation,
+      dryRun: true,
+    }
+  }
+
   const actorName = actor?.username || 'system'
   const safetySnapshot = await createBackupSnapshot({
     type: 'pre_restore',
@@ -367,12 +1021,14 @@ export const restoreDatabaseBackup = async (
       counts: backup.metadata.counts,
       restoredCollections: backupCollectionNames,
       skippedCollections: ['admins', 'backup-snapshots'],
+      validation,
     },
   })
 
   return {
     counts: backup.metadata.counts,
     safetySnapshot,
+    validation,
   }
 }
 

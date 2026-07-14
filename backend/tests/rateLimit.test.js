@@ -36,8 +36,8 @@ const createResponse = () => {
   }
 }
 
-test('API rate limiter blocks requests after the configured limit', () => {
-  resetApiRateLimitForTests()
+test('API rate limiter blocks requests after the configured limit', async () => {
+  await resetApiRateLimitForTests()
   let timestamp = 1_000
   const limiter = createApiRateLimit({
     windowMs: 60_000,
@@ -47,14 +47,14 @@ test('API rate limiter blocks requests after the configured limit', () => {
   const req = { ip: '127.0.0.1' }
   let nextCalls = 0
 
-  limiter(req, createResponse(), () => {
+  await limiter(req, createResponse(), () => {
     nextCalls += 1
   })
-  limiter(req, createResponse(), () => {
+  await limiter(req, createResponse(), () => {
     nextCalls += 1
   })
   const blockedResponse = createResponse()
-  limiter(req, blockedResponse, () => {
+  await limiter(req, blockedResponse, () => {
     nextCalls += 1
   })
 
@@ -64,20 +64,20 @@ test('API rate limiter blocks requests after the configured limit', () => {
   assert.equal(blockedResponse.headers['Retry-After'], '60')
 
   timestamp += 60_001
-  limiter(req, createResponse(), () => {
+  await limiter(req, createResponse(), () => {
     nextCalls += 1
   })
   assert.equal(nextCalls, 3)
 })
 
-test('login limiter tracks failures by username as well as IP', () => {
-  resetLoginRateLimitForTests()
+test('login limiter tracks failures by username as well as IP', async () => {
+  await resetLoginRateLimitForTests()
   const failedRequest = {
     ip: '10.0.0.1',
     body: { username: 'Owner' },
   }
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    recordLoginFailure(failedRequest)
+    await recordLoginFailure(failedRequest)
   }
 
   const sameAccountDifferentIp = {
@@ -86,7 +86,7 @@ test('login limiter tracks failures by username as well as IP', () => {
   }
   const blockedResponse = createResponse()
   let nextCalled = false
-  loginRateLimit(sameAccountDifferentIp, blockedResponse, () => {
+  await loginRateLimit(sameAccountDifferentIp, blockedResponse, () => {
     nextCalled = true
   })
 
@@ -94,9 +94,9 @@ test('login limiter tracks failures by username as well as IP', () => {
   assert.equal(blockedResponse.statusCode, 429)
   assert.ok(Number(blockedResponse.headers['Retry-After']) > 0)
 
-  clearLoginFailures(failedRequest)
+  await clearLoginFailures(failedRequest)
   const allowedResponse = createResponse()
-  loginRateLimit(sameAccountDifferentIp, allowedResponse, () => {
+  await loginRateLimit(sameAccountDifferentIp, allowedResponse, () => {
     nextCalled = true
   })
   assert.equal(nextCalled, true)

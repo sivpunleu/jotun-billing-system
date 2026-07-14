@@ -34,14 +34,13 @@ test('local repository sequences, paginates, deletes, and restores', async () =>
     const active = await repository.listInvoices({ page: 1, limit: 10 })
     assert.equal(active.total, 1)
     assert.equal(active.items[0].invoiceNumber, firstNumber)
-    assert.equal(typeof invoice.shareToken, 'string')
-    assert.equal(invoice.shareToken.length > 20, true)
-    assert.ok(new Date(invoice.shareTokenExpiresAt) > new Date())
+    assert.equal(invoice.shareToken, '')
+    assert.equal(invoice.shareTokenExpiresAt, null)
 
-    const publicInvoice = await repository.findInvoiceByShareToken(
-      invoice.shareToken,
+    assert.equal(
+      await repository.findInvoiceByShareToken(invoice.shareToken),
+      null,
     )
-    assert.equal(publicInvoice._id, invoice._id)
 
     const originalShareToken = invoice.shareToken
     const revoked = await repository.revokeInvoiceShareLink(
@@ -49,10 +48,6 @@ test('local repository sequences, paginates, deletes, and restores', async () =>
       'tester',
     )
     assert.ok(revoked.shareTokenRevokedAt)
-    assert.equal(
-      await repository.findInvoiceByShareToken(originalShareToken),
-      null,
-    )
 
     const rotated = await repository.rotateInvoiceShareLink(
       invoice._id,
@@ -60,6 +55,9 @@ test('local repository sequences, paginates, deletes, and restores', async () =>
       7,
     )
     assert.notEqual(rotated.shareToken, originalShareToken)
+    assert.equal(typeof rotated.shareToken, 'string')
+    assert.equal(rotated.shareToken.length > 20, true)
+    assert.ok(new Date(rotated.shareTokenExpiresAt) > new Date())
     assert.equal(rotated.shareTokenRevokedAt, null)
     assert.equal(
       (

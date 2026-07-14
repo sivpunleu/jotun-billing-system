@@ -1,8 +1,4 @@
 import mongoose from 'mongoose'
-import {
-  createShareToken,
-  createShareTokenExpiration,
-} from '../utils/shareToken.js'
 
 const itemSchema = new mongoose.Schema(
   {
@@ -103,11 +99,11 @@ const invoiceSchema = new mongoose.Schema(
     shareToken: {
       type: String,
       trim: true,
-      default: createShareToken,
+      default: '',
     },
     shareTokenExpiresAt: {
       type: Date,
-      default: createShareTokenExpiration,
+      default: null,
     },
     shareTokenRevokedAt: {
       type: Date,

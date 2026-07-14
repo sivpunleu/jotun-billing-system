@@ -3,7 +3,11 @@ import test from 'node:test'
 import bcrypt from 'bcryptjs'
 import {
   createAdminToken,
+  createRefreshToken,
   decodeTokenExpiration,
+  hashRefreshToken,
+  parseRefreshToken,
+  accessTokenRevoked,
   tokenVersionMatches,
   verifyAdminCredentials,
   verifyAdminToken,
@@ -41,6 +45,8 @@ test('admin JWT contains the expected identity and expiration', async () => {
   assert.equal(payload.sub, 'admin')
   assert.equal(payload.username, 'admin')
   assert.equal(payload.role, 'admin')
+  assert.ok(payload.jti)
+  assert.equal(payload.type, 'access')
   assert.ok(decodeTokenExpiration(token))
 })
 
@@ -75,4 +81,51 @@ test('token version invalidates older admin sessions', () => {
     false,
   )
   assert.equal(tokenVersionMatches({}, {}), true)
+})
+
+test('refresh tokens are opaque and stored as hashes', async () => {
+  const refreshToken = createRefreshToken({ adminId: 'admin-id-1' })
+  const parsed = parseRefreshToken(refreshToken.token)
+
+  assert.equal(parsed.adminId, 'admin-id-1')
+  assert.equal(parsed.sessionId, refreshToken.sessionId)
+  assert.equal(parsed.tokenHash, hashRefreshToken(refreshToken.token))
+  assert.notEqual(refreshToken.tokenHash, refreshToken.token)
+})
+
+test('access token revocation checks token id and expiration', async () => {
+  const config = await createConfig()
+  const token = createAdminToken(
+    {
+      id: 'admin-id-1',
+      username: 'owner',
+      role: 'owner',
+    },
+    config,
+    { tokenId: 'access-token-1' },
+  )
+  const payload = verifyAdminToken(token, config)
+
+  assert.equal(
+    accessTokenRevoked(payload, {
+      revokedAccessTokens: [
+        {
+          tokenId: 'access-token-1',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      ],
+    }),
+    true,
+  )
+  assert.equal(
+    accessTokenRevoked(payload, {
+      revokedAccessTokens: [
+        {
+          tokenId: 'access-token-1',
+          expiresAt: new Date(Date.now() - 60_000),
+        },
+      ],
+    }),
+    false,
+  )
 })

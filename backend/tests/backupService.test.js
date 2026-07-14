@@ -49,6 +49,18 @@ test('local backup snapshots restore business data safely', async () => {
     const stored = await backupService.getBackupDownloadPayload(snapshot._id)
     assert.equal(stored.payload.invoices.length, 1)
 
+    const dryRun = await backupService.restoreDatabaseBackup(stored.payload, {
+      actor: { username: 'owner' },
+      dryRun: true,
+    })
+    assert.equal(dryRun.dryRun, true)
+    assert.equal(dryRun.validation.valid, true)
+    assert.equal((await repository.listInvoices({ limit: 10 })).total, 1)
+    assert.equal(
+      (await backupService.listDatabaseBackups({ limit: 10 })).length,
+      1,
+    )
+
     await repository.insertInvoice({
       invoiceNumber: 'INV-2026-00002',
       invoiceDate: '2026-06-02T00:00:00.000Z',
@@ -71,6 +83,21 @@ test('local backup snapshots restore business data safely', async () => {
     })
     assert.equal((await repository.listInvoices({ limit: 10 })).total, 2)
 
+    const invalidPayload = structuredClone(stored.payload)
+    invalidPayload.invoices[0].items = []
+    await assert.rejects(
+      () =>
+        backupService.restoreDatabaseBackup(invalidPayload, {
+          actor: { username: 'owner' },
+        }),
+      /Backup validation failed/,
+    )
+    assert.equal((await repository.listInvoices({ limit: 10 })).total, 2)
+    assert.equal(
+      (await backupService.listDatabaseBackups({ limit: 10 })).length,
+      1,
+    )
+
     const result = await backupService.restoreDatabaseBackup(stored.payload, {
       actor: { username: 'owner' },
     })
@@ -78,6 +105,7 @@ test('local backup snapshots restore business data safely', async () => {
     assert.equal(restored.total, 1)
     assert.equal(restored.items[0].invoiceNumber, 'INV-2026-00001')
     assert.equal(result.safetySnapshot.type, 'pre_restore')
+    assert.equal(result.validation.valid, true)
 
     const backups = await backupService.listDatabaseBackups({ limit: 10 })
     assert.equal(backups.length >= 2, true)

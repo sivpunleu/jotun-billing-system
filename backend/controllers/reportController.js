@@ -11,10 +11,23 @@ import {
 } from '../services/backupService.js'
 import { getAutomatedBackupStatus } from '../services/backupScheduler.js'
 
+const FORMULA_CELL_PATTERN = /^[\t\r\n]|^[\s]*[=+\-@]/
+
+const neutralizeSpreadsheetFormula = (value, stringValue) => {
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return stringValue
+  }
+  // Spreadsheet apps can interpret formula-looking CSV cells even when quoted.
+  return FORMULA_CELL_PATTERN.test(stringValue)
+    ? `'${stringValue}`
+    : stringValue
+}
+
 const csvValue = (value) => {
   const stringValue =
     value === undefined || value === null ? '' : String(value)
-  return `"${stringValue.replace(/"/g, '""')}"`
+  const safeValue = neutralizeSpreadsheetFormula(value, stringValue)
+  return `"${safeValue.replace(/"/g, '""')}"`
 }
 
 const dateStamp = () => new Date().toISOString().slice(0, 10)

@@ -2,6 +2,8 @@ import axios from 'axios'
 import {
   clearAuthSession,
   getAuthToken,
+  getRefreshToken,
+  setAuthSession,
 } from '../auth/session.js'
 
 const productionApiUrl = 'https://jotun-billing-system.onrender.com/api'
@@ -18,8 +20,44 @@ const api = axios.create({
   },
 })
 
-api.interceptors.request.use((config) => {
-  const token = getAuthToken()
+let refreshRequest = null
+
+const isAuthEndpoint = (config = {}) =>
+  ['/auth/login', '/auth/refresh'].some((path) =>
+    String(config.url || '').includes(path),
+  )
+
+const refreshAuthSession = async () => {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) throw new Error('Refresh token is not available')
+
+  if (!refreshRequest) {
+    refreshRequest = axios
+      .post(
+        `${baseURL}/auth/refresh`,
+        { refreshToken },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 30000,
+        },
+      )
+      .then((response) => {
+        setAuthSession(response.data)
+        return response.data.token
+      })
+      .finally(() => {
+        refreshRequest = null
+      })
+  }
+
+  return refreshRequest
+}
+
+api.interceptors.request.use(async (config) => {
+  let token = getAuthToken()
+  if (!token && !isAuthEndpoint(config) && getRefreshToken()) {
+    token = await refreshAuthSession()
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -28,7 +66,26 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config || {}
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._authRetry &&
+      !isAuthEndpoint(originalRequest) &&
+      getRefreshToken()
+    ) {
+      try {
+        originalRequest._authRetry = true
+        const token = await refreshAuthSession()
+        originalRequest.headers = originalRequest.headers || {}
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        return api(originalRequest)
+      } catch {
+        clearAuthSession()
+        window.dispatchEvent(new CustomEvent('auth:expired'))
+      }
+    }
+
     const requestHadToken = Boolean(error.config?.headers?.Authorization)
     if (error.response?.status === 401 && requestHadToken) {
       clearAuthSession()
@@ -59,6 +116,12 @@ const createCatalogApi = (path) => ({
 export const authApi = {
   login(credentials) {
     return api.post('/auth/login', credentials)
+  },
+  refresh(refreshToken) {
+    return api.post('/auth/refresh', { refreshToken })
+  },
+  logout(refreshToken) {
+    return api.post('/auth/logout', { refreshToken })
   },
   me() {
     return api.get('/auth/me')

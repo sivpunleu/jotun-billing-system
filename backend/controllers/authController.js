@@ -13,12 +13,15 @@ import {
   writeAuditLog,
 } from '../repositories/auditRepository.js'
 import {
-  createAdminToken,
-  decodeTokenExpiration,
   hashPassword,
   verifyAdminCredentials,
   verifyPasswordHash,
 } from '../services/authService.js'
+import {
+  createAdminSession,
+  revokeAdminSession,
+  rotateAdminRefreshToken,
+} from '../services/sessionService.js'
 import {
   clearLoginFailures,
   recordLoginFailure,
@@ -105,7 +108,7 @@ export const loginAdmin = async (req, res) => {
     }
 
     if (!admin || !admin.active) {
-      recordLoginFailure(req)
+      await recordLoginFailure(req)
       await writeSecurityAudit({
         actor: {
           id: attemptedAdmin?._id || attemptedAdmin?.id || '',
@@ -125,16 +128,17 @@ export const loginAdmin = async (req, res) => {
       })
     }
 
-    clearLoginFailures(req)
+    await clearLoginFailures(req)
     await recordAdminLogin(admin._id || admin.id)
     const safeAdmin = publicAdmin(admin)
-    const token = createAdminToken(
-      {
+    const session = await createAdminSession({
+      admin: {
         ...safeAdmin,
         tokenVersion: admin.tokenVersion,
       },
       authConfig,
-    )
+      req,
+    })
     await writeAuditLog({
       actor: safeAdmin,
       action: 'login',
@@ -144,13 +148,76 @@ export const loginAdmin = async (req, res) => {
       details: requestSecurityMetadata(req),
     })
     return res.json({
-      token,
-      expiresAt: decodeTokenExpiration(token),
+      ...session,
       admin: safeAdmin,
     })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ message: 'Unable to sign in' })
+  }
+}
+
+export const refreshAdminSession = async (req, res) => {
+  try {
+    const authConfig = getAuthConfig()
+    if (!authConfig.hasJwtSecret) {
+      return res.status(503).json({
+        message: 'Admin authentication is not configured on the server',
+      })
+    }
+
+    const refreshToken = String(req.body?.refreshToken || '').trim()
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' })
+    }
+
+    const session = await rotateAdminRefreshToken({
+      authConfig,
+      refreshToken,
+      req,
+    })
+    const safeAdmin = publicAdmin(session.admin)
+    await writeAuditLog({
+      actor: safeAdmin,
+      action: 'refresh_session',
+      entityType: 'admin',
+      entityId: safeAdmin.id,
+      summary: safeAdmin.username,
+      details: requestSecurityMetadata(req),
+    })
+    return res.json({
+      token: session.token,
+      expiresAt: session.expiresAt,
+      refreshToken: session.refreshToken,
+      refreshExpiresAt: session.refreshExpiresAt,
+      admin: safeAdmin,
+    })
+  } catch (error) {
+    return res.status(401).json({
+      message: error.message || 'Unable to refresh session',
+    })
+  }
+}
+
+export const logoutAdmin = async (req, res) => {
+  try {
+    await revokeAdminSession({
+      accessTokenPayload: req.authToken?.payload,
+      adminId: req.admin.id,
+      refreshToken: req.body?.refreshToken,
+      reason: 'logout',
+    })
+    await writeAuditLog({
+      actor: req.admin,
+      action: 'logout',
+      entityType: 'admin',
+      entityId: req.admin.id,
+      summary: req.admin.username,
+      details: requestSecurityMetadata(req),
+    })
+    return res.json({ message: 'Signed out successfully' })
+  } catch (error) {
+    return res.status(400).json({ message: 'Unable to sign out securely' })
   }
 }
 

@@ -7,9 +7,11 @@ import {
   canManageBilling,
   clearAuthSession,
   currentAdmin,
+  getRefreshToken,
   isAuthenticated,
   isOwner,
 } from './auth/session'
+import { authApi } from './api/invoices'
 import {
   requestConfirmation,
   showSuccessAlert,
@@ -112,6 +114,12 @@ const logout = async () => {
   })
   if (!confirmed) return
 
+  const refreshToken = getRefreshToken()
+  try {
+    await authApi.logout(refreshToken)
+  } catch {
+    // Local logout must still complete if the network is unavailable.
+  }
   clearAuthSession()
   await router.replace('/login')
   await showSuccessAlert(

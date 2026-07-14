@@ -8,6 +8,8 @@ import {
   getProfile,
   getProfileActivity,
   loginAdmin,
+  logoutAdmin,
+  refreshAdminSession,
   updateProfile,
 } from '../controllers/authController.js'
 import {
@@ -19,6 +21,8 @@ import { loginRateLimit } from '../middleware/loginRateLimit.js'
 const router = express.Router()
 
 router.post('/login', loginRateLimit, loginAdmin)
+router.post('/refresh', refreshAdminSession)
+router.post('/logout', requireAdmin, logoutAdmin)
 router.get('/me', requireAdmin, getCurrentAdmin)
 router
   .route('/profile')
