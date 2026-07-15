@@ -101,6 +101,35 @@ const invoiceTypographyStyle = computed(() => {
   }
 })
 
+const invoiceExportPaper = {
+  a4: {
+    minHeight: '297mm',
+    padding: '7mm 10mm 6mm',
+    width: '210mm',
+  },
+  a5: {
+    minHeight: '210mm',
+    padding: '5mm 6mm',
+    width: '148mm',
+  },
+}
+
+const applyExportPaperStyles = (paper) => {
+  if (!paper) return
+  const metrics =
+    invoiceExportPaper[normalizedInvoicePaperSize.value] || invoiceExportPaper.a5
+  Object.assign(paper.style, {
+    borderRadius: '0',
+    boxShadow: 'none',
+    margin: '0',
+    maxWidth: 'none',
+    minHeight: metrics.minHeight,
+    padding: metrics.padding,
+    transform: 'none',
+    width: metrics.width,
+  })
+}
+
 const printInvoice = () => {
   const shouldUseMobileA4 =
     normalizedInvoicePaperSize.value === 'a5' &&
@@ -154,29 +183,60 @@ const downloadCanvas = async (canvas, filename) => {
   URL.revokeObjectURL(downloadUrl)
 }
 
+const createInvoiceExportSource = (source) => {
+  const wrapper = document.createElement('div')
+  wrapper.setAttribute('aria-hidden', 'true')
+  Object.assign(wrapper.style, {
+    background: '#ffffff',
+    left: '-10000px',
+    overflow: 'visible',
+    position: 'fixed',
+    top: '0',
+    width: 'max-content',
+    zIndex: '-1',
+  })
+
+  const paper = source.cloneNode(true)
+  paper.dataset.invoiceExport = 'true'
+  applyExportPaperStyles(paper)
+  wrapper.appendChild(paper)
+  document.body.appendChild(wrapper)
+
+  return { paper, wrapper }
+}
+
 const saveInvoiceImage = async () => {
   const source = invoicePaperRef.value
   if (!source || !invoice.value) return
 
   savingImage.value = true
+  let exportWrapper = null
   try {
-    await waitForInvoiceAssets(source)
+    const { paper, wrapper } = createInvoiceExportSource(source)
+    exportWrapper = wrapper
+    await waitForInvoiceAssets(paper)
 
-    const canvas = await html2canvas(source, {
+    const exportWidth = Math.ceil(paper.scrollWidth)
+    const exportHeight = Math.ceil(paper.scrollHeight)
+
+    const canvas = await html2canvas(paper, {
       allowTaint: false,
       backgroundColor: '#ffffff',
+      height: exportHeight,
       imageTimeout: 15000,
       logging: false,
       scale: Math.max(2, Math.min(window.devicePixelRatio || 2, 3)),
       useCORS: true,
-      windowHeight: source.scrollHeight,
-      windowWidth: source.scrollWidth,
+      width: exportWidth,
+      windowHeight: Math.max(exportHeight, 1200),
+      windowWidth: 1200,
       onclone(clonedDocument) {
-        const clonedPaper = clonedDocument.querySelector('.invoice-paper')
+        clonedDocument.body.classList.remove('mobile-print-a4')
+        const clonedPaper = clonedDocument.querySelector(
+          '[data-invoice-export="true"]',
+        )
         if (!clonedPaper) return
-        clonedPaper.style.boxShadow = 'none'
-        clonedPaper.style.margin = '0'
-        clonedPaper.style.transform = 'none'
+        applyExportPaperStyles(clonedPaper)
       },
     })
     await downloadCanvas(canvas, `${invoice.value.invoiceNumber || 'invoice'}.png`)
@@ -188,6 +248,7 @@ const saveInvoiceImage = async () => {
       'error',
     )
   } finally {
+    exportWrapper?.remove()
     savingImage.value = false
   }
 }
