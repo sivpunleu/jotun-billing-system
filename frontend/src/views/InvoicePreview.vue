@@ -463,17 +463,36 @@ const downloadCanvas = async (canvas, filename) => {
   URL.revokeObjectURL(downloadUrl)
 }
 
+const getInvoiceExportBounds = (paper) => {
+  const paperRect = paper.getBoundingClientRect()
+  let maxRight = paperRect.right
+  let maxBottom = paperRect.bottom
+
+  paper.querySelectorAll('*').forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (!rect.width && !rect.height) return
+    maxRight = Math.max(maxRight, rect.right)
+    maxBottom = Math.max(maxBottom, rect.bottom)
+  })
+
+  return {
+    height: Math.ceil(maxBottom - paperRect.top) + 4,
+    width: Math.ceil(maxRight - paperRect.left) + 4,
+  }
+}
+
 const createInvoiceExportSource = (source) => {
   const wrapper = document.createElement('div')
   wrapper.setAttribute('aria-hidden', 'true')
   Object.assign(wrapper.style, {
     background: '#ffffff',
-    left: '-10000px',
+    left: '0',
     overflow: 'visible',
-    position: 'fixed',
-    top: '0',
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: `${window.scrollY + window.innerHeight + 240}px`,
     width: 'max-content',
-    zIndex: '-1',
+    zIndex: '0',
   })
 
   const paper = source.cloneNode(true)
@@ -496,8 +515,8 @@ const saveInvoiceImage = async () => {
     exportWrapper = wrapper
     await waitForInvoiceAssets(paper)
 
-    const exportWidth = Math.ceil(paper.scrollWidth)
-    const exportHeight = Math.ceil(paper.scrollHeight)
+    const { width: exportWidth, height: exportHeight } =
+      getInvoiceExportBounds(paper)
 
     const canvas = await html2canvas(paper, {
       allowTaint: false,
@@ -506,10 +525,12 @@ const saveInvoiceImage = async () => {
       imageTimeout: 15000,
       logging: false,
       scale: Math.max(2, Math.min(window.devicePixelRatio || 2, 3)),
+      scrollX: 0,
+      scrollY: 0,
       useCORS: true,
       width: exportWidth,
       windowHeight: Math.max(exportHeight, 1200),
-      windowWidth: 1200,
+      windowWidth: Math.max(exportWidth + 80, 1200),
       onclone(clonedDocument) {
         clonedDocument.body.classList.remove('mobile-print-a4')
         const clonedPaper = clonedDocument.querySelector(
