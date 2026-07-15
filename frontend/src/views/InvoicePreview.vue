@@ -465,25 +465,40 @@ const downloadCanvas = async (canvas, filename) => {
 
 const getInvoiceExportBounds = (paper) => {
   const paperRect = paper.getBoundingClientRect()
-  let maxRight = paperRect.right
-  let maxBottom = paperRect.bottom
+  let maxRight =
+    paperRect.left +
+    Math.max(paperRect.width, paper.offsetWidth || 0, paper.scrollWidth || 0)
+  let maxBottom =
+    paperRect.top +
+    Math.max(paperRect.height, paper.offsetHeight || 0, paper.scrollHeight || 0)
 
   paper.querySelectorAll('*').forEach((element) => {
     const rect = element.getBoundingClientRect()
-    if (!rect.width && !rect.height) return
-    maxRight = Math.max(maxRight, rect.right)
-    maxBottom = Math.max(maxBottom, rect.bottom)
+    const width = Math.max(
+      rect.width,
+      element.offsetWidth || 0,
+      element.scrollWidth || 0,
+    )
+    const height = Math.max(
+      rect.height,
+      element.offsetHeight || 0,
+      element.scrollHeight || 0,
+    )
+    if (!width && !height) return
+    maxRight = Math.max(maxRight, rect.left + width)
+    maxBottom = Math.max(maxBottom, rect.top + height)
   })
 
   return {
-    height: Math.ceil(maxBottom - paperRect.top) + 4,
-    width: Math.ceil(maxRight - paperRect.left) + 4,
+    height: Math.ceil(maxBottom - paperRect.top) + 16,
+    width: Math.ceil(maxRight - paperRect.left) + 32,
   }
 }
 
 const createInvoiceExportSource = (source) => {
   const wrapper = document.createElement('div')
   wrapper.setAttribute('aria-hidden', 'true')
+  wrapper.dataset.invoiceExportWrapper = 'true'
   Object.assign(wrapper.style, {
     background: '#ffffff',
     left: '0',
@@ -517,8 +532,12 @@ const saveInvoiceImage = async () => {
 
     const { width: exportWidth, height: exportHeight } =
       getInvoiceExportBounds(paper)
+    Object.assign(wrapper.style, {
+      height: `${exportHeight}px`,
+      width: `${exportWidth}px`,
+    })
 
-    const canvas = await html2canvas(paper, {
+    const canvas = await html2canvas(wrapper, {
       allowTaint: false,
       backgroundColor: '#ffffff',
       height: exportHeight,
@@ -533,6 +552,16 @@ const saveInvoiceImage = async () => {
       windowWidth: Math.max(exportWidth + 80, 1200),
       onclone(clonedDocument) {
         clonedDocument.body.classList.remove('mobile-print-a4')
+        const clonedWrapper = clonedDocument.querySelector(
+          '[data-invoice-export-wrapper="true"]',
+        )
+        if (clonedWrapper) {
+          Object.assign(clonedWrapper.style, {
+            height: `${exportHeight}px`,
+            overflow: 'visible',
+            width: `${exportWidth}px`,
+          })
+        }
         const clonedPaper = clonedDocument.querySelector(
           '[data-invoice-export="true"]',
         )
