@@ -130,6 +130,286 @@ const applyExportPaperStyles = (paper) => {
   })
 }
 
+const applyStyle = (element, styles) => {
+  if (element) Object.assign(element.style, styles)
+}
+
+const applyStyles = (root, selector, styles) => {
+  root.querySelectorAll(selector).forEach((element) => {
+    applyStyle(element, styles)
+  })
+}
+
+const applyInvoiceExportStyles = (paper) => {
+  if (!paper) return
+  applyExportPaperStyles(paper)
+
+  const isA5 = normalizedInvoicePaperSize.value === 'a5'
+  const base = normalizedInvoiceFontSize.value
+  const fontSize = (ratio) => `${Math.round(base * ratio * 10) / 10}px`
+  const sizes = isA5
+    ? {
+        brandTitle: fontSize(0.62),
+        brandSubtitle: fontSize(0.58),
+        companyLine: fontSize(0.57),
+        companyTitle: fontSize(1),
+        footer: fontSize(0.64),
+        heading: fontSize(1.05),
+        logo: '22mm',
+        jotunHeight: '11mm',
+        jotunWidth: '33mm',
+        small: fontSize(0.58),
+        tableHeader: fontSize(0.68),
+        totalTitle: fontSize(0.63),
+      }
+    : {
+        brandTitle: fontSize(0.92),
+        brandSubtitle: fontSize(0.85),
+        companyLine: fontSize(0.85),
+        companyTitle: fontSize(1.54),
+        footer: fontSize(1),
+        heading: fontSize(1.46),
+        logo: '28mm',
+        jotunHeight: 'auto',
+        jotunWidth: '25mm',
+        small: fontSize(0.85),
+        tableHeader: fontSize(1),
+        totalTitle: fontSize(0.92),
+      }
+
+  applyStyle(paper, {
+    color: '#111111',
+    fontFamily: "'Battambang', Arial, sans-serif",
+    fontSize: isA5 ? fontSize(0.74) : fontSize(1),
+    lineHeight: isA5 ? '1.38' : '1.42',
+  })
+  applyStyle(paper.querySelector('.classic-header'), {
+    alignItems: 'start',
+    columnGap: isA5 ? '5mm' : '20px',
+    display: 'grid',
+    gridTemplateColumns: isA5
+      ? '32mm minmax(0, 1fr) 32mm'
+      : '205px minmax(0, 1fr) 205px',
+    minHeight: isA5 ? '29mm' : '40mm',
+    textAlign: 'center',
+  })
+  applyStyles(paper, '.classic-brand-block, .classic-jotun-block', {
+    alignItems: 'center',
+    alignSelf: 'start',
+    display: 'flex',
+    justifyContent: 'center',
+    paddingTop: '0',
+  })
+  applyStyle(paper.querySelector('.classic-brand-block'), {
+    flexDirection: 'column',
+    gap: isA5 ? '1mm' : '4px',
+    textAlign: 'center',
+  })
+  applyStyle(paper.querySelector('.classic-logo'), {
+    display: 'block',
+    flexBasis: sizes.logo,
+    height: sizes.logo,
+    maxHeight: sizes.logo,
+    maxWidth: sizes.logo,
+    objectFit: 'contain',
+    width: sizes.logo,
+  })
+  applyStyle(paper.querySelector('.classic-jotun-logo'), {
+    display: 'block',
+    height: sizes.jotunHeight,
+    maxHeight: sizes.jotunHeight === 'auto' ? 'none' : sizes.jotunHeight,
+    objectFit: 'contain',
+    width: sizes.jotunWidth,
+  })
+  applyStyle(paper.querySelector('.classic-brand-title'), {
+    fontSize: sizes.brandTitle,
+    fontWeight: '700',
+    lineHeight: '1.35',
+    margin: '0',
+    whiteSpace: 'nowrap',
+  })
+  applyStyle(paper.querySelector('.classic-subtitle'), {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: sizes.brandSubtitle,
+    fontWeight: '600',
+    lineHeight: '1.2',
+    margin: '0',
+    whiteSpace: 'nowrap',
+  })
+  applyStyle(paper.querySelector('.company-copy'), {
+    alignSelf: 'start',
+    paddingTop: '0',
+    width: '100%',
+  })
+  applyStyles(paper, '.company-copy h1', {
+    fontSize: sizes.companyTitle,
+    fontWeight: '700',
+    margin: isA5 ? '0 0 1mm' : '0 0 3px',
+  })
+  applyStyles(paper, '.company-copy p', {
+    fontSize: sizes.companyLine,
+    lineHeight: isA5 ? '1.42' : '1.48',
+    margin: '0',
+  })
+  applyStyle(paper.querySelector('.invoice-heading'), {
+    margin: isA5 ? '-1mm 0 2mm' : '-7px 0 7px',
+    textAlign: 'center',
+  })
+  applyStyle(paper.querySelector('.invoice-heading h2'), {
+    fontSize: sizes.heading,
+    fontWeight: '700',
+    margin: '0',
+  })
+  applyStyle(paper.querySelector('.classic-customer'), {
+    alignItems: isA5 ? 'end' : 'end',
+    display: 'grid',
+    gap: isA5 ? '3mm' : '34px',
+    gridTemplateColumns: isA5
+      ? 'minmax(0, 0.96fr) minmax(0, 1.04fr)'
+      : 'minmax(0, 1fr) minmax(280px, 0.8fr)',
+    padding: isA5 ? '0 1mm 2mm' : '0 2px 6px',
+  })
+  applyStyles(paper, '.customer-details, .classic-meta', {
+    display: 'grid',
+    gap: '2px',
+  })
+  applyStyle(paper.querySelector('.classic-meta'), {
+    justifySelf: 'end',
+    minWidth: isA5 ? '0' : '290px',
+  })
+  applyStyles(paper, '.invoice-info-row', {
+    alignItems: 'baseline',
+    display: 'grid',
+    gap: isA5 ? '1mm' : '7px',
+    gridTemplateColumns: 'max-content 1fr',
+    lineHeight: isA5 ? '1.42' : '1.35',
+    minHeight: isA5 ? '5mm' : '21px',
+  })
+  applyStyles(paper, '.invoice-info-row strong', {
+    fontWeight: '600',
+    whiteSpace: 'nowrap',
+  })
+  applyStyles(paper, '.invoice-info-row span', {
+    minWidth: '0',
+    overflowWrap: 'anywhere',
+    paddingLeft: isA5 ? '0.6mm' : '3px',
+  })
+  applyStyles(paper, '.classic-meta .invoice-info-row', {
+    gridTemplateColumns: isA5
+      ? 'max-content minmax(0, 1fr)'
+      : 'max-content minmax(105px, max-content)',
+    justifyContent: 'end',
+  })
+  applyStyle(paper.querySelector('.classic-table'), {
+    border: '1.2px solid #333',
+    borderCollapse: 'collapse',
+    tableLayout: 'fixed',
+    width: '100%',
+  })
+  applyStyles(paper, '.classic-table th', {
+    background: '#e8e8e8',
+    border: '1px solid #333',
+    fontSize: sizes.tableHeader,
+    lineHeight: isA5 ? '1.42' : '1.45',
+    padding: isA5 ? '1.2mm 1.3mm' : '5px 7px',
+    textAlign: 'center',
+  })
+  applyStyles(paper, '.classic-table td', {
+    border: '1px solid #333',
+    height: isA5 ? '8.1mm' : '35px',
+    lineHeight: isA5 ? '1.42' : '1.45',
+    padding: isA5 ? '1.4mm 1.6mm' : '5px 8px',
+    verticalAlign: 'top',
+  })
+  applyStyles(paper, '.classic-table .number-column', { width: '6%' })
+  applyStyles(paper, '.classic-table .code-column', { width: '13%' })
+  applyStyles(paper, '.classic-table .qty-column', { width: '8%' })
+  applyStyles(paper, '.classic-table .money-column', {
+    width: isA5 ? '16%' : '15%',
+  })
+  applyStyles(paper, '.currency-cell, .qty-value', { whiteSpace: 'nowrap' })
+  applyStyles(paper, '.currency-cell span, .classic-totals td span', {
+    float: 'left',
+  })
+  applyStyles(paper, '.currency-cell strong, .classic-totals td strong', {
+    float: 'right',
+    fontWeight: '500',
+  })
+  applyStyle(paper.querySelector('.classic-settlement'), {
+    display: 'grid',
+    gridTemplateColumns: isA5 ? '59% 41%' : '62% 38%',
+    minHeight: isA5 ? '39mm' : '196px',
+  })
+  applyStyle(paper.querySelector('.classic-payment'), {
+    padding: isA5 ? '2.4mm 2.5mm 0 1.5mm' : '8px 10px 0',
+  })
+  applyStyle(paper.querySelector('.payment-notes'), {
+    minHeight: isA5 ? '12mm' : '54px',
+  })
+  applyStyle(paper.querySelector('.qr-block'), {
+    width: isA5 ? '38mm' : '160px',
+  })
+  applyStyle(paper.querySelector('.qr-block img'), {
+    display: 'block',
+    height: isA5 ? '22mm' : '105px',
+    marginLeft: isA5 ? '1.5mm' : '6px',
+    objectFit: 'contain',
+    width: isA5 ? '22mm' : '105px',
+  })
+  applyStyle(paper.querySelector('.classic-totals'), {
+    alignSelf: 'start',
+    borderCollapse: 'collapse',
+    width: '100%',
+  })
+  applyStyles(paper, '.classic-totals th, .classic-totals td', {
+    border: '1px solid #333',
+    height: isA5 ? '8.4mm' : '40px',
+    padding: isA5 ? '1mm 1.6mm' : '4px 8px',
+    verticalAlign: 'middle',
+  })
+  applyStyles(paper, '.classic-totals th', {
+    fontSize: sizes.totalTitle,
+    fontWeight: '500',
+    lineHeight: isA5 ? '1.36' : '1.38',
+    textAlign: 'left',
+    width: '59%',
+  })
+  applyStyles(paper, '.classic-totals th span, .signature-box span', {
+    fontSize: sizes.small,
+  })
+  applyStyle(paper.querySelector('.signature-section'), {
+    display: 'grid',
+    gap: isA5 ? '12mm' : '78px',
+    gridTemplateColumns: '1fr 1fr',
+    margin: isA5 ? '2mm 8mm 0' : '4px 32px 0',
+  })
+  applyStyles(paper, '.signature-box', { textAlign: 'center' })
+  applyStyles(paper, '.signature-space', {
+    alignItems: 'center',
+    display: 'flex',
+    height: isA5 ? '20mm' : '82px',
+    justifyContent: 'center',
+  })
+  applyStyles(paper, '.seller-signature-image', {
+    display: 'block',
+    height: 'auto',
+    maxHeight: isA5 ? '18mm' : '76px',
+    maxWidth: '82%',
+    objectFit: 'contain',
+    width: 'auto',
+  })
+  applyStyles(paper, '.signature-line', { borderTop: '1px solid #333' })
+  applyStyle(paper.querySelector('.classic-footer'), {
+    borderTop: '1px solid #333',
+    display: 'flex',
+    fontFamily: "Arial, 'Battambang', sans-serif",
+    fontSize: sizes.footer,
+    justifyContent: 'space-between',
+    marginTop: isA5 ? '3mm' : '5mm',
+    paddingTop: isA5 ? '2mm' : '10px',
+  })
+}
+
 const printInvoice = () => {
   const shouldUseMobileA4 =
     normalizedInvoicePaperSize.value === 'a5' &&
@@ -198,7 +478,7 @@ const createInvoiceExportSource = (source) => {
 
   const paper = source.cloneNode(true)
   paper.dataset.invoiceExport = 'true'
-  applyExportPaperStyles(paper)
+  applyInvoiceExportStyles(paper)
   wrapper.appendChild(paper)
   document.body.appendChild(wrapper)
 
@@ -236,7 +516,7 @@ const saveInvoiceImage = async () => {
           '[data-invoice-export="true"]',
         )
         if (!clonedPaper) return
-        applyExportPaperStyles(clonedPaper)
+        applyInvoiceExportStyles(clonedPaper)
       },
     })
     await downloadCanvas(canvas, `${invoice.value.invoiceNumber || 'invoice'}.png`)
